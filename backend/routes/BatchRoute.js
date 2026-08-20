@@ -15,4 +15,5 @@ router.get("/", restrictTo("Admin", "Mentor"), getAllBatches);
 router.put("/:batchId/assign-mentor", restrictTo("Admin"), assignMentor);
 router.put("/:batchId/enroll-student", restrictTo("Admin"), enrollStudents);
 
+
 module.exports = router;

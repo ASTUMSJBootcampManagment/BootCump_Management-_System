@@ -60,6 +60,11 @@ exports.assignMentor = async (req, res) => {
         message: "Cannot assign mentor. Batch status must be Active"
       });
     }
+    const existingBatch = await Batch.findOne({ mentors: mentorId, status: "Active" });
+    if (existingBatch && existingBatch._id.toString() !== batchId) {
+       return res.status(400).
+       json({ message: "This mentor is already assigned to another active batch" });
+}
     const updatedBatch = await Batch.findByIdAndUpdate(
       batchId,
       { $addToSet: { mentors: mentorId } },
@@ -96,6 +101,12 @@ exports.enrollStudents = async (req, res) => {
     if (!student) {
       return res.status(404).json({ message: "Student user doesn't exist" });
     }
+    const existingBatch = await Batch.findOne({ students: studentId });
+    if (existingBatch) {
+      return res.status(400)
+      .json({ message: `Student is already enrolled in batch: ${existingBatch.name}` 
+    });
+}
     const updatedBatch = await Batch.findByIdAndUpdate(
       batchId,
       { $addToSet: { students: studentId } },
