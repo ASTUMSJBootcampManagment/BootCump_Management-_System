@@ -1,5 +1,4 @@
 const mongoose= require("mongoose");
-const { applyTimestamps } = require("./userModel");
 const BatchSchema = new mongoose.Schema({
     name:{
        "type":String,
