@@ -4,14 +4,14 @@ const router = express.Router();
 const {
   markAttendance,
   getAttendance,
-  getStudentAttendanceStats, deleteAllAttendance, // Import function
+  getStudentAttendanceStats, deleteAllAttendance, 
 } = require("../controllers/attendanceController");
 
 const { verifyToken, restrictTo } = require("../middlewares/authMiddleware");
 router.use(verifyToken);
 
-router.post("/attendant", restrictTo("Mentor", "Admin"), markAttendance);
-router.get("/", restrictTo("Mentor", "Admin"), getAttendance);
+router.post("/attender", restrictTo("Mentor", "Admin"), markAttendance);
+router.get("/", restrictTo("Mentor", "Admin","Student"), getAttendance);
 router.get("/stats/:studentId", restrictTo("Mentor", "Admin", "Student"), getStudentAttendanceStats);
 
 module.exports = router;
