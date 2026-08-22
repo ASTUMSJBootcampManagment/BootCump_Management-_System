@@ -11,7 +11,6 @@ const AnnouncementSchema= new mongoose.Schema({
     batch:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'Batch',
-        required:[true,"Batch is required"]  
     },
     announcedTo:{
         type: String,

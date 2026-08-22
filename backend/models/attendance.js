@@ -20,7 +20,6 @@ const AttendanceSchema= new mongoose.Schema({
     batch:{
         type: mongoose.Schema.Types.ObjectId,
         ref:"Batch",
-        required:[true,"batch is required"]
 
         
     }

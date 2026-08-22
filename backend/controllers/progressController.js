@@ -6,21 +6,18 @@ const Batch = require("../models/Batches");
 exports.createTopic = async (req, res) => {
     try {
         const { topic } = req.body;
-        const students = await User.find({ role: "Student" });
+        const batches = await Batch.find({});
 
-        for (const student of students) {
-            const studentBatch = await Batch.findOne({ students: student._id });
-
+        for (const batch of batches) {
             await progress.create({
                 topic: topic,
-                student: student._id,
-                batch: studentBatch ? studentBatch._id : null
+                batch: batch._id
             });
         }
 
         res.status(201).json({
             success: true,
-            message: "Progress created for all students successfully!",
+            message: "Topic progress created for all batches successfully!",
         });
     } catch (error) {
         res.status(400).json({
@@ -29,14 +26,14 @@ exports.createTopic = async (req, res) => {
         });
     }
 };
+
 exports.updateProgress = async (req, res) => {
     try {
-        const { StudentId } = req.params;
-        const { status, topic } = req.body; 
+        const StudentId = req.params.StudentId || req.params.studentId || req.params.id;
+        const { status } = req.body; 
         let batchQuery = {};
         if (req.user.role === "Mentor") {
             const mentorBatch = await Batch.findOne({ mentors: req.user.id });
-
             if (!mentorBatch) {
                 return res.status(403).json({
                     success: false,
@@ -45,11 +42,18 @@ exports.updateProgress = async (req, res) => {
             }
             batchQuery.batch = mentorBatch._id;
         }
-        const updatedProgress = await progress.findOneAndUpdate(
+        let updatedProgress = await progress.findOneAndUpdate(
             { student: StudentId, ...batchQuery },
             { status },
             { new: true, runValidators: true }
         );
+        if (!updatedProgress) {
+            updatedProgress = await progress.findOneAndUpdate(
+                { ...batchQuery, $or: [{ student: null }, { student: { $exists: false } }] },
+                { status, student: StudentId },
+                { new: true, runValidators: true }
+            );
+        }
 
         if (!updatedProgress) {
             return res.status(404).json({
@@ -78,10 +82,11 @@ exports.getProgress = async (req, res) => {
         if (StudentId) {
             query.student = StudentId;
         } else {
-            const { topic, status, batch } = req.query;
+            const { topic, status, batch ,name} = req.query;
             if (topic) query.topic = topic;
             if (status) query.status = status;
             if (batch) query.batch = batch;
+            if(name) query.name=name;
         }
 
         const getProgresses = await progress.find(query);
@@ -100,7 +105,7 @@ exports.getProgress = async (req, res) => {
 };
 exports.getMentorStudentsProgress = async (req, res) => {
     try {
-        const mentorBatch = await Batch.findOne({ mentors: req.user._id });
+        const mentorBatch = await Batch.findOne({ mentors: req.user.id });
 
         if (!mentorBatch) {
             return res.status(403).json({

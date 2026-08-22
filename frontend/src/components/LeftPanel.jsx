@@ -6,13 +6,17 @@ const LeftPanel = () => {
 
       <div className="absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-[#0aa6a6]/20" />
 
+      {/* Dotted pattern */}
       <div className="absolute right-8 top-8 grid grid-cols-5 gap-2 opacity-40">
         {Array.from({ length: 25 }).map((_, index) => (
           <span key={index} className="h-1 w-1 rounded-full bg-[#16b86a]" />
         ))}
       </div>
 
+      {/* Main content */}
       <div className="relative z-10 px-10 pt-10 xl:px-12">
+
+        {/* Logo + name */}
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg">
             <img
@@ -31,7 +35,9 @@ const LeftPanel = () => {
           </div>
         </div>
 
+        {/* Message */}
         <div className="mt-24 max-w-md xl:mt-28">
+
           <h2 className="text-4xl font-bold leading-tight text-white xl:text-5xl">
             Learn.
             <br />

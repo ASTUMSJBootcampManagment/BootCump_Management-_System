@@ -116,6 +116,7 @@ const LoginForm = () => {
                 >
                   {showPassword ? <FiEyeOff /> : <FiEye />}
                 </button>
+
               </div>
             </div>
 
@@ -127,6 +128,7 @@ const LoginForm = () => {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 rounded border-gray-300 text-[#16B86A] focus:ring-[#16B86A]"
                 />
+
                 Remember me
               </label>
 
@@ -136,6 +138,7 @@ const LoginForm = () => {
               >
                 Forgot password?
               </button>
+
             </div>
 
             <button
@@ -144,10 +147,12 @@ const LoginForm = () => {
             >
               Sign In
             </button>
+
           </form>
 
           <p className="mt-7 text-center text-sm text-[#64748B]">
             Don't have an account?{" "}
+
             <Link
               to="/register"
               className="font-semibold text-[#0AA6A6] hover:text-[#16B86A]"
@@ -155,11 +160,13 @@ const LoginForm = () => {
               Sign up
             </Link>
           </p>
+
         </div>
 
         <p className="mt-6 text-center text-sm text-[#94A3B8]">
           © 2026 ASTUMSJ Summer BootCamp. All rights reserved.
         </p>
+
       </div>
     </div>
   );
