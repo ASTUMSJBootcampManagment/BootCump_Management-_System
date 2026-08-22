@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   FiCalendar,
-  FiChevronDown,
   FiSave,
   FiX,
   FiCheckCircle,
@@ -16,7 +15,8 @@ import {
 const statuses = ["Present", "Absent", "Late", "Excused"];
 
 const Attendance = () => {
-  const [batch, setBatch] = useState("null");
+  const [batches, setBatches] = useState([]);
+  const [batch, setBatch] = useState(null);
 
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
@@ -36,7 +36,6 @@ const Attendance = () => {
         setError("");
 
         const response = await getAttendance();
-
         const records = response?.data || [];
 
         const studentMap = new Map();
@@ -78,6 +77,7 @@ const Attendance = () => {
     setError("");
     setSuccess("");
   };
+
   const handleSave = async () => {
     setError("");
     setSuccess("");
@@ -96,10 +96,8 @@ const Attendance = () => {
         students.map((student) =>
           markAttendance({
             student: student.id,
-            batch: batch._id,
-
+            batch: batch?._id,
             status: attendance[student.id].toLowerCase(),
-
             date,
           }),
         ),
@@ -128,7 +126,6 @@ const Attendance = () => {
         <div className="mx-auto max-w-7xl">
           <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
             <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
-
             <p className="mt-4 text-sm text-slate-500">Loading students...</p>
           </div>
         </div>
@@ -143,7 +140,6 @@ const Attendance = () => {
           <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
             Mark Attendance
           </h1>
-
           <p className="mt-1 text-sm text-slate-500">
             Record attendance for students in your current batch.
           </p>
@@ -152,14 +148,12 @@ const Attendance = () => {
         {error && (
           <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             <FiAlertCircle className="mt-0.5 shrink-0" size={18} />
-
             <span>{error}</span>
           </div>
         )}
         {success && (
           <div className="mb-5 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
             <FiCheckCircle className="mt-0.5 shrink-0" size={18} />
-
             <span>{success}</span>
           </div>
         )}
@@ -173,46 +167,12 @@ const Attendance = () => {
 
               <div>
                 <h2 className="font-bold text-slate-900">Attendance</h2>
-
                 <p className="text-xs text-slate-500">Current batch</p>
               </div>
             </div>
           </div>
+
           <div className="grid grid-cols-1 gap-4 border-b border-slate-200 p-5 sm:grid-cols-2 sm:p-6">
-            <div>
-              <label
-                htmlFor="batch"
-                className="mb-2 block text-sm font-semibold text-slate-700"
-              >
-                Batch
-              </label>
-
-              <div className="relative">
-                <select
-                  value={batch?._id || ""}
-                  onChange={(e) => {
-                    const selectedBatch = batches.find(
-                      (b) => b._id === e.target.value,
-                    );
-
-                    setBatch(selectedBatch);
-                  }}
-                >
-                  <option value="">Select batch</option>
-
-                  {batches.map((b) => (
-                    <option key={b._id} value={b._id}>
-                      {b.batchName} • {b.name}
-                    </option>
-                  ))}
-                </select>
-
-                <FiChevronDown
-                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
-                  size={17}
-                />
-              </div>
-            </div>
             <div>
               <label
                 htmlFor="date"
@@ -230,10 +190,10 @@ const Attendance = () => {
               />
             </div>
           </div>
+
           {students.length === 0 ? (
             <div className="p-10 text-center">
               <FiAlertCircle className="mx-auto text-slate-400" size={30} />
-
               <h3 className="mt-4 font-semibold text-slate-800">
                 No students found
               </h3>
@@ -244,17 +204,15 @@ const Attendance = () => {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-190">
+                <table className="w-full min-w-[600px]">
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                         Student
                       </th>
-
                       <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                         Email
                       </th>
-
                       <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                         Status
                       </th>
@@ -275,7 +233,6 @@ const Attendance = () => {
                               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-blue-600">
                                 {student.name?.charAt(0)?.toUpperCase()}
                               </div>
-
                               <p className="text-sm font-semibold text-slate-800">
                                 {student.name}
                               </p>
@@ -290,7 +247,7 @@ const Attendance = () => {
                               onChange={(e) =>
                                 handleStatusChange(student.id, e.target.value)
                               }
-                              className={`w-full max-w-47.5 rounded-xl border px-3 py-2.5 text-sm font-semibold outline-none transition focus:ring-2 ${
+                              className={`w-full max-w-[190px] rounded-xl border px-3 py-2.5 text-sm font-semibold outline-none transition focus:ring-2 ${
                                 selected === "Present"
                                   ? "border-green-200 bg-green-50 text-green-700 focus:ring-green-100"
                                   : selected === "Absent"
@@ -316,6 +273,7 @@ const Attendance = () => {
                   </tbody>
                 </table>
               </div>
+
               <div className="flex flex-col-reverse gap-3 border-t border-slate-200 p-5 sm:flex-row sm:justify-end sm:p-6">
                 <button
                   type="button"
@@ -334,7 +292,6 @@ const Attendance = () => {
                   className="flex items-center justify-center gap-2 rounded-xl bg-green-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <FiSave size={17} />
-
                   {saving ? "Saving..." : "Save Attendance"}
                 </button>
               </div>

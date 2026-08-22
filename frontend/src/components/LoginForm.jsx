@@ -23,8 +23,26 @@ const LoginForm = () => {
       const url = "http://localhost:3000/api/auth/login";
       const { data: res } = await axios.post(url, data);
       localStorage.setItem("token", res.token);
-      console.log(res.message);
-      navigate("/mentor/attendance");
+      console.log("Login successfull:", res.message);
+      console.log("Role:", res.user.role);
+
+      switch (res.user.role) {
+        case "Mentor":
+          navigate("/mentor/attendance");
+          break;
+
+        case "Student":
+          navigate("/student/attendance");
+          break;
+
+        case "Admin":
+          navigate("/admin/dashboard");
+          break;
+
+        default:
+          console.error("Unknown role:", res.user.role);
+          navigate("/");
+      }
     } catch (error) {
       console.log("STATUS:", error.response?.status);
       console.log("BACKEND RESPONSE:", error.response?.data);

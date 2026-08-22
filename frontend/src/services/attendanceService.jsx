@@ -20,7 +20,7 @@ export const getAttendance = async () => {
 
 export const markAttendance = async (attendanceData) => {
   const response = await axios.post(
-    `${url}/attendant`,
+    `${url}/attender`,
     attendanceData,
     getAuthHeaders(),
   );

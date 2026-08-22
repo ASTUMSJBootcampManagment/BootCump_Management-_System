@@ -1,6 +1,4 @@
 const Submission = require("../models/submissionModel");
-
-// Mentor/Admin: grade a submission
 const gradeSubmission = async (req, res) => {
   try {
     const { grade, feedback } = req.body;

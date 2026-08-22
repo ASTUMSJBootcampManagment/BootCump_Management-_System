@@ -1,15 +1,15 @@
-import { Routes, Route } from 'react-router-dom';
-import StudentAttendance from './pages/student/StudentAttendance';
-import StudentProgress from './pages/student/StudentProgress';
-import StudentAssignments from './pages/student/StudentAssignments';
+import { Routes, Route } from "react-router-dom";
+import StudentAttendance from "../pages/student/StudentAttendnce"; // Check exact file spelling
+import StudentProgress from "../pages/student/StudentProgress";
+import StudentAssignments from "../pages/student/StudentAssignment";
 
 function AppRoutes() {
   return (
     <Routes>
-      {/* Student Routes */}
-      <Route path="/student/attendance" element={<StudentAttendance />} />
-      <Route path="/student/progress" element={<StudentProgress />} />
-      <Route path="/student/assignments" element={<StudentAssignments />} />
+      {/* Do NOT put "/student" here — use relative paths! */}
+      <Route path="attendance" element={<StudentAttendance />} />
+      <Route path="progress" element={<StudentProgress />} />
+      <Route path="assignments" element={<StudentAssignments />} />
     </Routes>
   );
 }

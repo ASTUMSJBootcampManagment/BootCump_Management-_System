@@ -12,6 +12,9 @@ const {
   getSubmissionsForAssignment,
   getMySubmissions,
 } = require("../controllers/submissionController");
+const{
+  gradeSubmission
+}=require("../controllers/gradingController")
 
 const router = express.Router();
 
@@ -19,11 +22,9 @@ router.post("/", verifyToken, restrictTo("Admin", "Mentor"), createAssignment);
 router.get("/", verifyToken, getAssignments);
 router.put("/:id", verifyToken, restrictTo("Admin", "Mentor"), updateAssignment);
 router.delete("/:id", verifyToken, restrictTo("Admin", "Mentor"), deleteAssignment);
-
-// Submissions
-router.post("/submit", protect, authorizeRoles("Student"), submitAssignment);
-router.get("/:assignmentId/submissions", protect, authorizeRoles("Admin", "Mentor"), getSubmissionsForAssignment);
-router.get("/my-submissions", protect, authorizeRoles("Student"), getMySubmissions);
+router.post("/submit", verifyToken, authorizeRoles("Student"), submitAssignment);
+router.get("/:assignmentId/submissions", verifyToken, authorizeRoles("Admin", "Mentor"), getSubmissionsForAssignment);
+router.get("/my-submissions", verifyToken, authorizeRoles("Student"), getMySubmissions);
 router.post("/submit", verifyToken, restrictTo("Student"), submitAssignment);
 router.get("/:assignmentId/submissions", verifyToken, restrictTo("Admin", "Mentor"), getSubmissionsForAssignment);
 router.get("/my-submissions", verifyToken, restrictTo("Student"), getMySubmissions);

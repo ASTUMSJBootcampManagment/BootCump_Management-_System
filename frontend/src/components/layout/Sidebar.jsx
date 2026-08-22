@@ -15,8 +15,7 @@ import {
   FiX,
 } from "react-icons/fi";
 
-import logo from "../../assets/logo.png";
-
+import logo from "../../assets/astumsj-logo.png";
 const Sidebar = ({ role = "admin", isOpen, setIsOpen }) => {
   const menus = {
     admin: [
