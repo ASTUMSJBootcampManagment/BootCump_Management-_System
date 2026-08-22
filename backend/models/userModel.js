@@ -1,5 +1,6 @@
 const mongoose= require("mongoose")
 const userSchema= new mongoose.Schema({
+
     "email":{
         type:String,
         required:[true,"email is required"],
@@ -10,6 +11,16 @@ const userSchema= new mongoose.Schema({
     "password":{
         type:String,
         required:[true,"password is required"],
+    },
+    "status":{
+      type:String,
+      enum:["pending","approved","rejected"],
+      default:"pending"
+    },
+    "name":{
+      type:String,
+      required:[true,"name is required"],
+      trim:true
     },
     "role": {
     type: String,
