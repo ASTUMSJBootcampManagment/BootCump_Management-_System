@@ -1,5 +1,5 @@
 const express = require("express");
-const protect = require("../middlewares/authMiddleware");
+const {verifyToken,restrictTo} = require("../middlewares/authMiddleware");
 const authorizeRoles = require("../middlewares/roleMiddleware");
 const {
   createAssignment,
@@ -12,18 +12,22 @@ const {
   getSubmissionsForAssignment,
   getMySubmissions,
 } = require("../controllers/submissionController");
+const{
+  gradeSubmission
+}=require("../controllers/gradingController")
 
 const router = express.Router();
 
-// Assignments
-router.post("/", protect, authorizeRoles("Admin", "Mentor"), createAssignment);
-router.get("/", protect, getAssignments);
-router.put("/:id", protect, authorizeRoles("Admin", "Mentor"), updateAssignment);
-router.delete("/:id", protect, authorizeRoles("Admin", "Mentor"), deleteAssignment);
-
-// Submissions
-router.post("/submit", protect, authorizeRoles("Student"), submitAssignment);
-router.get("/:assignmentId/submissions", protect, authorizeRoles("Admin", "Mentor"), getSubmissionsForAssignment);
-router.get("/my-submissions", protect, authorizeRoles("Student"), getMySubmissions);
+router.post("/", verifyToken, restrictTo("Admin", "Mentor"), createAssignment);
+router.get("/", verifyToken, getAssignments);
+router.put("/:id", verifyToken, restrictTo("Admin", "Mentor"), updateAssignment);
+router.delete("/:id", verifyToken, restrictTo("Admin", "Mentor"), deleteAssignment);
+router.post("/submit", verifyToken, authorizeRoles("Student"), submitAssignment);
+router.get("/:assignmentId/submissions", verifyToken, authorizeRoles("Admin", "Mentor"), getSubmissionsForAssignment);
+router.get("/my-submissions", verifyToken, authorizeRoles("Student"), getMySubmissions);
+router.post("/submit", verifyToken, restrictTo("Student"), submitAssignment);
+router.get("/:assignmentId/submissions", verifyToken, restrictTo("Admin", "Mentor"), getSubmissionsForAssignment);
+router.get("/my-submissions", verifyToken, restrictTo("Student"), getMySubmissions);
+router.put("/submissions/:id/grade", verifyToken, restrictTo("Admin", "Mentor"), gradeSubmission);
 
 module.exports = router;
