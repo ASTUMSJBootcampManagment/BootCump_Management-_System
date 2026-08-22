@@ -5,7 +5,7 @@ const jwt= require("jsonwebtoken")
 exports.login= async(req,res)=>{
     try{
         const{email,password}=req.body
-        const user = await User.findOne({email});
+        const user = await User.findOne({email}).select("+password");
         if(!user){
            return  await res.status(400).json("invalid credential")
         }
@@ -16,7 +16,7 @@ exports.login= async(req,res)=>{
         const token=jwt.sign(
             {id:user._id,role:user.role},
             process.env.JWT_SECRET || "your_temporary_secret_key",
-            {expiresIn:"1h"}
+            {expiresIn:"3days"}
         )
         return res.status(200).json({
             message: "Login successful",
@@ -24,7 +24,8 @@ exports.login= async(req,res)=>{
             user: {
                  id: user._id,
                  email: user.email,
-                 role: user.role
+                 role: user.role,
+                 status:user.status
       }
     });
 }
