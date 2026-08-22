@@ -11,7 +11,6 @@ const {
   submitAssignment,
   getSubmissionsForAssignment,
   getMySubmissions,
-  gradeSubmission,
 } = require("../controllers/submissionController");
 
 const router = express.Router();
@@ -21,6 +20,10 @@ router.get("/", verifyToken, getAssignments);
 router.put("/:id", verifyToken, restrictTo("Admin", "Mentor"), updateAssignment);
 router.delete("/:id", verifyToken, restrictTo("Admin", "Mentor"), deleteAssignment);
 
+// Submissions
+router.post("/submit", protect, authorizeRoles("Student"), submitAssignment);
+router.get("/:assignmentId/submissions", protect, authorizeRoles("Admin", "Mentor"), getSubmissionsForAssignment);
+router.get("/my-submissions", protect, authorizeRoles("Student"), getMySubmissions);
 router.post("/submit", verifyToken, restrictTo("Student"), submitAssignment);
 router.get("/:assignmentId/submissions", verifyToken, restrictTo("Admin", "Mentor"), getSubmissionsForAssignment);
 router.get("/my-submissions", verifyToken, restrictTo("Student"), getMySubmissions);
