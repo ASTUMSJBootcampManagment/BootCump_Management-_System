@@ -4,10 +4,9 @@ const User = require("../models/UserModel");
 
 exports.markAttendance = async (req, res) => {
   try {
-    const { student, batch, status, date } = req.body;
+    const { student, status, date } = req.body;
     const newAttendance = await Attendance.create({
       student,
-      batch,
       status,
       date: date || Date.now(),
     });

@@ -17,5 +17,4 @@ router.get("/get-all", restrictTo("Admin", "Mentor"), getProgress);
 router.get("/get-one/:StudentId", restrictTo("Admin", "Mentor", "Student"), getProgress);
 router.get("/get/students-progress", verifyToken, restrictTo("Mentor"), getMentorStudentsProgress);
 router.patch("/update-progress/:StudentId", verifyToken, restrictTo("Mentor"),updateProgress);
-
 module.exports = router;
