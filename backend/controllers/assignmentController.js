@@ -1,7 +1,6 @@
 const Assignment = require("../models/assignmentModel");
 const Submission = require("../models/submissionModel");
 
-// Create an assignment (Mentor/Admin)
 const createAssignment = async (req, res) => {
   try {
     const { title, description, dueDate } = req.body;
@@ -19,7 +18,6 @@ const createAssignment = async (req, res) => {
   }
 };
 
-// Get all assignments (any logged-in user)
 const getAssignments = async (req, res) => {
   try {
     const assignments = await Assignment.find().populate("createdBy", "username role");
@@ -30,7 +28,6 @@ const getAssignments = async (req, res) => {
   }
 };
 
-// Update an assignment (Mentor/Admin)
 const updateAssignment = async (req, res) => {
   try {
     const { title, description, dueDate } = req.body;
@@ -54,7 +51,6 @@ const updateAssignment = async (req, res) => {
   }
 };
 
-// Delete an assignment (Mentor/Admin)
 const deleteAssignment = async (req, res) => {
   try {
     const assignment = await Assignment.findByIdAndDelete(req.params.id);
