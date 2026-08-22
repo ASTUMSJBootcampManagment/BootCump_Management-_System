@@ -100,7 +100,7 @@ exports.getProgress = async (req, res) => {
 };
 exports.getMentorStudentsProgress = async (req, res) => {
     try {
-        const mentorBatch = await Batch.findOne({ mentors: req.user.id });
+        const mentorBatch = await Batch.findOne({ mentors: req.user._id });
 
         if (!mentorBatch) {
             return res.status(403).json({

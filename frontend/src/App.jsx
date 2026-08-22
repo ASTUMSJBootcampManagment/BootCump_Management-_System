@@ -15,7 +15,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
+        <Route element={<ProtectedRoute allowedRoles={["Mentor"]} />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/mentor/attendance" element={<Attendance />} />
           <Route path="/mentor/history" element={<History />} />
