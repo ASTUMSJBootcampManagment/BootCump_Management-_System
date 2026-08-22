@@ -12,6 +12,10 @@ const assignmentRoutes = require("./routes/assignmentRoutes");
 // const attendanceRoute = require("./routes/attendanceRoute");
 // const progressRoute = require("./routes/progressRoutes");
 const gradingRoutes = require("./routes/gradingRoutes");
+const BatchRoutes = require("./routes/BatchRoute");
+const announcementRoute= require("./routes/announcementRoute")
+const attendanceRoute=require("./routes/attendanceRoute")
+const progressRoute=require("./routes/progressRoutes")
 dbConnect();
 const app = express();
 app.use(express.json());
@@ -23,6 +27,10 @@ app.use("/api/assignments", assignmentRoutes);
 // app.use("/api/attendance",attendanceRoute)
 // app.use("/api/progress",progressRoute)
 app.use("/api/grading", gradingRoutes);
+app.use("/api/batches", BatchRoutes);
+app.use("/api/announcement",announcementRoute)
+app.use("/api/attendance",attendanceRoute)
+app.use("/api/progress",progressRoute)
 const PORT = process.env.PORT||3000;
 app.listen(PORT, () => {
   console.log(`Server is running at port ${PORT}`);
