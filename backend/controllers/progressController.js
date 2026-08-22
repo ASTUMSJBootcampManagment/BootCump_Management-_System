@@ -82,10 +82,11 @@ exports.getProgress = async (req, res) => {
         if (StudentId) {
             query.student = StudentId;
         } else {
-            const { topic, status, batch } = req.query;
+            const { topic, status, batch ,name} = req.query;
             if (topic) query.topic = topic;
             if (status) query.status = status;
             if (batch) query.batch = batch;
+            if(name) query.name=name;
         }
 
         const getProgresses = await progress.find(query);

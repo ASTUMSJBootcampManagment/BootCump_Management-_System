@@ -12,6 +12,11 @@ const userSchema= new mongoose.Schema({
         type:String,
         required:[true,"password is required"],
     },
+    "status":{
+      type:String,
+      enum:["pending","approved","rejected"],
+      default:"pending"
+    },
     "name":{
       type:String,
       required:[true,"name is required"],

@@ -98,7 +98,7 @@ exports.enrollStudents = async (req, res) => {
       });
     }
     const student = await User.findById(studentId);
-    if (!student) {
+if (!student || student.status !== "accepted") {  
       return res.status(404).json({ message: "Student user doesn't exist" });
     }
     const existingBatch = await Batch.findOne({ students: studentId });
