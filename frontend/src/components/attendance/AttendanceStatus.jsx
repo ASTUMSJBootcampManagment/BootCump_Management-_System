@@ -16,7 +16,7 @@ import {
 const statuses = ["Present", "Absent", "Late", "Excused"];
 
 const Attendance = () => {
-  const [batch, setBatch] = useState("WD-2026-01");
+  const [batch, setBatch] = useState("null");
 
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
@@ -96,7 +96,7 @@ const Attendance = () => {
         students.map((student) =>
           markAttendance({
             student: student.id,
-            batch: batch,
+            batch: batch._id,
 
             status: attendance[student.id].toLowerCase(),
 
@@ -139,7 +139,6 @@ const Attendance = () => {
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
-        {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
             Mark Attendance
@@ -150,7 +149,6 @@ const Attendance = () => {
           </p>
         </div>
 
-        {/* Error */}
         {error && (
           <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             <FiAlertCircle className="mt-0.5 shrink-0" size={18} />
@@ -181,7 +179,6 @@ const Attendance = () => {
             </div>
           </div>
           <div className="grid grid-cols-1 gap-4 border-b border-slate-200 p-5 sm:grid-cols-2 sm:p-6">
-            {/* Batch */}
             <div>
               <label
                 htmlFor="batch"
@@ -192,18 +189,22 @@ const Attendance = () => {
 
               <div className="relative">
                 <select
-                  id="batch"
-                  value={batch}
-                  onChange={(e) => setBatch(e.target.value)}
-                  className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-3 pr-10 text-sm text-slate-700 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-                >
-                  <option value="WD-2026-01">
-                    WD-2026-01 • Web Development
-                  </option>
+                  value={batch?._id || ""}
+                  onChange={(e) => {
+                    const selectedBatch = batches.find(
+                      (b) => b._id === e.target.value,
+                    );
 
-                  <option value="WD-2026-02">
-                    WD-2026-02 • Web Development
-                  </option>
+                    setBatch(selectedBatch);
+                  }}
+                >
+                  <option value="">Select batch</option>
+
+                  {batches.map((b) => (
+                    <option key={b._id} value={b._id}>
+                      {b.batchName} • {b.name}
+                    </option>
+                  ))}
                 </select>
 
                 <FiChevronDown

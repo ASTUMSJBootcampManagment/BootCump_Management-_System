@@ -24,7 +24,7 @@ const LoginForm = () => {
       const { data: res } = await axios.post(url, data);
       localStorage.setItem("token", res.token);
       console.log(res.message);
-      navigate("/dashboard");
+      navigate("/mentor/attendance");
     } catch (error) {
       console.log("STATUS:", error.response?.status);
       console.log("BACKEND RESPONSE:", error.response?.data);

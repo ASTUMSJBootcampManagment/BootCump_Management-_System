@@ -34,7 +34,6 @@ const Sidebar = () => {
 
   return (
     <>
-      {/* Mobile menu button */}
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
@@ -44,7 +43,6 @@ const Sidebar = () => {
         <FiMenu size={22} />
       </button>
 
-      {/* Mobile overlay */}
       {mobileOpen && (
         <button
           type="button"
@@ -54,16 +52,13 @@ const Sidebar = () => {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`fixed left-0 top-0 z-50 flex h-screen w-64 flex-col bg-[#062A5C] transition-transform duration-300
         ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
       >
-        {/* Brand */}
         <div className="flex h-20 items-center justify-between border-b border-slate-800 px-5">
           <div className="flex items-center gap-3">
-            
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg">
               <img
                 src={logo}
@@ -79,7 +74,6 @@ const Sidebar = () => {
             </div>
           </div>
 
-          {/* Mobile close */}
           <button
             type="button"
             onClick={closeMobile}
@@ -90,9 +84,7 @@ const Sidebar = () => {
           </button>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-4 py-6">
-          {/* Main */}
           <p className="mb-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
             Main
           </p>
@@ -113,13 +105,11 @@ const Sidebar = () => {
             </NavLink>
           </div>
 
-          {/* Management */}
           <p className="mb-3 mt-7 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
             Management
           </p>
 
           <div className="space-y-1">
-            {/* Attendance parent */}
             <button
               type="button"
               onClick={() => setAttendanceOpen(!attendanceOpen)}
@@ -136,7 +126,6 @@ const Sidebar = () => {
               )}
             </button>
 
-            {/* Attendance children */}
             {attendanceOpen && (
               <div className="ml-4 space-y-1 border-l border-slate-700 pl-3">
                 <NavLink
@@ -156,7 +145,7 @@ const Sidebar = () => {
                 </NavLink>
 
                 <NavLink
-                  to="/mentor/attendance/history"
+                  to="/mentor/history"
                   onClick={closeMobile}
                   className={({ isActive }) =>
                     `flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition ${
@@ -201,7 +190,6 @@ const Sidebar = () => {
           </div>
         </nav>
 
-        {/* Bottom profile */}
         <div className="border-t border-slate-800 p-4">
           <div className="flex items-center gap-3 rounded-xl bg-slate-800 p-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-500 font-bold text-white">
