@@ -21,7 +21,11 @@ dbConnect();
 const app = express();
 app.use(
   cors({
+<<<<<<< HEAD
     origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176"],
+=======
+    origin: "http://localhost:5173",
+>>>>>>> 214d84b7c5f769fb4594a0436d655bc9571b2928
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
