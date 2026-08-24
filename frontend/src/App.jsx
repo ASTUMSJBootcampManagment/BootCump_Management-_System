@@ -1,12 +1,16 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Attendance from "./pages/mentor/Attendance";
 import History from "./pages/mentor/History";
 import Progress from "./pages/mentor/Progress";
+import AdminDashboard from "./pages/AdminDashbord";
+import StudentAttendnce from "./pages/student/StudentAttendnce";
+import StudentAssignment from "./pages/student/StudentAssignment";
+import StudentProgress from "./pages/student/StudentProgress";
 
 function App() {
   return (
@@ -14,12 +18,20 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+
         <Route path="/register" element={<Register />} />
         <Route element={<ProtectedRoute allowedRoles={["Mentor"]} />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/mentor/attendance" element={<Attendance />} />
           <Route path="/mentor/history" element={<History />} />
           <Route path="/mentor/progress" element={<Progress />} />
+        </Route>
+        <Route element={<ProtectedRoute allowedRoles={["Student"]} />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/student/attendance" element={<StudentAttendnce />} />
+          <Route path="/student/progress" element={<StudentProgress />} />
+          <Route path="/student/assignment" element={<StudentAssignment />} />
         </Route>
         <Route
           path="/unauthorized"

@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const Attendance = require("../models/attendance");
-const User = require("../models/UserModel");
+const User = require("../models/userModel");
 
 exports.markAttendance = async (req, res) => {
   try {

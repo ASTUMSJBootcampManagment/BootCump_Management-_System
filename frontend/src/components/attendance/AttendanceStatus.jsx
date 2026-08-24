@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   FiCalendar,
-  FiChevronDown,
   FiSave,
   FiX,
   FiCheckCircle,
@@ -16,8 +15,6 @@ import {
 const statuses = ["Present", "Absent", "Late", "Excused"];
 
 const Attendance = () => {
-  const [batch, setBatch] = useState("null");
-
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
   const [students, setStudents] = useState([]);
@@ -174,46 +171,12 @@ const Attendance = () => {
               <div>
                 <h2 className="font-bold text-slate-900">Attendance</h2>
 
-                <p className="text-xs text-slate-500">Current batch</p>
+                <p className="text-xs text-slate-500">Batch 2</p>
               </div>
             </div>
           </div>
           <div className="grid grid-cols-1 gap-4 border-b border-slate-200 p-5 sm:grid-cols-2 sm:p-6">
-            <div>
-              <label
-                htmlFor="batch"
-                className="mb-2 block text-sm font-semibold text-slate-700"
-              >
-                Batch
-              </label>
-
-              <div className="relative">
-                <select
-                  value={batch?._id || ""}
-                  onChange={(e) => {
-                    const selectedBatch = batches.find(
-                      (b) => b._id === e.target.value,
-                    );
-
-                    setBatch(selectedBatch);
-                  }}
-                >
-                  <option value="">Select batch</option>
-
-                  {batches.map((b) => (
-                    <option key={b._id} value={b._id}>
-                      {b.batchName} • {b.name}
-                    </option>
-                  ))}
-                </select>
-
-                <FiChevronDown
-                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
-                  size={17}
-                />
-              </div>
-            </div>
-            <div>
+            <div className="border-b border-slate-200 p-5 sm:p-6">
               <label
                 htmlFor="date"
                 className="mb-2 block text-sm font-semibold text-slate-700"
