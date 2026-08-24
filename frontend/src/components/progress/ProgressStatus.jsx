@@ -16,10 +16,8 @@ const statuses = ["NotStarted", "InProgress", "Completed", "NeedsImprovement"];
 
 const Progress = () => {
   const [progress, setProgress] = useState([]);
-
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(null);
-
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -29,11 +27,12 @@ const Progress = () => {
       setError("");
 
       const response = await getStudentsProgress();
-
+      console.log("Fetched progress data:", response);
       setProgress(response?.data || []);
     } catch (err) {
+      console.error("Fetch progress error:", err?.response || err);
       setError(
-        err?.response?.data?.message || "Failed to load students progress.",
+        err?.response?.data?.message || "Failed to load students progress."
       );
     } finally {
       setLoading(false);
@@ -44,30 +43,41 @@ const Progress = () => {
     fetchProgress();
   }, []);
 
-  const handleStatusChange = async (studentId, status) => {
+  const handleStatusChange = async (targetId, status) => {
     try {
-      setUpdating(studentId);
+      setUpdating(targetId);
       setError("");
       setSuccess("");
 
-      const response = await updateProgress(studentId, status);
+      console.log("Attempting status update:", { targetId, status });
 
-      if (response?.data) {
-        setProgress((prev) =>
-          prev.map((item) =>
-            item.student?._id === studentId
-              ? {
-                  ...item,
-                  status: response.data.status,
-                }
-              : item,
-          ),
-        );
-      }
+      const response = await updateProgress(targetId, status);
+      console.log("Update success response:", response);
+
+      const updatedStatus = response?.data?.status || status;
+
+      setProgress((prev) =>
+        prev.map((item) => {
+          const currentStudentId = item.student?._id;
+          const currentRecordId = item._id;
+
+          if (currentStudentId === targetId || currentRecordId === targetId) {
+            return { ...item, status: updatedStatus };
+          }
+          return item;
+        })
+      );
 
       setSuccess("Progress updated successfully.");
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to update progress.");
+      console.error("DEBUG ERROR LOG:", err);
+      console.error("SERVER ERROR RESPONSE:", err?.response?.data);
+
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to update progress."
+      );
     } finally {
       setUpdating(null);
     }
@@ -79,7 +89,6 @@ const Progress = () => {
         <div className="mx-auto max-w-7xl">
           <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
             <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
-
             <p className="mt-4 text-sm text-slate-500">
               Loading students progress...
             </p>
@@ -97,7 +106,6 @@ const Progress = () => {
             <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
               Student Progress
             </h1>
-
             <p className="mt-1 text-sm text-slate-500">
               Monitor and update progress for students in your batch.
             </p>
@@ -117,7 +125,6 @@ const Progress = () => {
         {error && (
           <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             <FiAlertCircle className="mt-0.5 shrink-0" size={18} />
-
             <span>{error}</span>
           </div>
         )}
@@ -125,20 +132,18 @@ const Progress = () => {
         {success && (
           <div className="mb-5 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
             <FiCheckCircle className="mt-0.5 shrink-0" size={18} />
-
             <span>{success}</span>
           </div>
         )}
+
         {progress.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
               <FiBookOpen size={25} className="text-slate-400" />
             </div>
-
             <h2 className="mt-4 font-semibold text-slate-800">
               No progress records
             </h2>
-
             <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
               There are currently no progress records for students in your
               assigned batch.
@@ -153,15 +158,12 @@ const Progress = () => {
                     <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Student
                     </th>
-
                     <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Email
                     </th>
-
                     <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Topic
                     </th>
-
                     <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Status
                     </th>
@@ -170,7 +172,7 @@ const Progress = () => {
 
                 <tbody>
                   {progress.map((item) => {
-                    const studentId = item.student?._id;
+                    const studentId = item.student?._id || item._id;
 
                     return (
                       <tr
@@ -183,7 +185,6 @@ const Progress = () => {
                               {item.student?.name?.charAt(0)?.toUpperCase() ||
                                 "?"}
                             </div>
-
                             <p className="text-sm font-semibold text-slate-800">
                               {item.student?.name || "Unknown student"}
                             </p>
@@ -197,7 +198,6 @@ const Progress = () => {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <FiBookOpen className="text-blue-500" size={17} />
-
                             <span className="text-sm font-medium text-slate-700">
                               {item.topic || "-"}
                             </span>
@@ -244,7 +244,7 @@ const Progress = () => {
 
             <div className="space-y-3 p-4 md:hidden">
               {progress.map((item) => {
-                const studentId = item.student?._id;
+                const studentId = item.student?._id || item._id;
 
                 return (
                   <div
@@ -260,7 +260,6 @@ const Progress = () => {
                         <p className="font-semibold text-slate-800">
                           {item.student?.name || "Unknown student"}
                         </p>
-
                         <p className="mt-1 truncate text-xs text-slate-500">
                           {item.student?.email || "-"}
                         </p>
@@ -269,7 +268,6 @@ const Progress = () => {
 
                     <div className="mt-4 rounded-lg bg-slate-50 p-3">
                       <p className="text-xs text-slate-400">Topic</p>
-
                       <p className="mt-1 text-sm font-semibold text-slate-700">
                         {item.topic || "-"}
                       </p>

@@ -1,7 +1,7 @@
 const Submission = require("../models/submissionModel");
 const Assignment = require("../models/assignmentModel");
+const user=require("../models/userModel"); 
 
-// Student submits work for an assignment
 const submitAssignment = async (req, res) => {
   try {
     const { assignmentId, content } = req.body;
@@ -28,7 +28,6 @@ const submitAssignment = async (req, res) => {
   }
 };
 
-// Mentor/Admin: view all submissions for a given assignment
 const getSubmissionsForAssignment = async (req, res) => {
   try {
     const submissions = await Submission.find({ assignment: req.params.assignmentId })
@@ -40,7 +39,6 @@ const getSubmissionsForAssignment = async (req, res) => {
   }
 };
 
-// Student: view their own submissions
 const getMySubmissions = async (req, res) => {
   try {
     const submissions = await Submission.find({ student: req.user.id })

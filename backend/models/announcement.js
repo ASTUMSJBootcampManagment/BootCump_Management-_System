@@ -20,7 +20,12 @@ const AnnouncementSchema= new mongoose.Schema({
     announcementDate:{
         type:Date,
         default:Date.now
-    }
+    },
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+        required: true,
+}
 
 },
 {

@@ -11,10 +11,6 @@ const attendanceRoute = require("./routes/attendanceRoute");
 const progressRoute = require("./routes/progressRoutes");
 const cors = require("cors");
 const assignmentRoutes = require("./routes/assignmentRoutes");
-// const BatchRoutes = require("./routes/BatchRoute");
-// const announcementRoute = require("./routes/announcementRoute");
-// const attendanceRoute = require("./routes/attendanceRoute");
-// const progressRoute = require("./routes/progressRoutes");
 const gradingRoutes = require("./routes/gradingRoutes");
 const BatchRoutes = require("./routes/BatchRoute");
 dbConnect();
@@ -30,10 +26,6 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/assignments", assignmentRoutes);
-// app.use("/api/batches", BatchRoutes);
-// app.use("/api/announcement",announcementRoute)
-// app.use("/api/attendance",attendanceRoute)
-// app.use("/api/progress",progressRoute)
 app.use("/api/grading", gradingRoutes);
 app.use("/api/batches", BatchRoutes);
 app.use("/api/announcement", announcementRoute);
