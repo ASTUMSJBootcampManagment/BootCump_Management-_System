@@ -34,10 +34,8 @@ const getSubmissionsForAssignment = async (req, res) => {
       .populate("student", "username email");
     res.status(200).json(submissions);
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Something went wrong" });
-  }
-};
+    next(error);
+}};
 
 const getMySubmissions = async (req, res) => {
   try {
@@ -45,9 +43,7 @@ const getMySubmissions = async (req, res) => {
       .populate("assignment", "title dueDate");
     res.status(200).json(submissions);
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Something went wrong" });
-  }
-};
+   next(error);
+}};
 
 module.exports = { submitAssignment, getSubmissionsForAssignment, getMySubmissions };

@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Attendance = require("../models/attendance");
 const User = require("../models/UserModel");
-
+const AppError = require("../utils/AppError");
 exports.markAttendance = async (req, res) => {
   try {
     const { student, status, date } = req.body;
@@ -17,10 +17,7 @@ exports.markAttendance = async (req, res) => {
       data: newAttendance,
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
@@ -36,10 +33,7 @@ exports.getAttendance = async (req, res) => {
       data: attendance,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+   next(error);
   }
 };
 
@@ -126,9 +120,6 @@ exports.getStudentAttendanceStats = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };

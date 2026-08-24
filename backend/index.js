@@ -31,6 +31,8 @@ app.use("/api/batches", BatchRoutes);
 app.use("/api/announcement", announcementRoute);
 app.use("/api/attendance", attendanceRoute);
 app.use("/api/progress", progressRoute);
+const errorHandler = require("./middlewares/errorMiddleware");
+app.use(errorHandler);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running at port ${PORT}`);

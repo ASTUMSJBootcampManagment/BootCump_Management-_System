@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Announcement = require("../models/announcement");
 const User = require("../models/UserModel");
+const AppError = require("../utils/AppError");
 exports.createAnnouncement = async (req, res) => {
   try {
     const { title, content, announcementDate, announcedTo, batch } = req.body;
@@ -20,10 +21,7 @@ exports.createAnnouncement = async (req, res) => {
       data: newAnnouncement,
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 exports.getAnnouncements = async (req, res) => {

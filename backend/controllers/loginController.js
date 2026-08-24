@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const AppError = require("../utils/AppError");
 
 exports.login = async (req, res) => {
   try {
@@ -34,6 +35,5 @@ exports.login = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
+next(error);  }
 };

@@ -1,7 +1,7 @@
 const mongoose=require("mongoose")
 const Batch=require("../models/Batches");
 const User = require("../models/UserModel"); 
-
+const AppError = require("../utils/AppError");
 exports.createBatch=async (req,res)=>{
     try{
         const {name,year,startDate,endDate}=req.body
@@ -17,11 +17,8 @@ exports.createBatch=async (req,res)=>{
             data: newBatch,
          });
         } catch (error) {
-            res.status(400).json({
-                 success: false,
-                 message: error.message,
-    });
-  }
+          next(error);
+        }
 
     }
 exports.getAllBatches= async (req,res)=>{
@@ -35,10 +32,7 @@ exports.getAllBatches= async (req,res)=>{
             data: getAll,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 exports.assignMentor = async (req, res) => {
@@ -77,10 +71,7 @@ exports.assignMentor = async (req, res) => {
       data: updatedBatch,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+   next(error);
   }
 };
 exports.enrollStudents = async (req, res) => {
@@ -119,10 +110,7 @@ if (!student || student.status !== "accepted") {
       data: updatedBatch,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 

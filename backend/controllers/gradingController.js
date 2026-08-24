@@ -1,7 +1,7 @@
 const Submission = require("../models/submissionModel");
 const Announcement = require("../models/announcement");
 const user=require("../models/userModel"); 
-
+const AppError = require("../utils/AppError");
 const gradeSubmission = async (req, res) => {
   try {
     const { grade, feedback } = req.body;
@@ -27,9 +27,7 @@ const gradeSubmission = async (req, res) => {
 
     res.status(200).json({ message: "Submission graded and notification sent", submission });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Something went wrong", error: err.message });
-  }
-};
+    next(error);
+}};
 
 module.exports = { gradeSubmission };

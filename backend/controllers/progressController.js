@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const progress = require("../models/progress");
 const User = require("../models/UserModel");
 const Batch = require("../models/Batches"); 
-
+const AppError = require("../utils/AppError");
 exports.createTopic = async (req, res) => {
     try {
         const { topic } = req.body;
@@ -20,10 +20,7 @@ exports.createTopic = async (req, res) => {
             message: "Topic progress created for all batches successfully!",
         });
     } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message,
-        });
+        next(error);
     }
 };
 
@@ -68,10 +65,7 @@ exports.updateProgress = async (req, res) => {
             data: updatedProgress,
         });
     } catch (error) {
-        return res.status(400).json({
-            success: false,
-            message: error.message,
-        });
+        next(error);
     }
 };
 
@@ -97,10 +91,7 @@ exports.getProgress = async (req, res) => {
             data: getProgresses,
         });
     } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message,
-        });
+        next(error);
     }
 };
 exports.getMentorStudentsProgress = async (req, res) => {
@@ -123,9 +114,6 @@ exports.getMentorStudentsProgress = async (req, res) => {
             data: progresses,
         });
     } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: error.message,
-        });
+       next(error);
     }
 };

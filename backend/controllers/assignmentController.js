@@ -1,7 +1,7 @@
 const Assignment = require("../models/assignmentModel");
 const Submission = require("../models/submissionModel");
 const Announcement = require("../models/announcement");
-
+const AppError = require("../utils/AppError");
 const createAssignment = async (req, res) => {
   try {
     const { title, description, dueDate, batch } = req.body;
@@ -24,10 +24,7 @@ const createAssignment = async (req, res) => {
 
     res.status(201).json({ message: "Assignment created and students notified", assignment });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Something went wrong", error: err.message });
-  }
-};
+next(error);};}
 
 const getAssignments = async (req, res) => {
   try {
@@ -35,9 +32,8 @@ const getAssignments = async (req, res) => {
     res.status(200).json(assignments);
   } catch (err) {
     console.log(err);
-    res.status(500).json({ message: "Something went wrong", error: err.message });
-  }
-};
+    next(error);
+};}
 
 const updateAssignment = async (req, res) => {
   try {
@@ -58,10 +54,8 @@ const updateAssignment = async (req, res) => {
     }
     res.status(200).json({ message: "Assignment updated", assignment });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Something went wrong", error: err.message });
-  }
-};
+    next(error);
+};}
 
 const deleteAssignment = async (req, res) => {
   try {
@@ -72,8 +66,7 @@ const deleteAssignment = async (req, res) => {
     await Submission.deleteMany({ assignment: req.params.id });
     res.status(200).json({ message: "Assignment deleted" });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Something went wrong", error: err.message });
+    next(error);
   }
 };
 
