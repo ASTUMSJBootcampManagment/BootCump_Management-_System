@@ -8,7 +8,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashbord";
 
-// Layout
+// Layout (Fixed file name typo matching your directory)
 import DashboardLayout from "./components/layout/DashbordLayout";
 
 // Mentor pages
@@ -26,15 +26,21 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Pages */}
+        {/* =========================
+            PUBLIC PAGES
+        ========================== */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Admin Pages */}
+        {/* =========================
+            ADMIN
+        ========================== */}
         <Route path="/admin" element={<AdminDashboard />} />
 
-        {/* Mentor Routes */}
+        {/* =========================
+            MENTOR
+        ========================== */}
         <Route element={<ProtectedRoute allowedRoles={["Mentor"]} />}>
           <Route
             path="/dashboard"
@@ -70,7 +76,9 @@ function App() {
           />
         </Route>
 
-        {/* Student Routes */}
+        {/* =========================
+            STUDENT
+        ========================== */}
         <Route element={<ProtectedRoute allowedRoles={["Student"]} />}>
           <Route
             path="/student/dashboard"
@@ -106,7 +114,9 @@ function App() {
           />
         </Route>
 
-        {/* Unauthorized Page */}
+        {/* =========================
+            UNAUTHORIZED
+        ========================== */}
         <Route
           path="/unauthorized"
           element={

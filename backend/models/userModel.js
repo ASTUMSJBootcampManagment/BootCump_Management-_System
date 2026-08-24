@@ -17,9 +17,9 @@ const userSchema= new mongoose.Schema({
       enum:["pending","approved","rejected"],
       default:"pending"
     },
-    "name":{
+    "fullname":{
       type:String,
-      required:[true,"name is required"],
+      required:[true,"fullname is required"],
       trim:true
     },
     "role": {
