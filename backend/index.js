@@ -5,7 +5,8 @@ dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
 const express = require("express");
 const cors = require("cors");
 const dbConnect = require("./config/dbConnect");
-
+require("./models/userModel");
+require("./models/Batches");
 // Route Imports
 const authRoutes = require("./routes/authroute");
 const userRoutes = require("./routes/userRoute");
