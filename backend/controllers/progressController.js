@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const progress = require("../models/progress");
-const User = require("../models/UserModel");
+const User = require("../models/userModel");
 const Batch = require("../models/Batches"); 
 const AppError = require("../utils/AppError");
 exports.createTopic = async (req, res) => {

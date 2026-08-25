@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 const Announcement = require("../models/announcement");
-const User = require("../models/UserModel");
-const AppError = require("../utils/AppError");
-exports.createAnnouncement = async (req, res) => {
+const User = require("../models/userModel");
+
+exports.createAnnouncement = async (req, res, next) => {
   try {
     const { title, content, announcementDate, announcedTo, batch } = req.body;
 
@@ -24,7 +24,8 @@ exports.createAnnouncement = async (req, res) => {
     next(error);
   }
 };
-exports.getAnnouncements = async (req, res) => {
+
+exports.getAnnouncements = async (req, res, next) => {
   try {
     let query = {};
     if (req.user.role === "Student") {
@@ -57,45 +58,50 @@ exports.getAnnouncements = async (req, res) => {
       data: announcements,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
-exports.updateAnnouncement = async (req, res) => {
+
+exports.updateAnnouncement = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const updatedAnnouncement = await Announcement.findByIdAndUpdate(
-      id,
-      req.body,
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
+    const {
+      title,
+      content,
+      batch,
+      announcedTo,
+      announcementDate,
+    } = req.body;
 
-    if (!updatedAnnouncement) {
+    const announcement = await Announcement.findById(id);
+
+    if (!announcement) {
       return res.status(404).json({
         success: false,
-        message: "Announcement not found",
+        message: "Announcement not found.",
       });
     }
 
+    if (title !== undefined) announcement.title = title;
+    if (content !== undefined) announcement.content = content;
+    if (batch !== undefined) announcement.batch = batch;
+    if (announcedTo !== undefined) announcement.announcedTo = announcedTo;
+    if (announcementDate !== undefined) announcement.announcementDate = announcementDate;
+
+    await announcement.save();
+
     res.status(200).json({
       success: true,
-      message: "Announcement updated successfully",
-      data: updatedAnnouncement,
+      message: "Announcement updated successfully.",
+      announcement,
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
-exports.deleteAnnouncement = async (req, res) => {
+
+exports.deleteAnnouncement = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -113,9 +119,6 @@ exports.deleteAnnouncement = async (req, res) => {
       message: "Announcement deleted successfully",
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };

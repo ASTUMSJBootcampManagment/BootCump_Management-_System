@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Attendance = require("../models/attendance");
-const User = require("../models/UserModel");
-const AppError = require("../utils/AppError");
+const User = require("../models/userModel");
+
 exports.markAttendance = async (req, res) => {
   try {
     const { student, status, date } = req.body;

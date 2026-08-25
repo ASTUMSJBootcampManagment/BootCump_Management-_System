@@ -1,6 +1,6 @@
 const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
-
+const AppError = require("../utils/AppError");
 exports.register = async (req, res) => {
   try {
     const { email, password, name } = req.body;
@@ -27,8 +27,7 @@ exports.register = async (req, res) => {
       message: "Registration submitted successfully. Your account is pending admin approval."
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
+    next(error);  }
 };
 
 exports.registerMentor = async (req, res) => {
@@ -58,7 +57,7 @@ exports.registerMentor = async (req, res) => {
       message: "Mentor created successfully."
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 exports.UpdateRegistrationStatus = async (req, res) => {
@@ -84,6 +83,5 @@ exports.UpdateRegistrationStatus = async (req, res) => {
     });
 
   } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
+    next(error);  }
 };
