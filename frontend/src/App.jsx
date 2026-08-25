@@ -1,5 +1,12 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  useNavigate,
+} from "react-router-dom";
 
 // Public / Shared Pages
 import LandingPage from "./pages/LandingPage";
@@ -24,11 +31,26 @@ import History from "./pages/mentor/History";
 import Progress from "./pages/mentor/Progress";
 
 // Student Pages
-import StudentDashboard from "./pages/student/StudentDashbord";
-import StudentAttendnce from "./pages/student/StudentAttendnce";
-import StudentAssignment from "./pages/student/StudentAssignment";
-import StudentProgress from "./pages/student/StudentProgress";
+import StudentDashboard
+  from "./pages/student/StudentDashboard";
 
+import StudentAttendance
+  from "./pages/student/StudentAttendance";
+
+import StudentProgress
+  from "./pages/student/StudentProgress";
+
+import StudentAssignments
+  from "./pages/student/StudentAssignments";
+
+import StudentAnnouncements
+  from "./pages/student/StudentAnnouncements";
+
+import StudentResources
+  from "./pages/student/StudentResources";
+
+import StudentProfile
+  from "./pages/student/StudentProfile";
 function App() {
   return (
     <BrowserRouter>
@@ -86,11 +108,68 @@ function App() {
         </Route>
 
         {/* Protected Student Routes */}
-        <Route element={<ProtectedRoute allowedRoles={["Student"]} />}>
-          <Route path="/student/dashboard" element={<StudentDashboard />} />
-          <Route path="/student/attendance" element={<StudentAttendnce />} />
-          <Route path="/student/progress" element={<StudentProgress />} />
-          <Route path="/student/assignment" element={<StudentAssignment />} />
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={["Student"]}
+            />
+          }
+        >
+          <Route
+            path="/student"
+            element={
+              <Navigate
+                to="/student/dashboard"
+                replace
+              />
+            }
+          />
+
+          <Route
+            path="/student/dashboard"
+            element={<StudentDashboard />}
+          />
+
+          <Route
+            path="/student/attendance"
+            element={<StudentAttendance />}
+          />
+
+          <Route
+            path="/student/progress"
+            element={<StudentProgress />}
+          />
+
+          <Route
+            path="/student/assignments"
+            element={<StudentAssignments />}
+          />
+
+          {/* Keep old route working */}
+          <Route
+            path="/student/assignment"
+            element={
+              <Navigate
+                to="/student/assignments"
+                replace
+              />
+            }
+          />
+
+          <Route
+            path="/student/announcements"
+            element={<StudentAnnouncements />}
+          />
+
+          <Route
+            path="/student/resources"
+            element={<StudentResources />}
+          />
+
+          <Route
+            path="/student/profile"
+            element={<StudentProfile />}
+          />
         </Route>
 
         {/* Access Denied Route */}

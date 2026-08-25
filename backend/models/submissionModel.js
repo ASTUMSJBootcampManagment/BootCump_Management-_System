@@ -1,39 +1,57 @@
 const mongoose = require("mongoose");
 
-const submissionSchema = new mongoose.Schema(
-  {
-    assignment: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Assignment",
-      required: true,
-    },
-    student: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "user",
-      required: true,
-    },
-    content: {
-      type: String,
-      required: true,
-    },
-    grade: {
-      type: Number,
-      default: null,
-    },
-    feedback: {
-      type: String,
-      default: "",
-    },
-    status: {
-      type: String,
-      enum: ["Submitted", "Graded"],
-      default: "Submitted",
-    },
-  },
-  { timestamps: true }
-);
+const assignmentSchema =
+  new mongoose.Schema(
+    {
+      title: {
+        type: String,
+        required: true,
+        trim: true,
+      },
 
-// Prevent a student from submitting the same assignment twice
-submissionSchema.index({ assignment: 1, student: 1 }, { unique: true });
+      description: {
+        type: String,
+        required: true,
+        trim: true,
+      },
 
-module.exports = mongoose.model("Submission", submissionSchema);
+      instructions: {
+        type: String,
+        default: "",
+      },
+
+      dueDate: {
+        type: Date,
+        required: true,
+      },
+
+      maxScore: {
+        type: Number,
+        default: 100,
+        min: 0,
+      },
+
+      batch: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Batch",
+        default: null,
+      },
+
+      createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+        required: true,
+      },
+    },
+
+    {
+      timestamps: true,
+    }
+  );
+
+module.exports =
+  mongoose.models.Assignment ||
+  mongoose.model(
+    "Assignment",
+    assignmentSchema
+  );

@@ -16,6 +16,7 @@ const progressRoute = require("./routes/progressRoutes");
 const assignmentRoutes = require("./routes/assignmentRoutes");
 const gradingRoutes = require("./routes/gradingRoutes");
 const dashboardRoute = require("./routes/dashboardRoute");
+const studentRoutes = require("./routes/studentRoutes");
 dbConnect();
 
 const app = express();
@@ -43,6 +44,7 @@ app.use("/api/announcement", announcementRoute);
 app.use("/api/attendance", attendanceRoute);
 app.use("/api/progress", progressRoute);
 app.use("/api/dashboard", dashboardRoute);
+app.use("/api/student", studentRoutes);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running at port ${PORT}`);
