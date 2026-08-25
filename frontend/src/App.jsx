@@ -1,40 +1,55 @@
+import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+// Public / Shared Pages
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
+
+// Protection & Layouts
 import ProtectedRoute from "./components/ProtectedRoute";
-
-import Dashboard from "./pages/Dashboard";
-import AdminDashboard from "./pages/AdminDashbord";
-
 import DashboardLayout from "./components/layout/DashbordLayout";
+import AdminLayout from "./layouts/adminlayouts";
 
+// Admin Pages
+import AdminDashboard from "./pages/AdminDashbord";
+import UserManagement from "./pages/admin/UserManagement";
+import BatchManagement from "./pages/admin/BatchManagement";
+import Announcements from "./pages/admin/Announcements";
+
+// Mentor Pages
+import Dashboard from "./pages/Dashboard";
 import Attendance from "./pages/mentor/Attendance";
 import History from "./pages/mentor/History";
 import Progress from "./pages/mentor/Progress";
-import AdminDashboard from "./pages/AdminDashbord";
-import StudentAttendnce from "./pages/student/StudentAttendnce";
-import StudentAssignment from "./pages/student/StudentAssignment";
-import StudentProgress from "./pages/student/StudentProgress";
 
+// Student Pages
 import StudentDashboard from "./pages/student/StudentDashbord";
 import StudentAttendnce from "./pages/student/StudentAttendnce";
-import StudentProgress from "./pages/student/StudentProgress";
 import StudentAssignment from "./pages/student/StudentAssignment";
+import StudentProgress from "./pages/student/StudentProgress";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-
         <Route path="/register" element={<Register />} />
-        <Route path="/admin" element={<AdminDashboard />} />
 
-        
+        {/* Protected Admin Routes */}
+        <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="batches" element={<BatchManagement />} />
+            <Route path="announcements" element={<Announcements />} />
+          </Route>
+        </Route>
+
+        {/* Protected Mentor Routes */}
         <Route element={<ProtectedRoute allowedRoles={["Mentor"]} />}>
           <Route
             path="/dashboard"
@@ -69,12 +84,16 @@ function App() {
             }
           />
         </Route>
+
+        {/* Protected Student Routes */}
         <Route element={<ProtectedRoute allowedRoles={["Student"]} />}>
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/student/dashboard" element={<StudentDashboard />} />
           <Route path="/student/attendance" element={<StudentAttendnce />} />
           <Route path="/student/progress" element={<StudentProgress />} />
           <Route path="/student/assignment" element={<StudentAssignment />} />
         </Route>
+
+        {/* Access Denied Route */}
         <Route
           path="/unauthorized"
           element={

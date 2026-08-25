@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import API from '../../api/axios';
-import { Plus, Trash2, X, Send } from 'lucide-react';
+import API from '../api/axios';
+import { Megaphone, Plus, Trash2, X, Send } from 'lucide-react';
 
 export default function Announcements() {
   const [announcements, setAnnouncements] = useState([]);
@@ -70,34 +70,28 @@ export default function Announcements() {
 
       {/* List View */}
       <div className="space-y-4">
-        {announcements.length === 0 ? (
-          <div className="bg-white p-8 rounded-2xl text-center text-slate-400 border border-slate-100">
-            No announcements found. Click "New Announcement" to publish one.
-          </div>
-        ) : (
-          announcements.map((item) => (
-            <div key={item._id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex justify-between items-start">
-              <div className="space-y-2 max-w-3xl">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
-                    {item.targetAudience}
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    {new Date(item.createdAt || item.publishDate).toLocaleDateString()}
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold text-slate-800">{item.title}</h3>
-                <p className="text-sm text-slate-600 leading-relaxed">{item.content}</p>
+        {announcements.map((item) => (
+          <div key={item._id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex justify-between items-start">
+            <div className="space-y-2 max-w-3xl">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
+                  {item.targetAudience}
+                </span>
+                <span className="text-xs text-slate-400">
+                  {new Date(item.createdAt || item.publishDate).toLocaleDateString()}
+                </span>
               </div>
-              <button
-                onClick={() => handleDelete(item._id)}
-                className="text-slate-400 hover:text-rose-500 p-2 rounded-lg transition"
-              >
-                <Trash2 size={18} />
-              </button>
+              <h3 className="text-lg font-bold text-slate-800">{item.title}</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">{item.content}</p>
             </div>
-          ))
-        )}
+            <button
+              onClick={() => handleDelete(item._id)}
+              className="text-slate-400 hover:text-rose-500 p-2 rounded-lg transition"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+        ))}
       </div>
 
       {/* Modal */}
