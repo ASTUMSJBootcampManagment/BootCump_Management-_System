@@ -15,9 +15,6 @@ import {
 const statuses = ["Present", "Absent", "Late", "Excused"];
 
 const Attendance = () => {
-  const [batches, setBatches] = useState([]);
-  const [batch, setBatch] = useState(null);
-
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
   const [students, setStudents] = useState([]);
@@ -167,13 +164,14 @@ const Attendance = () => {
 
               <div>
                 <h2 className="font-bold text-slate-900">Attendance</h2>
-                <p className="text-xs text-slate-500">Current batch</p>
+
+                <p className="text-xs text-slate-500">Batch 2</p>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 border-b border-slate-200 p-5 sm:grid-cols-2 sm:p-6">
-            <div>
+            <div className="border-b border-slate-200 p-5 sm:p-6">
               <label
                 htmlFor="date"
                 className="mb-2 block text-sm font-semibold text-slate-700"

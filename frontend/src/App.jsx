@@ -1,22 +1,23 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashbord";
 
-// Layout (Fixed file name typo matching your directory)
 import DashboardLayout from "./components/layout/DashbordLayout";
 
-// Mentor pages
 import Attendance from "./pages/mentor/Attendance";
 import History from "./pages/mentor/History";
 import Progress from "./pages/mentor/Progress";
+import AdminDashboard from "./pages/AdminDashbord";
+import StudentAttendnce from "./pages/student/StudentAttendnce";
+import StudentAssignment from "./pages/student/StudentAssignment";
+import StudentProgress from "./pages/student/StudentProgress";
 
-// Student pages
 import StudentDashboard from "./pages/student/StudentDashbord";
 import StudentAttendnce from "./pages/student/StudentAttendnce";
 import StudentProgress from "./pages/student/StudentProgress";
@@ -26,21 +27,14 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* =========================
-            PUBLIC PAGES
-        ========================== */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-
-        {/* =========================
-            ADMIN
-        ========================== */}
         <Route path="/admin" element={<AdminDashboard />} />
 
-        {/* =========================
-            MENTOR
-        ========================== */}
+        <Route path="/register" element={<Register />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+
+        
         <Route element={<ProtectedRoute allowedRoles={["Mentor"]} />}>
           <Route
             path="/dashboard"
@@ -75,48 +69,12 @@ function App() {
             }
           />
         </Route>
-
-        {/* =========================
-            STUDENT
-        ========================== */}
         <Route element={<ProtectedRoute allowedRoles={["Student"]} />}>
-          <Route
-            path="/student/dashboard"
-            element={
-              <DashboardLayout role="student">
-                <StudentDashboard />
-              </DashboardLayout>
-            }
-          />
-          <Route
-            path="/student/attendance"
-            element={
-              <DashboardLayout role="student">
-                <StudentAttendnce />
-              </DashboardLayout>
-            }
-          />
-          <Route
-            path="/student/progress"
-            element={
-              <DashboardLayout role="student">
-                <StudentProgress />
-              </DashboardLayout>
-            }
-          />
-          <Route
-            path="/student/assignments"
-            element={
-              <DashboardLayout role="student">
-                <StudentAssignment />
-              </DashboardLayout>
-            }
-          />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/student/attendance" element={<StudentAttendnce />} />
+          <Route path="/student/progress" element={<StudentProgress />} />
+          <Route path="/student/assignment" element={<StudentAssignment />} />
         </Route>
-
-        {/* =========================
-            UNAUTHORIZED
-        ========================== */}
         <Route
           path="/unauthorized"
           element={

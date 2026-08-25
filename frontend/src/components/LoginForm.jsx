@@ -32,7 +32,7 @@ const LoginForm = () => {
           break;
 
         case "Student":
-          navigate("/student/attendance");
+          navigate("/student/dashboard");
           break;
 
         case "Admin":
