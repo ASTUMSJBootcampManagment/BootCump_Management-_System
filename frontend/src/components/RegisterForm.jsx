@@ -1,223 +1,417 @@
 import { useState } from "react";
-import {
-  FiUser,
-  FiMail,
-  FiLock,
-  FiEye,
-  FiEyeOff,
-} from "react-icons/fi";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Register = () => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    password: "",
-    confirmPassword: "",
+    universityId: "",
+    codeforcesAccount: "",
+    leetcodeAccount: "",
+    githubAccount: "",
+    reasonToJoin: "",
+    telegramUsername: "",
+    phoneNumber: "",
+    gender: "",
+    hasConstantInternet: false,
+    hasPersonalLaptop: false,
   });
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value, type, checked } = e.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log("Account created successfully");
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      const response = await axios.post(
+        "http://localhost:3000/api/auth/register",
+        formData,
+      );
+
+      console.log("Registration response:", response.data);
+
+      setSuccess(
+        response.data?.message ||
+          "Registration successful. Please wait for approval.",
+      );
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
+    } catch (err) {
+      console.error("Registration error:", err);
+      console.error("Status:", err?.response?.status);
+      console.error("Server response:", err?.response?.data);
+
+      setError(
+        err?.response?.data?.message ||
+          "Registration failed. Please check your information.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="flex min-h-screen flex-1 items-center justify-center bg-[#F7F4EA] px-5 py-10 sm:px-8 lg:px-12">
-
-      <div className="w-full max-w-155">
+    <div className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl">
+        {/* ==============================
+            HEADER
+        =============================== */}
 
         <div className="mb-8 text-center">
-
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#E8F7F0]">
-            <FiUser className="text-3xl text-[#0AA6A6]" />
-          </div>
-
-          <h1 className="mt-5 text-3xl font-bold text-[#062A5C]">
-            Create Your Account
+          <h1 className="text-3xl font-bold text-slate-900">
+            ASTU MSJ Summer Bootcamp
           </h1>
 
-          <p className="mt-2 text-[#64748B]">
-            Join the ASTUMSJ Summer BootCamp
+          <p className="mt-2 text-sm text-slate-500">
+            Create your account to join the bootcamp
           </p>
-
         </div>
 
-        <div className="rounded-3xl bg-white px-6 py-8 shadow-[0_10px_50px_rgba(6,42,92,0.10)] sm:px-10 sm:py-10">
+        {/* ==============================
+            FORM CARD
+        =============================== */}
 
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-5"
-          >
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <form onSubmit={handleSubmit}>
+            {/* ==========================
+                MESSAGES
+            =========================== */}
 
-            <div>
-              <label
-                htmlFor="name"
-                className="mb-2 block text-sm font-semibold text-[#183153]"
-              >
-                Full Name
-              </label>
+            {error && (
+              <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
 
-              <div className="relative">
+            {success && (
+              <div className="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                {success}
+              </div>
+            )}
 
-                <FiUser
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8]"
-                />
+            {/* ==========================
+                BASIC INFORMATION
+            =========================== */}
 
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Enter your full name"
-                  required
-                  className="w-full rounded-xl border border-[#D9E2EC] py-3.5 pl-12 pr-4 outline-none transition placeholder:text-[#94A3B8] focus:border-[#16B86A] focus:ring-4 focus:ring-[#16B86A]/10"
-                />
+            <div className="mb-8">
+              <h2 className="mb-4 text-lg font-bold text-slate-900">
+                Basic Information
+              </h2>
 
+              <div className="grid gap-5 sm:grid-cols-2">
+                {/* Name */}
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Full Name
+                  </label>
+
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Enter your full name"
+                    required
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#00C896] focus:ring-2 focus:ring-[#00C896]/20"
+                  />
+                </div>
+
+                {/* Email */}
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Email
+                  </label>
+
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="example@email.com"
+                    required
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#00C896] focus:ring-2 focus:ring-[#00C896]/20"
+                  />
+                </div>
+
+                {/* University ID */}
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    University ID
+                  </label>
+
+                  <input
+                    type="text"
+                    name="universityId"
+                    value={formData.universityId}
+                    onChange={handleChange}
+                    placeholder="Enter university ID"
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#00C896] focus:ring-2 focus:ring-[#00C896]/20"
+                  />
+                </div>
+
+                {/* Phone */}
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Phone Number
+                  </label>
+
+                  <input
+                    type="tel"
+                    name="phoneNumber"
+                    value={formData.phoneNumber}
+                    onChange={handleChange}
+                    placeholder="09xxxxxxxx"
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#00C896] focus:ring-2 focus:ring-[#00C896]/20"
+                  />
+                </div>
+
+                {/* Gender */}
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Gender
+                  </label>
+
+                  <select
+                    name="gender"
+                    value={formData.gender}
+                    onChange={handleChange}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#00C896] focus:ring-2 focus:ring-[#00C896]/20"
+                  >
+                    <option value="">Select gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+
+                {/* Telegram */}
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Telegram Username
+                  </label>
+
+                  <input
+                    type="text"
+                    name="telegramUsername"
+                    value={formData.telegramUsername}
+                    onChange={handleChange}
+                    placeholder="@username"
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#00C896] focus:ring-2 focus:ring-[#00C896]/20"
+                  />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label
-                htmlFor="email"
-                className="mb-2 block text-sm font-semibold text-[#183153]"
-              >
-                Email
-              </label>
+            {/* ==========================
+                PROGRAMMING ACCOUNTS
+            =========================== */}
 
-              <div className="relative">
+            <div className="mb-8">
+              <h2 className="mb-1 text-lg font-bold text-slate-900">
+                Programming Accounts
+              </h2>
 
-                <FiMail
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8]"
-                />
+              <p className="mb-4 text-sm text-slate-500">
+                Add your coding platform accounts.
+              </p>
 
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Enter your email"
-                  required
-                  className="w-full rounded-xl border border-[#D9E2EC] py-3.5 pl-12 pr-4 outline-none transition placeholder:text-[#94A3B8] focus:border-[#16B86A] focus:ring-4 focus:ring-[#16B86A]/10"
-                />
+              <div className="grid gap-5 sm:grid-cols-3">
+                {/* Codeforces */}
 
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Codeforces
+                  </label>
+
+                  <input
+                    type="text"
+                    name="codeforcesAccount"
+                    value={formData.codeforcesAccount}
+                    onChange={handleChange}
+                    placeholder="Username"
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#00C896] focus:ring-2 focus:ring-[#00C896]/20"
+                  />
+                </div>
+
+                {/* LeetCode */}
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    LeetCode
+                  </label>
+
+                  <input
+                    type="text"
+                    name="leetcodeAccount"
+                    value={formData.leetcodeAccount}
+                    onChange={handleChange}
+                    placeholder="Username"
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#00C896] focus:ring-2 focus:ring-[#00C896]/20"
+                  />
+                </div>
+
+                {/* GitHub */}
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    GitHub
+                  </label>
+
+                  <input
+                    type="text"
+                    name="githubAccount"
+                    value={formData.githubAccount}
+                    onChange={handleChange}
+                    placeholder="Username"
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#00C896] focus:ring-2 focus:ring-[#00C896]/20"
+                  />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-2 block text-sm font-semibold text-[#183153]"
-              >
-                Password
+            {/* ==========================
+                ABOUT YOU
+            =========================== */}
+
+            <div className="mb-8">
+              <h2 className="mb-4 text-lg font-bold text-slate-900">
+                About You
+              </h2>
+
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Why do you want to join the bootcamp?
               </label>
 
-              <div className="relative">
+              <textarea
+                name="reasonToJoin"
+                value={formData.reasonToJoin}
+                onChange={handleChange}
+                rows={4}
+                placeholder="Tell us why you want to join..."
+                className="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#00C896] focus:ring-2 focus:ring-[#00C896]/20"
+              />
+            </div>
 
-                <FiLock
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8]"
-                /><input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Create a password"
-                  required
-                  className="w-full rounded-xl border border-[#D9E2EC] py-3.5 pl-12 pr-12 outline-none transition placeholder:text-[#94A3B8] focus:border-[#16B86A] focus:ring-4 focus:ring-[#16B86A]/10"
-                />
+            {/* ==========================
+                REQUIREMENTS
+            =========================== */}
 
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-xl text-[#94A3B8] transition hover:text-[#0AA6A6]"
-                >
-                  {showPassword ? <FiEyeOff /> : <FiEye />}
-                </button>
+            <div className="mb-8">
+              <h2 className="mb-4 text-lg font-bold text-slate-900">
+                Requirements
+              </h2>
 
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Internet */}
+
+                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-4 transition hover:bg-slate-50">
+                  <input
+                    type="checkbox"
+                    name="hasConstantInternet"
+                    checked={formData.hasConstantInternet}
+                    onChange={handleChange}
+                    className="h-4 w-4 rounded border-slate-300 text-[#00C896] focus:ring-[#00C896]"
+                  />
+
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">
+                      Constant Internet
+                    </p>
+
+                    <p className="text-xs text-slate-400">
+                      I have reliable internet access.
+                    </p>
+                  </div>
+                </label>
+
+                {/* Laptop */}
+
+                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-4 transition hover:bg-slate-50">
+                  <input
+                    type="checkbox"
+                    name="hasPersonalLaptop"
+                    checked={formData.hasPersonalLaptop}
+                    onChange={handleChange}
+                    className="h-4 w-4 rounded border-slate-300 text-[#00C896] focus:ring-[#00C896]"
+                  />
+
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">
+                      Personal Laptop
+                    </p>
+
+                    <p className="text-xs text-slate-400">
+                      I have access to a personal laptop.
+                    </p>
+                  </div>
+                </label>
               </div>
             </div>
 
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="mb-2 block text-sm font-semibold text-[#183153]"
-              >
-                Confirm Password
-              </label>
+            {/* ==========================
+                SUBMIT
+            =========================== */}
 
-              <div className="relative">
-
-                <FiLock
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8]"
-                />
-
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Confirm your password"
-                  required
-                  className="w-full rounded-xl border border-[#D9E2EC] py-3.5 pl-12 pr-12 outline-none transition placeholder:text-[#94A3B8] focus:border-[#16B86A] focus:ring-4 focus:ring-[#16B86A]/10"
-                />
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowConfirmPassword(!showConfirmPassword)
-                  }
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-xl text-[#94A3B8] transition hover:text-[#0AA6A6]"
-                >
-                  {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
-                </button>
-
-              </div>
-            </div>
-
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-[#16B86A] py-4 text-base font-semibold text-white shadow-lg shadow-[#16B86A]/20 transition hover:bg-[#12A85F] disabled:cursor-not-allowed disabled:opacity-60"
+              className="
+                w-full
+                rounded-xl
+                bg-[#00C896]
+                px-5
+                py-3.5
+                text-sm
+                font-bold
+                text-white
+                shadow-sm
+                transition
+                hover:bg-[#00b386]
+                disabled:cursor-not-allowed
+                disabled:opacity-60
+              "
             >
-              {loading ? "Creating account..." : "Create Account"}
+              {loading ? "Creating Account..." : "Create Account"}
             </button>
 
+            {/* LOGIN */}
+
+            <p className="mt-6 text-center text-sm text-slate-500">
+              Already have an account?{" "}
+              <Link
+                to="/login"
+                className="font-semibold text-[#00C896] hover:underline"
+              >
+                Sign in
+              </Link>
+            </p>
           </form>
-
-          {/* Login */}
-          <p className="mt-7 text-center text-sm text-[#64748B]">
-            Already have an account?{" "}
-
-            <button
-              type="button"
-              className="font-semibold text-[#0AA6A6] transition hover:text-[#16B86A]"
-            >
-              Sign in
-            </button>
-          </p>
-
         </div>
-
-        <p className="mt-6 text-center text-sm text-[#94A3B8]">
-          © 2026 ASTUMSJ Summer BootCamp. All rights reserved.
-        </p>
-
       </div>
     </div>
   );

@@ -18,10 +18,11 @@ import BatchManagement from "./pages/admin/BatchManagement";
 import Announcements from "./pages/admin/Announcements";
 
 // Mentor Pages
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/mentor/Dashboard";
 import Attendance from "./pages/mentor/Attendance";
 import History from "./pages/mentor/History";
 import Progress from "./pages/mentor/Progress";
+import Students from "./pages/mentor/Students";
 
 // Student Pages
 import StudentDashboard from "./pages/student/StudentDashbord";
@@ -51,38 +52,11 @@ function App() {
 
         {/* Protected Mentor Routes */}
         <Route element={<ProtectedRoute allowedRoles={["Mentor"]} />}>
-          <Route
-            path="/dashboard"
-            element={
-              <DashboardLayout role="mentor">
-                <Dashboard />
-              </DashboardLayout>
-            }
-          />
-          <Route
-            path="/mentor/attendance"
-            element={
-              <DashboardLayout role="mentor">
-                <Attendance />
-              </DashboardLayout>
-            }
-          />
-          <Route
-            path="/mentor/history"
-            element={
-              <DashboardLayout role="mentor">
-                <History />
-              </DashboardLayout>
-            }
-          />
-          <Route
-            path="/mentor/progress"
-            element={
-              <DashboardLayout role="mentor">
-                <Progress />
-              </DashboardLayout>
-            }
-          />
+          <Route path="/mentor/dashboard" element={<Dashboard />} />
+          <Route path="/mentor/students" element={<Students />} />
+          <Route path="/mentor/attendance" element={<Attendance />} />
+          <Route path="/mentor/history" element={<History />} />
+          <Route path="/mentor/progress" element={<Progress />} />
         </Route>
 
         {/* Protected Student Routes */}
@@ -99,7 +73,9 @@ function App() {
           element={
             <div className="flex min-h-screen items-center justify-center bg-slate-50">
               <div className="text-center">
-                <h1 className="text-3xl font-bold text-red-600">Access Denied</h1>
+                <h1 className="text-3xl font-bold text-red-600">
+                  Access Denied
+                </h1>
                 <p className="mt-2 text-gray-600">
                   You don't have permission to access this page
                 </p>
