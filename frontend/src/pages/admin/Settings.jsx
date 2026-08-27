@@ -1,42 +1,20 @@
-import {
-  useEffect,
-  useState,
-} from "react";
-
+import React, { useEffect, useState } from "react";
 import {
   AlertTriangle,
   Power,
-  Lock,
   RefreshCw,
+  CheckCircle2,
 } from "lucide-react";
-
 import API from "../../api/axios";
 
 export default function Settings() {
-  const [
-    batches,
-    setBatches,
-  ] = useState([]);
+  const [batches, setBatches] = useState([]);
+  const [registrationOpen, setRegistrationOpen] =
+    useState(false);
+  const [activeBatch, setActiveBatch] = useState(null);
 
-  const [
-    registrationOpen,
-    setRegistrationOpen,
-  ] = useState(false);
-
-  const [
-    activeBatch,
-    setActiveBatch,
-  ] = useState(null);
-
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
-
-  const [
-    message,
-    setMessage,
-  ] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -46,26 +24,20 @@ export default function Settings() {
         settingsResponse,
         batchesResponse,
       ] = await Promise.all([
-        API.get(
-          "/auth/registration-status"
-        ),
+        API.get("/auth/registration-status"),
         API.get("/batches"),
       ]);
 
       setRegistrationOpen(
-        Boolean(
-          settingsResponse.data.open
-        )
+        Boolean(settingsResponse.data?.open)
       );
 
       setActiveBatch(
-        settingsResponse.data.batch ||
-          null
+        settingsResponse.data?.batch || null
       );
 
       setBatches(
-        batchesResponse.data.data ||
-          []
+        batchesResponse.data?.data || []
       );
     } catch (error) {
       setMessage(
@@ -84,26 +56,22 @@ export default function Settings() {
   const openRegistration = async () => {
     if (!activeBatch) {
       setMessage(
-        "Select a batch first."
+        "Select a batch before opening registration."
       );
       return;
     }
 
     try {
-      const response =
-        await API.post(
-          "/system/registration/open",
-          {
-            batchId:
-              activeBatch._id,
-          }
-        );
-
-      setMessage(
-        response.data.message
+      const response = await API.post(
+        "/system/registration/open",
+        {
+          batchId: activeBatch._id,
+        }
       );
 
-      load();
+      setMessage(response.data.message);
+
+      await load();
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
@@ -112,63 +80,49 @@ export default function Settings() {
     }
   };
 
-  const closeRegistration =
-    async () => {
-      try {
-        const response =
-          await API.post(
-            "/system/registration/close"
-          );
-
-        setMessage(
-          response.data.message
-        );
-
-        load();
-      } catch (error) {
-        setMessage(
-          error.response?.data?.message ||
-            "Unable to close registration."
-        );
-      }
-    };
-
-  const completeBatch = async (
-    batch
-  ) => {
-    const first =
-      window.confirm(
-        "WARNING: You are about to finish this bootcamp batch.\n\nStudents will no longer be considered active in this batch and registration will be disabled.\n\nAre you sure you want to continue?"
+  const closeRegistration = async () => {
+    try {
+      const response = await API.post(
+        "/system/registration/close"
       );
 
-    if (!first) return;
+      setMessage(response.data.message);
 
-    const second =
-      window.prompt(
-        `This is a serious action.\n\nType COMPLETE to permanently mark "${batch.name}" as completed.`
+      await load();
+    } catch (error) {
+      setMessage(
+        error.response?.data?.message ||
+          "Unable to close registration."
       );
+    }
+  };
 
-    if (
-      second !==
-      "COMPLETE"
-    ) {
+  const completeBatch = async (batch) => {
+    const firstConfirm = window.confirm(
+      `You are about to finish "${batch.name}".\n\nThis should only be done when the bootcamp has actually finished.\n\nContinue?`
+    );
+
+    if (!firstConfirm) return;
+
+    const confirmation = window.prompt(
+      `Type COMPLETE to finish "${batch.name}".`
+    );
+
+    if (confirmation !== "COMPLETE") {
       return;
     }
 
     try {
-      const response =
-        await API.post(
-          `/batches/${batch._id}/complete`,
-          {
-            confirm: true,
-          }
-        );
-
-      setMessage(
-        response.data.message
+      const response = await API.post(
+        `/batches/${batch._id}/complete`,
+        {
+          confirm: true,
+        }
       );
 
-      load();
+      setMessage(response.data.message);
+
+      await load();
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
@@ -179,363 +133,199 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className="
-        p-8
-        text-center
-        text-slate-400
-      ">
+      <div className="py-16 text-center text-slate-400">
         Loading settings...
       </div>
     );
   }
 
   return (
-    <div className="
-      max-w-5xl
-      space-y-6
-    ">
-      <div>
-        <h2 className="
-          text-2xl
-          font-black
-          text-[#062a5c]
-        ">
-          System Settings
-        </h2>
+    <div className="max-w-5xl space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.18em] font-black text-[#08ad81]">
+            Administration
+          </p>
 
-        <p className="
-          text-sm
-          text-slate-500
-          mt-1
-        ">
-          Control registration and batch
-          lifecycle.
-        </p>
+          <h1 className="text-2xl sm:text-3xl font-black text-[#062a5c]">
+            System Settings
+          </h1>
+
+          <p className="text-sm text-slate-500 mt-1">
+            Control registration and batch lifecycle.
+          </p>
+        </div>
+
+        <button
+          onClick={load}
+          className="p-3 rounded-xl border border-slate-200 bg-white"
+        >
+          <RefreshCw size={18} />
+        </button>
       </div>
 
       {message && (
-        <div className="
-          bg-white
-          border
-          border-slate-200
-          rounded-xl
-          p-4
-          font-semibold
-          text-sm
-        ">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 text-sm font-semibold text-slate-700">
           {message}
         </div>
       )}
 
-      <section className="
-        bg-white
-        border
-        border-slate-200
-        rounded-2xl
-        p-6
-      ">
-        <div className="
-          flex
-          items-center
-          justify-between
-          gap-5
-          flex-wrap
-        ">
-          <div>
-            <div className="
-              flex
-              items-center
-              gap-2
-            ">
-              <Power
-                size={20}
-                className={
-                  registrationOpen
-                    ? "text-emerald-500"
-                    : "text-slate-400"
-                }
-              />
-
-              <h3 className="
-                font-black
-                text-[#062a5c]
-              ">
-                Student Registration
-              </h3>
+      {/* Registration */}
+      <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+        <div className="p-6 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center">
+              <Power size={21} />
             </div>
 
-            <p className="
-              text-sm
-              text-slate-500
-              mt-2
-            ">
-              {registrationOpen
-                ? "Registration is currently open."
-                : "Registration is currently closed."}
-            </p>
+            <div>
+              <h2 className="font-black text-[#062a5c]">
+                Registration Control
+              </h2>
 
-            {activeBatch && (
-              <p className="
-                text-xs
-                text-slate-400
-                mt-1
-              ">
-                Current batch:{" "}
-                <strong>
-                  {
-                    activeBatch.name
-                  }
-                </strong>
+              <p className="text-sm text-slate-400">
+                Control whether new students can register.
               </p>
-            )}
+            </div>
           </div>
-
-          <span className={`
-            px-4
-            py-2
-            rounded-full
-            text-sm
-            font-black
-            ${
-              registrationOpen
-                ? "bg-emerald-50 text-emerald-600"
-                : "bg-slate-100 text-slate-500"
-            }
-          `}>
-            {registrationOpen
-              ? "OPEN"
-              : "CLOSED"}
-          </span>
         </div>
 
-        <div className="
-          mt-6
-          border-t
-          pt-6
-          space-y-4
-        ">
-          <select
-            className="
-              w-full
-              border
-              border-slate-200
-              rounded-xl
-              px-4
-              py-3
-            "
-            value={
-              activeBatch?._id ||
-              ""
-            }
-            onChange={(e) => {
-              const batch =
-                batches.find(
+        <div className="p-6 space-y-5">
+          <div
+            className={`rounded-xl p-4 flex items-center gap-3 ${
+              registrationOpen
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-slate-100 text-slate-600"
+            }`}
+          >
+            <CheckCircle2 size={20} />
+
+            <div>
+              <p className="font-black text-sm">
+                Registration is{" "}
+                {registrationOpen
+                  ? "OPEN"
+                  : "CLOSED"}
+              </p>
+
+              {activeBatch && (
+                <p className="text-xs mt-1">
+                  Current batch:{" "}
+                  <strong>
+                    {activeBatch.name}
+                  </strong>
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-black text-slate-600">
+              Registration Batch
+            </label>
+
+            <select
+              value={activeBatch?._id || ""}
+              onChange={(e) => {
+                const batch = batches.find(
                   (item) =>
-                    item._id ===
-                    e.target.value
+                    item._id === e.target.value
                 );
 
-              setActiveBatch(
-                batch || null
-              );
-            }}
-          >
-            <option value="">
-              Select registration batch
-            </option>
+                setActiveBatch(batch || null);
+              }}
+              className="w-full mt-1 px-3 py-3 border border-slate-200 rounded-xl text-sm bg-white"
+            >
+              <option value="">
+                Select a batch
+              </option>
 
-            {batches
-              .filter(
-                (batch) =>
-                  batch.status !==
-                  "Completed"
-              )
-              .map(
-                (batch) => (
+              {batches
+                .filter(
+                  (batch) =>
+                    batch.status !== "Completed"
+                )
+                .map((batch) => (
                   <option
-                    key={
-                      batch._id
-                    }
-                    value={
-                      batch._id
-                    }
+                    key={batch._id}
+                    value={batch._id}
                   >
                     {batch.name}
                   </option>
-                )
-              )}
-          </select>
+                ))}
+            </select>
+          </div>
 
-          <div className="
-            flex
-            gap-3
-            flex-wrap
-          ">
+          <div className="flex flex-wrap gap-3">
             <button
-              onClick={
-                openRegistration
-              }
-              className="
-                px-5
-                py-3
-                rounded-xl
-                bg-[#08c98b]
-                text-white
-                font-black
-              "
+              onClick={openRegistration}
+              className="px-5 py-3 rounded-xl bg-[#08c98b] text-white font-black text-sm"
             >
               Open Registration
             </button>
 
             <button
-              onClick={
-                closeRegistration
-              }
-              className="
-                px-5
-                py-3
-                rounded-xl
-                bg-slate-100
-                text-slate-700
-                font-black
-              "
+              onClick={closeRegistration}
+              className="px-5 py-3 rounded-xl bg-slate-100 text-slate-700 font-black text-sm"
             >
               Close Registration
-            </button>
-
-            <button
-              onClick={load}
-              className="
-                px-4
-                py-3
-                rounded-xl
-                border
-                border-slate-200
-              "
-            >
-              <RefreshCw
-                size={17}
-              />
             </button>
           </div>
         </div>
       </section>
 
-      <section className="
-        bg-white
-        border
-        border-red-200
-        rounded-2xl
-        overflow-hidden
-      ">
-        <div className="
-          bg-red-50
-          p-6
-          flex
-          gap-4
-        ">
-          <div className="
-            w-12
-            h-12
-            rounded-xl
-            bg-red-100
-            text-red-600
-            grid
-            place-items-center
-            shrink-0
-          ">
-            <AlertTriangle
-              size={23}
-            />
-          </div>
+      {/* Batch completion */}
+      <section className="bg-white border border-rose-200 rounded-2xl overflow-hidden">
+        <div className="p-6 bg-rose-50">
+          <div className="flex gap-4">
+            <div className="w-11 h-11 rounded-xl bg-rose-100 text-rose-600 grid place-items-center shrink-0">
+              <AlertTriangle size={22} />
+            </div>
 
-          <div>
-            <h3 className="
-              text-lg
-              font-black
-              text-red-800
-            ">
-              Finish a bootcamp batch
-            </h3>
+            <div>
+              <h2 className="font-black text-rose-800">
+                Finish a Bootcamp Batch
+              </h2>
 
-            <p className="
-              text-sm
-              text-red-700
-              mt-1
-              leading-6
-            ">
-              Only use this after the
-              bootcamp has actually finished.
-              This action disables registration
-              for the batch and marks it as
-              completed.
-            </p>
+              <p className="text-sm text-rose-700 mt-1 leading-6">
+                Only use this after the bootcamp has actually
+                finished. Completed batches should not be used
+                for new registration.
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="
-          divide-y
-        ">
-          {batches.map(
-            (batch) => (
-              <div
-                key={batch._id}
-                className="
-                  p-5
-                  flex
-                  items-center
-                  justify-between
-                  gap-4
-                  flex-wrap
-                "
-              >
-                <div>
-                  <div className="
-                    font-black
-                    text-[#062a5c]
-                  ">
-                    {batch.name}
-                  </div>
+        <div className="divide-y divide-slate-100">
+          {batches.map((batch) => (
+            <div
+              key={batch._id}
+              className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+            >
+              <div>
+                <h3 className="font-black text-[#062a5c]">
+                  {batch.name}
+                </h3>
 
-                  <div className="
-                    text-xs
-                    text-slate-400
-                    mt-1
-                  ">
-                    {batch.students?.length ||
-                      0}{" "}
-                    students ·{" "}
-                    {batch.mentors?.length ||
-                      0}{" "}
-                    mentors ·{" "}
-                    {batch.status}
-                  </div>
-                </div>
-
-                {batch.status !==
-                  "Completed" && (
-                  <button
-                    onClick={() =>
-                      completeBatch(
-                        batch
-                      )
-                    }
-                    className="
-                      px-4
-                      py-2.5
-                      rounded-xl
-                      bg-red-600
-                      text-white
-                      font-black
-                      text-sm
-                    "
-                  >
-                    Finish Batch
-                  </button>
-                )}
+                <p className="text-xs text-slate-400 mt-1">
+                  {batch.students?.length || 0} students ·{" "}
+                  {batch.mentors?.length || 0} mentors ·{" "}
+                  {batch.status}
+                </p>
               </div>
-            )
-          )}
+
+              {batch.status !== "Completed" && (
+                <button
+                  onClick={() =>
+                    completeBatch(batch)
+                  }
+                  className="px-4 py-2.5 rounded-xl bg-rose-600 text-white font-black text-sm"
+                >
+                  Finish Batch
+                </button>
+              )}
+            </div>
+          ))}
         </div>
       </section>
     </div>

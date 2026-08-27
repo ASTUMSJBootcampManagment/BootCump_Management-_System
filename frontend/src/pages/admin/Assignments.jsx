@@ -1,621 +1,366 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  ClipboardList,
   Plus,
-  Pencil,
   Trash2,
-  RefreshCw,
   X,
-  Save,
-  Eye,
-  FileText,
-  CheckCircle2,
+  ClipboardList,
+  CalendarDays,
+  RefreshCw,
 } from "lucide-react";
-import AdminLayout from "../../components/admin/AdminLayout";
 import API from "../../api/axios";
 
-function getData(response) {
-  return response?.data?.data || response?.data || [];
-}
-
-const emptyForm = {
-  title: "",
-  description: "",
-  instructions: "",
-  dueDate: "",
-  maxScore: 100,
-  batch: "",
-};
-
-export default function AdminAssignments() {
+export default function Assignments() {
   const [assignments, setAssignments] = useState([]);
   const [batches, setBatches] = useState([]);
-  const [submissions, setSubmissions] = useState([]);
-  const [selectedAssignment, setSelectedAssignment] = useState(null);
 
-  const [form, setForm] = useState(emptyForm);
-  const [editingId, setEditingId] = useState(null);
-
+  const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [showForm, setShowForm] = useState(false);
-  const [showSubmissions, setShowSubmissions] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    dueDate: "",
+    batch: "",
+  });
 
-  const [toast, setToast] = useState(null);
-
-  const showToast = (message, type = "success") => {
-    setToast({ message, type });
-
-    window.setTimeout(() => {
-      setToast(null);
-    }, 3500);
-  };
-
-  const load = async () => {
+  const loadData = async () => {
     setLoading(true);
 
     try {
-      const [assignmentsRes, batchesRes] = await Promise.all([
-        API.get("/assignments"),
-        API.get("/batches"),
-      ]);
+      const [assignmentResponse, batchResponse] =
+        await Promise.all([
+          API.get("/assignments"),
+          API.get("/batches"),
+        ]);
 
-      setAssignments(getData(assignmentsRes));
-      setBatches(getData(batchesRes));
-    } catch (error) {
-      showToast(
-        error.response?.data?.message ||
-          "Unable to load assignments.",
-        "error"
+      setAssignments(
+        assignmentResponse.data || []
       );
+
+      setBatches(
+        batchResponse.data?.data || []
+      );
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    load();
+    loadData();
   }, []);
 
-  const sortedAssignments = useMemo(() => {
-    return [...assignments].sort(
-      (a, b) =>
-        new Date(a.dueDate || 0) -
-        new Date(b.dueDate || 0)
-    );
-  }, [assignments]);
-
-  const submit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!form.title.trim()) {
-      showToast("Assignment title is required.", "error");
-      return;
-    }
-
-    if (!form.description.trim()) {
-      showToast("Assignment description is required.", "error");
-      return;
-    }
-
-    if (!form.dueDate) {
-      showToast("Due date is required.", "error");
-      return;
-    }
-
-    if (!form.batch) {
-      showToast("Please select a batch.", "error");
-      return;
-    }
 
     setSaving(true);
 
     try {
-      const payload = {
-        title: form.title.trim(),
-        description: form.description.trim(),
-        instructions: form.instructions.trim(),
-        dueDate: form.dueDate,
-        maxScore: Number(form.maxScore) || 100,
-        batch: form.batch,
-      };
+      await API.post("/assignments", {
+        title: formData.title,
+        description: formData.description,
+        dueDate: formData.dueDate || undefined,
+        batch: formData.batch || undefined,
+      });
 
-      if (editingId) {
-        await API.put(`/assignments/${editingId}`, payload);
-        showToast("Assignment updated.");
-      } else {
-        await API.post("/assignments", payload);
-        showToast("Assignment created.");
-      }
+      setShowModal(false);
 
-      setForm(emptyForm);
-      setEditingId(null);
-      setShowForm(false);
+      setFormData({
+        title: "",
+        description: "",
+        dueDate: "",
+        batch: "",
+      });
 
-      await load();
+      await loadData();
     } catch (error) {
-      showToast(
+      alert(
         error.response?.data?.message ||
-          "Unable to save assignment.",
-        "error"
+          "Unable to create assignment."
       );
     } finally {
       setSaving(false);
     }
   };
 
-  const editAssignment = (assignment) => {
-    setEditingId(assignment._id);
-
-    setForm({
-      title: assignment.title || "",
-      description: assignment.description || "",
-      instructions: assignment.instructions || "",
-      dueDate: assignment.dueDate
-        ? String(assignment.dueDate).slice(0, 16)
-        : "",
-      maxScore: assignment.maxScore || 100,
-      batch:
-        assignment.batch?._id ||
-        assignment.batch ||
-        "",
-    });
-
-    setShowForm(true);
-  };
-
-  const deleteAssignment = async (assignment) => {
+  const deleteAssignment = async (id) => {
     const confirmed = window.confirm(
-      `Delete "${assignment.title}"? This action cannot be undone.`
+      "Are you sure you want to delete this assignment?"
     );
 
     if (!confirmed) return;
 
     try {
-      await API.delete(`/assignments/${assignment._id}`);
-      showToast("Assignment deleted.");
-      await load();
+      await API.delete(`/assignments/${id}`);
+      await loadData();
     } catch (error) {
-      showToast(
+      alert(
         error.response?.data?.message ||
-          "Unable to delete assignment.",
-        "error"
+          "Unable to delete assignment."
       );
     }
-  };
-
-  const viewSubmissions = async (assignment) => {
-    setSelectedAssignment(assignment);
-    setShowSubmissions(true);
-    setSubmissions([]);
-
-    try {
-      const response = await API.get(
-        `/assignments/${assignment._id}/submissions`
-      );
-
-      setSubmissions(getData(response));
-    } catch (error) {
-      showToast(
-        error.response?.data?.message ||
-          "Unable to load submissions.",
-        "error"
-      );
-    }
-  };
-
-  const closeForm = () => {
-    setShowForm(false);
-    setEditingId(null);
-    setForm(emptyForm);
   };
 
   return (
-    <AdminLayout title="Assignments">
-      {toast && (
-        <div
-          className={`fixed right-5 top-5 z-[100] rounded-2xl border px-4 py-3 text-sm font-bold shadow-2xl ${
-            toast.type === "error"
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700"
-          }`}
-        >
-          {toast.message}
-        </div>
-      )}
-
-      <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-[#e8faf5] px-3 py-1 text-xs font-black uppercase tracking-wider text-[#08ad81]">
-            <ClipboardList size={14} />
-            Academic management
-          </div>
+          <p className="text-xs uppercase tracking-[0.18em] font-black text-[#08ad81]">
+            Learning Management
+          </p>
 
-          <h2 className="text-2xl font-black text-[#062a5c]">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#062a5c]">
             Assignments
-          </h2>
+          </h1>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Create, update and review bootcamp assignments.
+          <p className="text-sm text-slate-500 mt-1">
+            Create and manage bootcamp assignments.
           </p>
         </div>
 
         <div className="flex gap-2">
           <button
-            onClick={load}
-            className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm hover:bg-slate-50"
+            onClick={loadData}
+            className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-sm flex items-center gap-2"
           >
-            <RefreshCw size={18} />
+            <RefreshCw size={17} />
+            Refresh
           </button>
 
           <button
-            onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#08c98b] px-4 py-3 text-sm font-black text-white hover:bg-[#07b97e]"
+            onClick={() => setShowModal(true)}
+            className="px-4 py-2.5 rounded-xl bg-[#08c98b] hover:bg-emerald-600 text-white font-black text-sm flex items-center gap-2"
           >
-            <Plus size={17} />
+            <Plus size={18} />
             New Assignment
           </button>
         </div>
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 p-5">
-          <h3 className="font-black text-[#062a5c]">
-            Assignment list
-          </h3>
-          <p className="mt-1 text-xs text-slate-400">
-            {assignments.length} assignments
-          </p>
-        </div>
-
+      {/* Assignments */}
+      <section className="space-y-4">
         {loading ? (
-          <div className="p-10 text-center text-sm font-bold text-slate-400">
+          <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center text-slate-400">
             Loading assignments...
           </div>
-        ) : sortedAssignments.length === 0 ? (
-          <div className="p-12 text-center">
+        ) : assignments.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
             <ClipboardList
-              size={38}
+              size={40}
               className="mx-auto text-slate-300"
             />
-            <div className="mt-3 font-black text-slate-600">
+
+            <h3 className="font-black text-slate-700 mt-4">
               No assignments yet
-            </div>
+            </h3>
+
+            <p className="text-sm text-slate-400 mt-1">
+              Create the first assignment for your students.
+            </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[950px] text-left">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-400">
-                <tr>
-                  <th className="px-5 py-4">Assignment</th>
-                  <th className="px-5 py-4">Batch</th>
-                  <th className="px-5 py-4">Due</th>
-                  <th className="px-5 py-4">Score</th>
-                  <th className="px-5 py-4">Created by</th>
-                  <th className="px-5 py-4">Actions</th>
-                </tr>
-              </thead>
+          assignments.map((assignment) => (
+            <article
+              key={assignment._id}
+              className="bg-white border border-slate-200 rounded-2xl p-5"
+            >
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                <div className="flex gap-4">
+                  <div className="w-11 h-11 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center shrink-0">
+                    <ClipboardList size={20} />
+                  </div>
 
-              <tbody className="divide-y divide-slate-100">
-                {sortedAssignments.map((assignment) => (
-                  <tr key={assignment._id}>
-                    <td className="px-5 py-4">
-                      <div className="font-black text-slate-700">
-                        {assignment.title}
-                      </div>
-                      <div className="mt-1 max-w-xs truncate text-xs text-slate-400">
-                        {assignment.description}
-                      </div>
-                    </td>
+                  <div>
+                    <h2 className="font-black text-lg text-[#062a5c]">
+                      {assignment.title}
+                    </h2>
 
-                    <td className="px-5 py-4 text-sm text-slate-500">
-                      {assignment.batch?.name || "—"}
-                    </td>
+                    <p className="text-sm text-slate-500 mt-1 whitespace-pre-line">
+                      {assignment.description ||
+                        "No description provided."}
+                    </p>
 
-                    <td className="px-5 py-4 text-sm text-slate-500">
-                      {assignment.dueDate
-                        ? new Date(
+                    <div className="flex flex-wrap gap-3 mt-3 text-xs text-slate-400 font-semibold">
+                      {assignment.dueDate && (
+                        <span className="flex items-center gap-1">
+                          <CalendarDays size={14} />
+                          Due{" "}
+                          {new Date(
                             assignment.dueDate
-                          ).toLocaleString()
-                        : "—"}
-                    </td>
+                          ).toLocaleDateString()}
+                        </span>
+                      )}
 
-                    <td className="px-5 py-4 text-sm font-bold text-slate-600">
-                      {assignment.maxScore ?? 100}
-                    </td>
+                      {assignment.batch && (
+                        <span>
+                          Batch:{" "}
+                          {assignment.batch.name ||
+                            "Assigned batch"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-                    <td className="px-5 py-4 text-sm text-slate-500">
-                      {assignment.createdBy?.fullname || "—"}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() =>
-                            viewSubmissions(assignment)
-                          }
-                          className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"
-                          title="View submissions"
-                        >
-                          <Eye size={16} />
-                        </button>
-
-                        <button
-                          onClick={() =>
-                            editAssignment(assignment)
-                          }
-                          className="rounded-lg bg-[#e8faf5] p-2 text-[#08ad81] hover:bg-emerald-100"
-                          title="Edit"
-                        >
-                          <Pencil size={16} />
-                        </button>
-
-                        <button
-                          onClick={() =>
-                            deleteAssignment(assignment)
-                          }
-                          className="rounded-lg bg-red-50 p-2 text-red-600 hover:bg-red-100"
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                <button
+                  onClick={() =>
+                    deleteAssignment(
+                      assignment._id
+                    )
+                  }
+                  className="self-start p-2 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            </article>
+          ))
         )}
       </section>
 
-      {showForm && (
-        <Modal
-          title={
-            editingId
-              ? "Edit Assignment"
-              : "Create Assignment"
-          }
-          onClose={closeForm}
-        >
-          <form onSubmit={submit} className="space-y-4">
-            <Input
-              label="Title"
-              value={form.title}
-              onChange={(value) =>
-                setForm({ ...form, title: value })
-              }
-              required
-            />
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h2 className="font-black text-lg text-[#062a5c]">
+                  Create Assignment
+                </h2>
 
-            <TextArea
-              label="Description"
-              value={form.description}
-              onChange={(value) =>
-                setForm({
-                  ...form,
-                  description: value,
-                })
-              }
-              required
-            />
+                <p className="text-xs text-slate-400 mt-1">
+                  Students will be notified automatically.
+                </p>
+              </div>
 
-            <TextArea
-              label="Instructions"
-              value={form.instructions}
-              onChange={(value) =>
-                setForm({
-                  ...form,
-                  instructions: value,
-                })
-              }
-            />
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Input
-                label="Due date"
-                type="datetime-local"
-                value={form.dueDate}
-                onChange={(value) =>
-                  setForm({
-                    ...form,
-                    dueDate: value,
-                  })
-                }
-                required
-              />
-
-              <Input
-                label="Maximum score"
-                type="number"
-                min="1"
-                value={form.maxScore}
-                onChange={(value) =>
-                  setForm({
-                    ...form,
-                    maxScore: value,
-                  })
-                }
-              />
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">
-                Batch
-              </label>
-
-              <select
-                value={form.batch}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    batch: e.target.value,
-                  })
-                }
-                required
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#08c98b]"
+              <button
+                onClick={() => setShowModal(false)}
+                className="p-2 text-slate-400 hover:text-slate-700"
               >
-                <option value="">Select batch</option>
-
-                {batches.map((batch) => (
-                  <option key={batch._id} value={batch._id}>
-                    {batch.name}
-                    {batch.year ? ` — ${batch.year}` : ""}
-                  </option>
-                ))}
-              </select>
+                <X size={20} />
+              </button>
             </div>
 
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#08c98b] py-3.5 text-sm font-black text-white hover:bg-[#07b97e] disabled:opacity-50"
+            <form
+              onSubmit={handleSubmit}
+              className="p-5 space-y-4"
             >
-              <Save size={17} />
-              {saving
-                ? "Saving..."
-                : editingId
-                ? "Update Assignment"
-                : "Create Assignment"}
-            </button>
-          </form>
-        </Modal>
-      )}
+              <div>
+                <label className="text-xs font-black text-slate-600">
+                  Title
+                </label>
 
-      {showSubmissions && (
-        <Modal
-          title={`Submissions — ${
-            selectedAssignment?.title || ""
-          }`}
-          onClose={() => setShowSubmissions(false)}
-          wide
-        >
-          {submissions.length === 0 ? (
-            <div className="py-10 text-center">
-              <FileText
-                size={38}
-                className="mx-auto text-slate-300"
-              />
-              <p className="mt-3 font-black text-slate-600">
-                No submissions found
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {submissions.map((submission) => (
-                <div
-                  key={submission._id}
-                  className="rounded-xl border border-slate-200 p-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="font-black text-slate-700">
-                        {submission.student?.fullname ||
-                          submission.studentName ||
-                          "Student"}
-                      </div>
+                <input
+                  required
+                  value={formData.title}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      title: e.target.value,
+                    })
+                  }
+                  placeholder="e.g. React Todo Application"
+                  className="w-full mt-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm"
+                />
+              </div>
 
-                      <div className="mt-1 text-xs text-slate-400">
-                        Submitted{" "}
-                        {submission.submittedAt
-                          ? new Date(
-                              submission.submittedAt
-                            ).toLocaleString()
-                          : "—"}
-                      </div>
-                    </div>
+              <div>
+                <label className="text-xs font-black text-slate-600">
+                  Description
+                </label>
 
-                    <div className="rounded-lg bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
-                      {submission.grade ??
-                        submission.score ??
-                        "Not graded"}
-                    </div>
-                  </div>
+                <textarea
+                  required
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      description: e.target.value,
+                    })
+                  }
+                  placeholder="Describe the assignment..."
+                  className="w-full mt-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm resize-none"
+                />
+              </div>
 
-                  <div className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-                    {submission.content ||
-                      submission.answer ||
-                      submission.link ||
-                      "No submission content."}
-                  </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-black text-slate-600">
+                    Due Date
+                  </label>
+
+                  <input
+                    type="datetime-local"
+                    value={formData.dueDate}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        dueDate: e.target.value,
+                      })
+                    }
+                    className="w-full mt-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm"
+                  />
                 </div>
-              ))}
-            </div>
-          )}
-        </Modal>
-      )}
-    </AdminLayout>
-  );
-}
 
-function Input({
-  label,
-  value,
-  onChange,
-  type = "text",
-  required = false,
-  min,
-}) {
-  return (
-    <div>
-      <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">
-        {label}
-      </label>
+                <div>
+                  <label className="text-xs font-black text-slate-600">
+                    Batch
+                  </label>
 
-      <input
-        type={type}
-        value={value}
-        min={min}
-        required={required}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#08c98b]"
-      />
-    </div>
-  );
-}
+                  <select
+                    value={formData.batch}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        batch: e.target.value,
+                      })
+                    }
+                    className="w-full mt-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white"
+                  >
+                    <option value="">
+                      All students
+                    </option>
 
-function TextArea({ label, value, onChange, required = false }) {
-  return (
-    <div>
-      <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">
-        {label}
-      </label>
+                    {batches.map((batch) => (
+                      <option
+                        key={batch._id}
+                        value={batch._id}
+                      >
+                        {batch.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-      <textarea
-        value={value}
-        required={required}
-        onChange={(e) => onChange(e.target.value)}
-        rows={4}
-        className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#08c98b]"
-      />
-    </div>
-  );
-}
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowModal(false)
+                  }
+                  className="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
 
-function Modal({ title, children, onClose, wide = false }) {
-  return (
-    <div className="fixed inset-0 z-[90] grid place-items-center bg-black/50 p-4">
-      <div
-        className={`max-h-[90vh] w-full overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl ${
-          wide ? "max-w-4xl" : "max-w-2xl"
-        }`}
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-xl font-black text-[#062a5c]">
-            {title}
-          </h3>
-
-          <button
-            onClick={onClose}
-            className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
-          >
-            <X size={19} />
-          </button>
+                <button
+                  disabled={saving}
+                  className="px-5 py-2.5 rounded-xl bg-[#08c98b] text-white font-black text-sm disabled:opacity-50"
+                >
+                  {saving
+                    ? "Creating..."
+                    : "Create Assignment"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-
-        {children}
-      </div>
+      )}
     </div>
   );
 }

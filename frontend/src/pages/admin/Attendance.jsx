@@ -1,61 +1,82 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  CalendarCheck2,
-  RefreshCw,
+  CalendarDays,
+  Check,
+  Clock3,
   Search,
-  CheckCircle2,
+  UserCheck,
   XCircle,
+  RefreshCw,
 } from "lucide-react";
-import AdminLayout from "../../components/admin/AdminLayout";
 import API from "../../api/axios";
 
-function getData(response) {
-  return response?.data?.data || response?.data || [];
-}
+const STATUS_OPTIONS = [
+  { value: "present", label: "Present" },
+  { value: "absent", label: "Absent" },
+  { value: "late", label: "Late" },
+  { value: "excused", label: "Excused" },
+];
 
-function formatDate(value) {
-  if (!value) return "—";
-
-  const d = new Date(value);
-
-  if (Number.isNaN(d.getTime())) return String(value);
-
-  return d.toLocaleDateString();
-}
-
-export default function AdminAttendance() {
-  const [records, setRecords] = useState([]);
+export default function Attendance() {
   const [students, setStudents] = useState([]);
-  const [date, setDate] = useState("");
+  const [batches, setBatches] = useState([]);
+  const [attendance, setAttendance] = useState({});
+
   const [search, setSearch] = useState("");
+  const [selectedBatch, setSelectedBatch] = useState("");
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
+  const [message, setMessage] = useState("");
 
-  const showToast = (message, type = "success") => {
-    setToast({ message, type });
-
-    window.setTimeout(() => {
-      setToast(null);
-    }, 3500);
-  };
-
-  const load = async () => {
+  const loadData = async () => {
     setLoading(true);
+    setMessage("");
 
     try {
-      const [attendanceRes, studentsRes] = await Promise.all([
-        API.get("/attendance"),
-        API.get("/admin/users?role=Student"),
-      ]);
+      const [studentsResponse, batchesResponse, attendanceResponse] =
+        await Promise.all([
+          API.get("/admin/users?role=Student"),
+          API.get("/batches"),
+          API.get("/attendance"),
+        ]);
 
-      setRecords(getData(attendanceRes));
-      setStudents(getData(studentsRes));
+      const studentData = studentsResponse.data?.data || [];
+      const batchData = batchesResponse.data?.data || [];
+      const attendanceData = attendanceResponse.data?.data || [];
+
+      setStudents(studentData);
+      setBatches(batchData);
+
+      const initialAttendance = {};
+
+      attendanceData.forEach((record) => {
+        const studentId =
+          typeof record.student === "object"
+            ? record.student?._id
+            : record.student;
+
+        if (!studentId) return;
+
+        const recordDate = new Date(record.date)
+          .toISOString()
+          .split("T")[0];
+
+        if (recordDate === selectedDate) {
+          initialAttendance[studentId] = record.status;
+        }
+      });
+
+      setAttendance(initialAttendance);
     } catch (error) {
-      showToast(
+      console.error(error);
+
+      setMessage(
         error.response?.data?.message ||
-          "Unable to load attendance information.",
-        "error"
+          "Unable to load attendance data."
       );
     } finally {
       setLoading(false);
@@ -63,238 +84,365 @@ export default function AdminAttendance() {
   };
 
   useEffect(() => {
-    load();
-  }, []);
+    loadData();
+  }, [selectedDate]);
 
-  const filteredRecords = useMemo(() => {
-    const term = search.trim().toLowerCase();
+  const filteredStudents = useMemo(() => {
+    const query = search.toLowerCase().trim();
 
-    if (!term) return records;
+    return students.filter((student) => {
+      const fullname = student.fullname || student.name || "";
+      const email = student.email || "";
 
-    return records.filter((record) => {
-      const student =
-        record.student?.fullname ||
-        record.studentId?.fullname ||
-        record.studentName ||
-        "";
+      const matchesSearch =
+        !query ||
+        fullname.toLowerCase().includes(query) ||
+        email.toLowerCase().includes(query);
 
-      return String(student).toLowerCase().includes(term);
+      const matchesBatch =
+        !selectedBatch ||
+        student.assignedBatch?._id === selectedBatch ||
+        student.appliedBatch?._id === selectedBatch;
+
+      return matchesSearch && matchesBatch;
     });
-  }, [records, search]);
+  }, [students, search, selectedBatch]);
 
-  const markAttendance = async () => {
-    if (!date) {
-      showToast("Please select a date.", "error");
+  const updateStatus = (studentId, status) => {
+    setAttendance((previous) => ({
+      ...previous,
+      [studentId]: status,
+    }));
+  };
+
+  const markAll = (status) => {
+    const updated = { ...attendance };
+
+    filteredStudents.forEach((student) => {
+      updated[student._id] = status;
+    });
+
+    setAttendance(updated);
+  };
+
+  const saveAttendance = async () => {
+    if (filteredStudents.length === 0) {
+      setMessage("There are no students to save.");
       return;
     }
 
     setSaving(true);
+    setMessage("");
 
     try {
-      await API.post("/attendance/attender", {
-        date,
-        presentIds: [],
-      });
+      const records = filteredStudents
+        .filter((student) => attendance[student._id])
+        .map((student) => ({
+          student: student._id,
+          status: attendance[student._id],
+          date: selectedDate,
+          batch:
+            student.assignedBatch?._id ||
+            student.appliedBatch?._id ||
+            selectedBatch ||
+            undefined,
+        }));
 
-      showToast("Attendance session recorded.");
-      await load();
+      if (records.length === 0) {
+        setMessage("Please mark attendance before saving.");
+        setSaving(false);
+        return;
+      }
+
+      for (const record of records) {
+        await API.post("/attendance/attender", record);
+      }
+
+      setMessage("Attendance saved successfully.");
+      await loadData();
     } catch (error) {
-      showToast(
+      console.error(error);
+
+      setMessage(
         error.response?.data?.message ||
-          "Unable to record attendance.",
-        "error"
+          "Unable to save attendance. Check for duplicate records."
       );
     } finally {
       setSaving(false);
     }
   };
 
-  const getStudentName = (record) => {
-    return (
-      record.student?.fullname ||
-      record.studentId?.fullname ||
-      record.studentName ||
-      "Unknown student"
-    );
-  };
-
-  const isPresent = (record) => {
-    return record.present === true || record.status === "Present";
-  };
-
   return (
-    <AdminLayout title="Attendance">
-      {toast && (
-        <div
-          className={`fixed right-5 top-5 z-[100] flex max-w-sm items-center gap-3 rounded-2xl border px-4 py-3 shadow-2xl ${
-            toast.type === "error"
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700"
-          }`}
-        >
-          {toast.type === "error" ? (
-            <XCircle size={19} />
-          ) : (
-            <CheckCircle2 size={19} />
-          )}
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.18em] font-black text-[#08ad81]">
+            Student Management
+          </p>
 
-          <span className="text-sm font-bold">{toast.message}</span>
-        </div>
-      )}
+          <h1 className="text-2xl sm:text-3xl font-black text-[#062a5c]">
+            Attendance
+          </h1>
 
-      <div className="mb-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-[#e8faf5] px-3 py-1 text-xs font-black uppercase tracking-wider text-[#08ad81]">
-              <CalendarCheck2 size={14} />
-              Attendance management
-            </div>
-
-            <h2 className="text-2xl font-black text-[#062a5c]">
-              Bootcamp Attendance
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Review attendance records across the bootcamp.
-            </p>
-          </div>
-
-          <button
-            onClick={load}
-            disabled={loading}
-            className="rounded-xl border border-slate-200 bg-white p-3 text-slate-600 shadow-sm hover:bg-slate-50 disabled:opacity-50"
-          >
-            <RefreshCw
-              size={18}
-              className={loading ? "animate-spin" : ""}
-            />
-          </button>
-        </div>
-      </div>
-
-      <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-4">
-          <h3 className="font-black text-[#062a5c]">
-            Attendance session
-          </h3>
-          <p className="mt-1 text-xs text-slate-400">
-            Select a date before recording attendance.
+          <p className="text-sm text-slate-500 mt-1">
+            Mark and manage daily student attendance.
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#08c98b]"
-          />
+        <button
+          onClick={loadData}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-sm hover:bg-slate-50"
+        >
+          <RefreshCw size={17} />
+          Refresh
+        </button>
+      </div>
 
-          <button
-            onClick={markAttendance}
-            disabled={saving}
-            className="rounded-xl bg-[#08c98b] px-5 py-3 text-sm font-black text-white hover:bg-[#07b97e] disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Record Session"}
-          </button>
+      {/* Message */}
+      {message && (
+        <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700">
+          {message}
         </div>
+      )}
 
-        <div className="mt-3 text-xs text-slate-400">
-          Students available:{" "}
-          <strong className="text-slate-600">{students.length}</strong>
+      {/* Filters */}
+      <section className="bg-white border border-slate-200 rounded-2xl p-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="text-xs font-black text-slate-600">
+              Date
+            </label>
+
+            <div className="relative mt-1">
+              <CalendarDays
+                size={17}
+                className="absolute left-3 top-3 text-slate-400"
+              />
+
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#08c98b]/20"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-black text-slate-600">
+              Batch
+            </label>
+
+            <select
+              value={selectedBatch}
+              onChange={(e) => setSelectedBatch(e.target.value)}
+              className="w-full mt-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none"
+            >
+              <option value="">All Batches</option>
+
+              {batches.map((batch) => (
+                <option key={batch._id} value={batch._id}>
+                  {batch.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-black text-slate-600">
+              Search Student
+            </label>
+
+            <div className="relative mt-1">
+              <Search
+                size={17}
+                className="absolute left-3 top-3 text-slate-400"
+              />
+
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Name or email..."
+                className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col justify-between gap-3 border-b border-slate-100 p-5 sm:flex-row sm:items-center">
-          <div>
-            <h3 className="font-black text-[#062a5c]">
-              Attendance records
-            </h3>
-            <p className="mt-1 text-xs text-slate-400">
-              {filteredRecords.length} records found
-            </p>
-          </div>
+      {/* Quick actions */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => markAll("present")}
+          className="px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-sm"
+        >
+          Mark All Present
+        </button>
 
-          <div className="relative w-full sm:w-72">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
+        <button
+          onClick={() => markAll("absent")}
+          className="px-4 py-2 rounded-xl bg-rose-50 text-rose-700 font-bold text-sm"
+        >
+          Mark All Absent
+        </button>
 
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search student..."
-              className="w-full rounded-xl border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#08c98b]"
-            />
-          </div>
-        </div>
+        <button
+          onClick={() => markAll("late")}
+          className="px-4 py-2 rounded-xl bg-amber-50 text-amber-700 font-bold text-sm"
+        >
+          Mark All Late
+        </button>
+      </div>
 
+      {/* Table */}
+      <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-sm font-bold text-slate-400">
+          <div className="p-10 text-center text-slate-400">
             Loading attendance...
           </div>
-        ) : filteredRecords.length === 0 ? (
-          <div className="p-12 text-center">
-            <CalendarCheck2
-              size={35}
-              className="mx-auto text-slate-300"
-            />
-            <div className="mt-3 font-black text-slate-600">
-              No attendance records
-            </div>
-            <p className="mt-1 text-sm text-slate-400">
-              Attendance records will appear here once sessions are recorded.
-            </p>
+        ) : filteredStudents.length === 0 ? (
+          <div className="p-10 text-center text-slate-400">
+            No students found.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-left">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-400">
-                <tr>
-                  <th className="px-5 py-4">Student</th>
-                  <th className="px-5 py-4">Date</th>
-                  <th className="px-5 py-4">Status</th>
-                  <th className="px-5 py-4">Batch</th>
-                </tr>
-              </thead>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[850px]">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="text-left px-5 py-4 text-xs font-black text-slate-500">
+                      Student
+                    </th>
 
-              <tbody className="divide-y divide-slate-100">
-                {filteredRecords.map((record, index) => (
-                  <tr key={record._id || index}>
-                    <td className="px-5 py-4 font-bold text-slate-700">
-                      {getStudentName(record)}
-                    </td>
+                    <th className="text-left px-5 py-4 text-xs font-black text-slate-500">
+                      Batch
+                    </th>
 
-                    <td className="px-5 py-4 text-sm text-slate-500">
-                      {formatDate(record.date || record.attendanceDate)}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      {isPresent(record) ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
-                          <CheckCircle2 size={13} />
-                          Present
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-3 py-1 text-xs font-black text-red-700">
-                          <XCircle size={13} />
-                          Absent
-                        </span>
-                      )}
-                    </td>
-
-                    <td className="px-5 py-4 text-sm text-slate-500">
-                      {record.batch?.name || record.batchName || "—"}
-                    </td>
+                    <th className="text-left px-5 py-4 text-xs font-black text-slate-500">
+                      Attendance
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+
+                <tbody className="divide-y divide-slate-100">
+                  {filteredStudents.map((student) => {
+                    const studentName =
+                      student.fullname ||
+                      student.name ||
+                      "Unnamed Student";
+
+                    const status = attendance[student._id];
+
+                    return (
+                      <tr key={student._id}>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-[#e8faf5] text-[#08ad81] grid place-items-center font-black">
+                              {studentName
+                                .charAt(0)
+                                .toUpperCase()}
+                            </div>
+
+                            <div>
+                              <p className="font-bold text-slate-800">
+                                {studentName}
+                              </p>
+
+                              <p className="text-xs text-slate-400">
+                                {student.email}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-4 text-sm text-slate-600">
+                          {student.assignedBatch?.name ||
+                            student.appliedBatch?.name ||
+                            "Not assigned"}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <div className="flex flex-wrap gap-2">
+                            {STATUS_OPTIONS.map((option) => {
+                              const active =
+                                status === option.value;
+
+                              return (
+                                <button
+                                  key={option.value}
+                                  onClick={() =>
+                                    updateStatus(
+                                      student._id,
+                                      option.value
+                                    )
+                                  }
+                                  className={`px-3 py-2 rounded-lg text-xs font-black border transition ${
+                                    active
+                                      ? option.value ===
+                                        "present"
+                                        ? "bg-emerald-500 text-white border-emerald-500"
+                                        : option.value ===
+                                          "absent"
+                                        ? "bg-rose-500 text-white border-rose-500"
+                                        : option.value ===
+                                          "late"
+                                        ? "bg-amber-500 text-white border-amber-500"
+                                        : "bg-blue-500 text-white border-blue-500"
+                                      : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  {option.value ===
+                                    "present" && (
+                                    <Check
+                                      size={13}
+                                      className="inline mr-1"
+                                    />
+                                  )}
+
+                                  {option.value ===
+                                    "absent" && (
+                                    <XCircle
+                                      size={13}
+                                      className="inline mr-1"
+                                    />
+                                  )}
+
+                                  {option.value === "late" && (
+                                    <Clock3
+                                      size={13}
+                                      className="inline mr-1"
+                                    />
+                                  )}
+
+                                  {option.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="p-5 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={saveAttendance}
+                disabled={saving}
+                className="px-5 py-3 rounded-xl bg-[#08c98b] hover:bg-emerald-600 disabled:opacity-50 text-white font-black text-sm flex items-center gap-2"
+              >
+                <UserCheck size={17} />
+
+                {saving ? "Saving..." : "Save Attendance"}
+              </button>
+            </div>
+          </>
         )}
       </section>
-    </AdminLayout>
+    </div>
   );
 }

@@ -1,81 +1,66 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  TrendingUp,
+  Plus,
   RefreshCw,
-  Search,
+  BookOpen,
   CheckCircle2,
-  AlertCircle,
   Clock3,
-  Circle,
+  AlertCircle,
+  Users,
 } from "lucide-react";
-import AdminLayout from "../../components/admin/AdminLayout";
 import API from "../../api/axios";
 
-const STATUS_OPTIONS = [
-  "Not started",
-  "In progress",
-  "Needs improvement",
-  "Completed",
-];
+const statusConfig = {
+  Completed: {
+    label: "Completed",
+    className: "bg-emerald-50 text-emerald-700",
+    icon: CheckCircle2,
+  },
+  InProgress: {
+    label: "In Progress",
+    className: "bg-blue-50 text-blue-700",
+    icon: Clock3,
+  },
+  NeedsImprovement: {
+    label: "Needs Improvement",
+    className: "bg-amber-50 text-amber-700",
+    icon: AlertCircle,
+  },
+  NotStarted: {
+    label: "Not Started",
+    className: "bg-slate-100 text-slate-600",
+    icon: Clock3,
+  },
+};
 
-function getData(response) {
-  return response?.data?.data || response?.data || [];
-}
+export default function Progress() {
+  const [batches, setBatches] = useState([]);
+  const [students, setStudents] = useState([]);
 
-function statusIcon(status) {
-  if (status === "Completed") return CheckCircle2;
-  if (status === "Needs improvement") return AlertCircle;
-  if (status === "In progress") return Clock3;
-  return Circle;
-}
+  const [selectedBatch, setSelectedBatch] = useState("");
+  const [topic, setTopic] = useState("");
 
-function normalizeStatus(value) {
-  const text = String(value || "").toLowerCase();
-
-  if (text === "completed") return "Completed";
-  if (text === "inprogress" || text === "in progress") {
-    return "In progress";
-  }
-  if (
-    text === "needsimprovement" ||
-    text === "needs improvement"
-  ) {
-    return "Needs improvement";
-  }
-
-  return "Not started";
-}
-
-export default function AdminProgress() {
-  const [rows, setRows] = useState([]);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [progress, setProgress] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [savingId, setSavingId] = useState(null);
-  const [toast, setToast] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const [message, setMessage] = useState("");
 
-  const showToast = (message, type = "success") => {
-    setToast({ message, type });
-
-    window.setTimeout(() => {
-      setToast(null);
-    }, 3500);
-  };
-
-  const load = async () => {
+  const loadData = async () => {
     setLoading(true);
 
     try {
-      const response = await API.get(
-        "/progress/get/students-progress"
-      );
+      const [batchResponse, studentResponse] =
+        await Promise.all([
+          API.get("/batches"),
+          API.get("/admin/users?role=Student"),
+        ]);
 
-      setRows(getData(response));
+      setBatches(batchResponse.data?.data || []);
+      setStudents(studentResponse.data?.data || []);
     } catch (error) {
-      showToast(
+      setMessage(
         error.response?.data?.message ||
-          "Unable to load progress.",
-        "error"
+          "Unable to load progress data."
       );
     } finally {
       setLoading(false);
@@ -83,294 +68,280 @@ export default function AdminProgress() {
   };
 
   useEffect(() => {
-    load();
+    loadData();
   }, []);
 
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
+  const createTopic = async (e) => {
+    e.preventDefault();
 
-    return rows.filter((row) => {
-      const name =
-        row.student?.fullname ||
-        row.studentName ||
-        "";
-
-      const topic = row.topic || "";
-
-      const matchesSearch =
-        !term ||
-        String(name).toLowerCase().includes(term) ||
-        String(topic).toLowerCase().includes(term);
-
-      const status = normalizeStatus(row.status);
-
-      const matchesStatus =
-        statusFilter === "All" || status === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [rows, search, statusFilter]);
-
-  const updateProgress = async (row, status) => {
-    const studentId =
-      row.student?._id ||
-      row.studentId?._id ||
-      row.studentId;
-
-    if (!studentId) {
-      showToast("Student ID is missing from this record.", "error");
+    if (!topic.trim()) {
+      setMessage("Enter a topic name.");
       return;
     }
 
-    setSavingId(row._id);
+    setCreating(true);
+    setMessage("");
 
     try {
-      const response = await API.patch(
-        `/progress/update-progress/${studentId}`,
-        {
-          topic: row.topic,
-          status,
-          batch: row.batch?._id || row.batch,
-        }
-      );
+      const response = await API.post("/progress/create", {
+        topic: topic.trim(),
+        batchId: selectedBatch || undefined,
+      });
 
-      const updated = response?.data?.data;
-
-      setRows((current) =>
-        current.map((item) =>
-          item._id === row._id
-            ? { ...item, ...(updated || {}), status }
-            : item
-        )
-      );
-
-      showToast("Progress updated.");
+      setMessage(response.data.message);
+      setTopic("");
     } catch (error) {
-      showToast(
+      setMessage(
         error.response?.data?.message ||
-          "Unable to update progress.",
-        "error"
+          "Unable to create progress topic."
       );
     } finally {
-      setSavingId(null);
+      setCreating(false);
     }
   };
 
-  const completed = rows.filter(
-    (r) => normalizeStatus(r.status) === "Completed"
-  ).length;
+  const loadStudentProgress = async (studentId) => {
+    try {
+      const response = await API.get(
+        `/progress/get-one/${studentId}`
+      );
 
-  const inProgress = rows.filter(
-    (r) => normalizeStatus(r.status) === "In progress"
-  ).length;
+      setProgress((previous) => ({
+        ...previous,
+        [studentId]: response.data,
+      }));
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
-  const needsImprovement = rows.filter(
-    (r) => normalizeStatus(r.status) === "Needs improvement"
-  ).length;
+  useEffect(() => {
+    students.forEach((student) => {
+      loadStudentProgress(student._id);
+    });
+  }, [students]);
+
+  const visibleStudents = selectedBatch
+    ? students.filter(
+        (student) =>
+          student.assignedBatch?._id === selectedBatch ||
+          student.appliedBatch?._id === selectedBatch
+      )
+    : students;
 
   return (
-    <AdminLayout title="Progress">
-      {toast && (
-        <div
-          className={`fixed right-5 top-5 z-[100] rounded-2xl border px-4 py-3 text-sm font-bold shadow-2xl ${
-            toast.type === "error"
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700"
-          }`}
-        >
-          {toast.message}
-        </div>
-      )}
-
-      <div className="mb-6 flex items-start justify-between gap-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-[#e8faf5] px-3 py-1 text-xs font-black uppercase tracking-wider text-[#08ad81]">
-            <TrendingUp size={14} />
-            Learning progress
-          </div>
+          <p className="text-xs uppercase tracking-[0.18em] font-black text-[#08ad81]">
+            Learning Management
+          </p>
 
-          <h2 className="text-2xl font-black text-[#062a5c]">
-            Student Progress
-          </h2>
+          <h1 className="text-2xl sm:text-3xl font-black text-[#062a5c]">
+            Progress
+          </h1>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Monitor and update curriculum progress across students.
+          <p className="text-sm text-slate-500 mt-1">
+            Create learning topics and monitor student progress.
           </p>
         </div>
 
         <button
-          onClick={load}
-          disabled={loading}
-          className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+          onClick={loadData}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white font-bold text-sm"
         >
-          <RefreshCw
-            size={18}
-            className={loading ? "animate-spin" : ""}
-          />
+          <RefreshCw size={17} />
+          Refresh
         </button>
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <Stat
-          label="Completed"
-          value={completed}
-          icon={CheckCircle2}
-        />
+      {message && (
+        <div className="bg-white border border-slate-200 rounded-xl p-4 text-sm font-semibold text-slate-700">
+          {message}
+        </div>
+      )}
 
-        <Stat
-          label="In progress"
-          value={inProgress}
-          icon={Clock3}
-        />
-
-        <Stat
-          label="Needs improvement"
-          value={needsImprovement}
-          icon={AlertCircle}
-        />
-      </div>
-
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-100 p-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h3 className="font-black text-[#062a5c]">
-              Progress records
-            </h3>
-            <p className="mt-1 text-xs text-slate-400">
-              {filtered.length} records
-            </p>
+      {/* Create topic */}
+      <section className="bg-white border border-slate-200 rounded-2xl p-5">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-11 h-11 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center">
+            <BookOpen size={20} />
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <div className="relative">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
+          <div>
+            <h2 className="font-black text-[#062a5c]">
+              Create Progress Topic
+            </h2>
 
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Student or topic..."
-                className="w-full rounded-xl border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#08c98b] sm:w-64"
-              />
-            </div>
+            <p className="text-xs text-slate-400">
+              The topic will be added to students in the selected batch.
+            </p>
+          </div>
+        </div>
 
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold outline-none focus:border-[#08c98b]"
-            >
-              <option value="All">All statuses</option>
-              {STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
+        <form
+          onSubmit={createTopic}
+          className="grid grid-cols-1 md:grid-cols-[1fr_260px_auto] gap-3"
+        >
+          <input
+            type="text"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="e.g. React Hooks"
+            className="px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#08c98b]/20"
+          />
+
+          <select
+            value={selectedBatch}
+            onChange={(e) => setSelectedBatch(e.target.value)}
+            className="px-4 py-3 border border-slate-200 rounded-xl text-sm bg-white"
+          >
+            <option value="">All active batches</option>
+
+            {batches.map((batch) => (
+              <option key={batch._id} value={batch._id}>
+                {batch.name}
+              </option>
+            ))}
+          </select>
+
+          <button
+            disabled={creating}
+            className="px-5 py-3 rounded-xl bg-[#08c98b] text-white font-black text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            <Plus size={17} />
+
+            {creating ? "Creating..." : "Create Topic"}
+          </button>
+        </form>
+      </section>
+
+      {/* Student progress */}
+      <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+        <div className="p-5 border-b border-slate-100 flex items-center gap-3">
+          <Users size={20} className="text-[#08ad81]" />
+
+          <div>
+            <h2 className="font-black text-[#062a5c]">
+              Student Progress
+            </h2>
+
+            <p className="text-xs text-slate-400">
+              {visibleStudents.length} student
+              {visibleStudents.length !== 1 ? "s" : ""}
+            </p>
           </div>
         </div>
 
         {loading ? (
-          <div className="p-10 text-center text-sm font-bold text-slate-400">
-            Loading progress...
+          <div className="p-10 text-center text-slate-400">
+            Loading students...
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="p-12 text-center text-sm text-slate-400">
-            No progress records found.
+        ) : visibleStudents.length === 0 ? (
+          <div className="p-10 text-center text-slate-400">
+            No students found.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-400">
-                <tr>
-                  <th className="px-5 py-4">Student</th>
-                  <th className="px-5 py-4">Topic</th>
-                  <th className="px-5 py-4">Batch</th>
-                  <th className="px-5 py-4">Status</th>
-                  <th className="px-5 py-4">Update</th>
-                </tr>
-              </thead>
+          <div className="divide-y divide-slate-100">
+            {visibleStudents.map((student) => {
+              const studentProgress =
+                progress[student._id];
 
-              <tbody className="divide-y divide-slate-100">
-                {filtered.map((row, index) => {
-                  const status = normalizeStatus(row.status);
-                  const Icon = statusIcon(status);
+              const records =
+                studentProgress?.data || [];
 
-                  return (
-                    <tr key={row._id || index}>
-                      <td className="px-5 py-4 font-bold text-slate-700">
-                        {row.student?.fullname ||
-                          row.studentName ||
-                          "Unknown"}
-                      </td>
+              const completion =
+                studentProgress?.completion || 0;
 
-                      <td className="px-5 py-4 text-sm text-slate-600">
-                        {row.topic || "—"}
-                      </td>
+              const studentName =
+                student.fullname ||
+                student.name ||
+                "Unnamed Student";
 
-                      <td className="px-5 py-4 text-sm text-slate-500">
-                        {row.batch?.name ||
-                          row.batchName ||
-                          "—"}
-                      </td>
+              return (
+                <div
+                  key={student._id}
+                  className="p-5"
+                >
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#e8faf5] text-[#08ad81] grid place-items-center font-black">
+                        {studentName
+                          .charAt(0)
+                          .toUpperCase()}
+                      </div>
 
-                      <td className="px-5 py-4">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
-                          <Icon size={13} />
-                          {status}
+                      <div>
+                        <p className="font-bold text-slate-800">
+                          {studentName}
+                        </p>
+
+                        <p className="text-xs text-slate-400">
+                          {student.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="w-full lg:w-64">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-bold text-slate-500">
+                          Completion
                         </span>
-                      </td>
 
-                      <td className="px-5 py-4">
-                        <select
-                          value={status}
-                          disabled={savingId === row._id}
-                          onChange={(e) =>
-                            updateProgress(
-                              row,
-                              e.target.value
-                            )
-                          }
-                          className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold outline-none focus:border-[#08c98b] disabled:opacity-50"
-                        >
-                          {STATUS_OPTIONS.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        <span className="font-black text-[#08ad81]">
+                          {completion}%
+                        </span>
+                      </div>
+
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#08c98b] rounded-full"
+                          style={{
+                            width: `${completion}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {records.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {records.map((record) => {
+                        const config =
+                          statusConfig[
+                            record.status
+                          ] ||
+                          statusConfig.NotStarted;
+
+                        const Icon = config.icon;
+
+                        return (
+                          <span
+                            key={record._id}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ${config.className}`}
+                          >
+                            <Icon size={13} />
+
+                            {record.topic}:{" "}
+                            {config.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {records.length === 0 && (
+                    <p className="text-xs text-slate-400 mt-4">
+                      No progress records yet.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>
-    </AdminLayout>
-  );
-}
-
-function Stat({ label, value, icon: Icon }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-xs font-black uppercase tracking-wider text-slate-400">
-            {label}
-          </div>
-
-          <div className="mt-2 text-3xl font-black text-[#062a5c]">
-            {value}
-          </div>
-        </div>
-
-        <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#e8faf5] text-[#08ad81]">
-          <Icon size={20} />
-        </div>
-      </div>
     </div>
   );
 }

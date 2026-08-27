@@ -1,212 +1,248 @@
-import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard,
-  Layers3,
-  Users,
-  UserRoundCog,
-  ClipboardCheck,
-  TrendingUp,
-  ClipboardList,
-  Megaphone,
-  Settings,
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  Outlet,
+  useLocation,
+} from "react-router-dom";
+
+import {
   Menu,
-  X,
-  LogOut,
   ShieldCheck,
 } from "lucide-react";
 
-const links = [
-  {
-    to: "/admin/dashboard",
-    label: "Dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    to: "/admin/batches",
-    label: "Batch Management",
-    icon: Layers3,
-  },
-  {
-    to: "/admin/applications",
-    label: "Applications",
-    icon: ClipboardCheck,
-  },
-  {
-    to: "/admin/students",
-    label: "Students",
-    icon: Users,
-  },
-  {
-    to: "/admin/mentors",
-    label: "Mentors",
-    icon: UserRoundCog,
-  },
-  {
-    to: "/admin/attendance",
-    label: "Attendance",
-    icon: ClipboardCheck,
-  },
-  {
-    to: "/admin/progress",
-    label: "Progress",
-    icon: TrendingUp,
-  },
-  {
-    to: "/admin/assignments",
-    label: "Assignments",
-    icon: ClipboardList,
-  },
-  {
-    to: "/admin/announcements",
-    label: "Announcements",
-    icon: Megaphone,
-  },
-  {
-    to: "/admin/settings",
-    label: "Settings",
-    icon: Settings,
-  },
-];
+import AdminSidebar from "../AdminSidebar";
 
-export default function AdminLayout({ title, children }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const navigate = useNavigate();
+const titles = {
+  "/admin/dashboard": "Dashboard",
+  "/admin/applications": "Applications",
+  "/admin/users": "User Management",
+  "/admin/students": "Students",
+  "/admin/mentors": "Mentors",
+  "/admin/batches": "Batches",
+  "/admin/attendance": "Attendance",
+  "/admin/progress": "Progress",
+  "/admin/assignments": "Assignments",
+  "/admin/announcements": "Announcements",
+  "/admin/settings": "System Settings",
+};
 
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+export default function AdminLayout() {
+  const location = useLocation();
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login", { replace: true });
-  };
+  const [
+    mobileOpen,
+    setMobileOpen,
+  ] = useState(false);
+
+  const [
+    user,
+    setUser,
+  ] = useState({});
+
+  useEffect(() => {
+    try {
+      setUser(
+        JSON.parse(
+          localStorage.getItem(
+            "user"
+          ) || "{}"
+        )
+      );
+    } catch {
+      setUser({});
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  const title =
+    titles[
+      location.pathname
+    ] || "Administration";
 
   return (
-    <div className="min-h-screen bg-[#f6f8f7] text-slate-800">
+    <div className="min-h-screen bg-[#f5f7fa] text-slate-800">
+
       {mobileOpen && (
         <button
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-          onClick={() => setMobileOpen(false)}
+          type="button"
           aria-label="Close menu"
+          onClick={() =>
+            setMobileOpen(false)
+          }
+          className="
+            fixed
+            inset-0
+            z-40
+            bg-black/40
+            lg:hidden
+          "
         />
       )}
 
-      <aside
-        className={`fixed left-0 top-0 z-50 flex h-screen w-[270px] flex-col bg-[#062a5c] text-white shadow-xl transition-transform duration-300 ${
-          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        }`}
+      <div className="hidden lg:block">
+        <AdminSidebar />
+      </div>
+
+      <div
+        className={`
+          fixed
+          inset-y-0
+          left-0
+          z-50
+          w-[250px]
+          lg:hidden
+          transition-transform
+          duration-200
+          ${
+            mobileOpen
+              ? "translate-x-0"
+              : "-translate-x-full"
+          }
+        `}
       >
-        <div className="flex h-[76px] items-center justify-between border-b border-white/10 px-5">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#08c98b] text-[#062a5c]">
-                <ShieldCheck size={21} />
-              </div>
+        <AdminSidebar
+          mobile
+          onNavigate={() =>
+            setMobileOpen(false)
+          }
+        />
+      </div>
 
-              <div>
-                <div className="text-sm font-black tracking-wide">
-                  ASTU MSJ
-                </div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">
-                  Bootcamp Admin
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="lg:ml-[250px] min-h-screen">
 
-          <button
-            className="rounded-lg p-2 hover:bg-white/10 lg:hidden"
-            onClick={() => setMobileOpen(false)}
+        <header
+          className="
+            sticky
+            top-0
+            z-30
+            h-[76px]
+            bg-white/95
+            backdrop-blur
+            border-b
+            border-slate-200
+          "
+        >
+          <div
+            className="
+              h-full
+              px-5
+              sm:px-8
+              flex
+              items-center
+              gap-4
+            "
           >
-            <X size={19} />
-          </button>
-        </div>
 
-        <div className="px-5 py-5">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-              Administrator
-            </div>
-
-            <div className="mt-2 truncate text-sm font-black">
-              {user.fullname || "System Administrator"}
-            </div>
-
-            <div className="mt-1 truncate text-xs text-white/50">
-              {user.email || "Admin account"}
-            </div>
-          </div>
-        </div>
-
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
-          {links.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
-                  isActive
-                    ? "bg-[#08c98b] text-[#062a5c] shadow-lg shadow-emerald-950/20"
-                    : "text-white/65 hover:bg-white/10 hover:text-white"
-                }`
-              }
-            >
-              <Icon size={18} />
-              <span>{label}</span>
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="border-t border-white/10 p-3">
-          <button
-            onClick={logout}
-            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-white/65 transition hover:bg-red-500/15 hover:text-red-200"
-          >
-            <LogOut size={18} />
-            Sign out
-          </button>
-        </div>
-      </aside>
-
-      <div className="lg:pl-[270px]">
-        <header className="sticky top-0 z-30 flex h-[76px] items-center justify-between border-b border-slate-200 bg-white/95 px-4 shadow-sm backdrop-blur lg:px-8">
-          <div className="flex items-center gap-3">
             <button
-              onClick={() => setMobileOpen(true)}
-              className="rounded-xl border border-slate-200 p-2.5 text-slate-600 hover:bg-slate-50 lg:hidden"
+              type="button"
+              onClick={() =>
+                setMobileOpen(true)
+              }
+              className="
+                lg:hidden
+                w-10
+                h-10
+                rounded-xl
+                border
+                border-slate-200
+                bg-white
+                grid
+                place-items-center
+              "
             >
-              <Menu size={20} />
+              <Menu size={19} />
             </button>
 
-            <div>
-              <h1 className="text-xl font-black text-[#062a5c]">
-                {title || "Administration"}
-              </h1>
-              <p className="hidden text-xs font-medium text-slate-400 sm:block">
-                ASTU MSJ Bootcamp Management System
+            <div className="flex-1">
+              <p
+                className="
+                  text-[10px]
+                  sm:text-xs
+                  uppercase
+                  tracking-[0.18em]
+                  font-black
+                  text-[#08ad81]
+                "
+              >
+                Administration
               </p>
-            </div>
-          </div>
 
-          <div className="hidden items-center gap-3 sm:flex">
-            <div className="text-right">
-              <div className="text-xs font-black text-slate-700">
-                {user.fullname || "Administrator"}
-              </div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Administrator
-              </div>
+              <h1
+                className="
+                  text-lg
+                  sm:text-2xl
+                  font-black
+                  text-[#062a5c]
+                "
+              >
+                {title}
+              </h1>
             </div>
 
-            <div className="grid h-10 w-10 place-items-center rounded-full bg-[#e8faf5] font-black text-[#08ad81]">
-              {(user.fullname || "A").charAt(0).toUpperCase()}
+            <div
+              className="
+                hidden
+                sm:flex
+                items-center
+                gap-3
+              "
+            >
+              <div
+                className="
+                  w-10
+                  h-10
+                  rounded-xl
+                  bg-[#e8faf5]
+                  text-[#08ad81]
+                  grid
+                  place-items-center
+                "
+              >
+                <ShieldCheck
+                  size={19}
+                />
+              </div>
+
+              <div className="hidden md:block">
+                <p
+                  className="
+                    text-sm
+                    font-black
+                    text-[#062a5c]
+                  "
+                >
+                  {user.fullname ||
+                    "Administrator"}
+                </p>
+
+                <p
+                  className="
+                    text-[10px]
+                    text-slate-400
+                  "
+                >
+                  {user.email || ""}
+                </p>
+              </div>
             </div>
           </div>
         </header>
 
-        <main className="min-h-[calc(100vh-76px)] p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto max-w-[1500px]">{children}</div>
+        <main
+          className="
+            p-5
+            sm:p-8
+            max-w-[1500px]
+            mx-auto
+          "
+        >
+          <Outlet />
         </main>
       </div>
     </div>
