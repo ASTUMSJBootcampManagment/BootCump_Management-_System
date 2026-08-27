@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Layers, Megaphone, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Layers, Megaphone, ClipboardList, LogOut } from 'lucide-react';
 
 export default function AdminSidebar() {
   const navigate = useNavigate();
@@ -15,6 +15,7 @@ export default function AdminSidebar() {
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
     { name: 'Users', path: '/admin/users', icon: Users },
     { name: 'Batches', path: '/admin/batches', icon: Layers },
+    { name: 'Assignments', path: '/admin/assignments', icon: ClipboardList },
     { name: 'Announcements', path: '/admin/announcements', icon: Megaphone },
   ];
 

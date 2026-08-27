@@ -1,18 +1,25 @@
 const mongoose = require("mongoose");
 const Announcement = require("../models/announcement");
 const User = require("../models/userModel");
+const Batch = require("../models/Batches");
 
 exports.createAnnouncement = async (req, res, next) => {
   try {
-    const { title, content, announcementDate, announcedTo, batch } = req.body;
+    const { title, content, announcementDate, announcedTo, batch: requestedBatch } = req.body;
+    const mentorBatch = req.user.role === "Mentor"
+      ? await Batch.findOne({ mentors: req.user.id, status: "Active" })
+      : null;
+    if (req.user.role === "Mentor" && !mentorBatch) {
+      return res.status(403).json({ success: false, message: "You are not assigned to an active batch." });
+    }
 
     const newAnnouncement = await Announcement.create({
       title,
       content,
       announcementDate,
-      announcedTo,
-      batch: batch || null,
-      createdBy: req.user._id,
+      announcedTo: req.user.role === "Mentor" ? "Student" : announcedTo || "All",
+      batch: req.user.role === "Mentor" ? mentorBatch._id : requestedBatch || null,
+      createdBy: req.user.id,
     });
 
     res.status(201).json({
@@ -27,25 +34,13 @@ exports.createAnnouncement = async (req, res, next) => {
 
 exports.getAnnouncements = async (req, res, next) => {
   try {
-    let query = {};
-    if (req.user.role === "Student") {
-      query = {
-        $and: [
-          { announcedTo: { $in: ["All", "Student"] } },
-          {
-            $or: [
-              { batch: req.user.batch },
-              { batch: { $exists: false } },
-              { batch: null },
-            ],
-          },
-        ],
-      };
-    } else if (req.user.role === "Mentor") {
-      query = {
-        announcedTo: { $in: ["All", "Mentor"] },
-      };
+    const batch = req.user.role === "Mentor"
+      ? await Batch.findOne({ mentors: req.user.id, status: "Active" })
+      : null;
+    if (req.user.role === "Mentor" && !batch) {
+      return res.status(403).json({ success: false, message: "You are not assigned to an active batch." });
     }
+    const query = req.user.role === "Mentor" ? { batch: batch._id, createdBy: req.user.id } : {};
 
     const announcements = await Announcement.find(query)
       .populate("batch", "name year")
@@ -69,12 +64,13 @@ exports.updateAnnouncement = async (req, res, next) => {
     const {
       title,
       content,
-      batch,
-      announcedTo,
       announcementDate,
     } = req.body;
 
-    const announcement = await Announcement.findById(id);
+    const mentorBatch = req.user.role === "Mentor" ? await Batch.findOne({ mentors: req.user.id, status: "Active" }) : null;
+    const announcement = await Announcement.findOne(req.user.role === "Mentor"
+      ? { _id: id, batch: mentorBatch?._id, createdBy: req.user.id }
+      : { _id: id });
 
     if (!announcement) {
       return res.status(404).json({
@@ -85,8 +81,6 @@ exports.updateAnnouncement = async (req, res, next) => {
 
     if (title !== undefined) announcement.title = title;
     if (content !== undefined) announcement.content = content;
-    if (batch !== undefined) announcement.batch = batch;
-    if (announcedTo !== undefined) announcement.announcedTo = announcedTo;
     if (announcementDate !== undefined) announcement.announcementDate = announcementDate;
 
     await announcement.save();
@@ -105,7 +99,10 @@ exports.deleteAnnouncement = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const deletedAnnouncement = await Announcement.findByIdAndDelete(id);
+    const batch = req.user.role === "Mentor" ? await Batch.findOne({ mentors: req.user.id, status: "Active" }) : null;
+    const deletedAnnouncement = await Announcement.findOneAndDelete(req.user.role === "Mentor"
+      ? { _id: id, batch: batch?._id, createdBy: req.user.id }
+      : { _id: id });
 
     if (!deletedAnnouncement) {
       return res.status(404).json({

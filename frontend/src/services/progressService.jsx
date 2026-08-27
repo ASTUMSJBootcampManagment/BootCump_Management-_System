@@ -14,7 +14,7 @@ export const getStudentsProgress = async () => {
   return response.data;
 };
 
-export const updateProgress = async (studentId, status) => {
+export const updateProgress = async (studentId, status, topic) => {
   const token = localStorage.getItem("token");
 
   if (!token) {
@@ -27,7 +27,7 @@ export const updateProgress = async (studentId, status) => {
 
   const response = await axios.patch(
     `http://localhost:3000/api/progress/update-progress/${studentId}`,
-    { status },
+    { status, topic },
     {
       headers: {
         Authorization: `Bearer ${token}`,

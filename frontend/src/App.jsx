@@ -16,6 +16,7 @@ import AdminDashboard from "./pages/AdminDashbord";
 import UserManagement from "./pages/admin/UserManagement";
 import BatchManagement from "./pages/admin/BatchManagement";
 import Announcements from "./pages/admin/Announcements";
+import AdminAssignments from "./pages/admin/Assignments";
 
 // Mentor Pages
 import Dashboard from "./pages/mentor/Dashboard";
@@ -23,6 +24,8 @@ import Attendance from "./pages/mentor/Attendance";
 import History from "./pages/mentor/History";
 import Progress from "./pages/mentor/Progress";
 import Students from "./pages/mentor/Students";
+import MentorAssignments from "./pages/mentor/Assignments";
+import MentorAnnouncements from "./pages/mentor/Announcements";
 
 // Student Pages
 import StudentDashboard from "./pages/student/StudentDashbord";
@@ -47,6 +50,7 @@ function App() {
             <Route path="users" element={<UserManagement />} />
             <Route path="batches" element={<BatchManagement />} />
             <Route path="announcements" element={<Announcements />} />
+            <Route path="assignments" element={<AdminAssignments />} />
           </Route>
         </Route>
 
@@ -57,6 +61,8 @@ function App() {
           <Route path="/mentor/attendance" element={<Attendance />} />
           <Route path="/mentor/history" element={<History />} />
           <Route path="/mentor/progress" element={<Progress />} />
+          <Route path="/mentor/assignments" element={<MentorAssignments />} />
+          <Route path="/mentor/announcements" element={<MentorAnnouncements />} />
         </Route>
 
         {/* Protected Student Routes */}

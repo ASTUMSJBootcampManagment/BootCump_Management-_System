@@ -1,72 +1,15 @@
 const express = require("express");
 const { verifyToken, restrictTo } = require("../middlewares/authMiddleware");
-const authorizeRoles = require("../middlewares/roleMiddleware");
-const {
-  createAssignment,
-  getAssignments,
-  updateAssignment,
-  deleteAssignment,
-} = require("../controllers/assignmentController");
-const {
-  submitAssignment,
-  getSubmissionsForAssignment,
-  getMySubmissions,
-} = require("../controllers/submissionController");
+const { createAssignment, getAssignments, updateAssignment, deleteAssignment } = require("../controllers/assignmentController");
+const { submitAssignment, getSubmissionsForAssignment, getMySubmissions } = require("../controllers/submissionController");
 
 const router = express.Router();
-
-router.post("/", verifyToken, restrictTo("Admin", "Mentor"), createAssignment);
-router.get("/", verifyToken, getAssignments);
-router.put(
-  "/:id",
-  verifyToken,
-  restrictTo("Admin", "Mentor"),
-  updateAssignment,
-);
-router.delete(
-  "/:id",
-  verifyToken,
-  restrictTo("Admin", "Mentor"),
-  deleteAssignment,
-);
-
-// Submissions
-router.post(
-  "/submit",
-  verifyToken,
-  authorizeRoles("Student"),
-  submitAssignment,
-);
-router.get(
-  "/:assignmentId/submissions",
-  verifyToken,
-  authorizeRoles("Admin", "Mentor"),
-  getSubmissionsForAssignment,
-);
-router.get(
-  "/my-submissions",
-  verifyToken,
-  authorizeRoles("Student"),
-  getMySubmissions,
-);
-router.post("/submit", verifyToken, restrictTo("Student"), submitAssignment);
-router.get(
-  "/:assignmentId/submissions",
-  verifyToken,
-  restrictTo("Admin", "Mentor"),
-  getSubmissionsForAssignment,
-);
-router.get(
-  "/my-submissions",
-  verifyToken,
-  restrictTo("Student"),
-  getMySubmissions,
-);
-//router.put(
-  //"/submissions/:id/grade",
-  //verifyToken,
-  //restrictTo("Admin", "Mentor"),
-  //gradeSubmission,
-//);
-
+router.use(verifyToken);
+router.get("/", restrictTo("Admin", "Mentor"), getAssignments);
+router.post("/", restrictTo("Admin"), createAssignment);
+router.put("/:id", restrictTo("Admin"), updateAssignment);
+router.delete("/:id", restrictTo("Admin"), deleteAssignment);
+router.get("/:assignmentId/submissions", restrictTo("Mentor"), getSubmissionsForAssignment);
+router.post("/submit", restrictTo("Student"), submitAssignment);
+router.get("/my-submissions", restrictTo("Student"), getMySubmissions);
 module.exports = router;

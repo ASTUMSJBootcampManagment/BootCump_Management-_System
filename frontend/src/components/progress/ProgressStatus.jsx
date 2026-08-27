@@ -43,7 +43,7 @@ const Progress = () => {
     fetchProgress();
   }, []);
 
-  const handleStatusChange = async (targetId, status) => {
+  const handleStatusChange = async (targetId, status, topic) => {
     try {
       setUpdating(targetId);
       setError("");
@@ -51,7 +51,7 @@ const Progress = () => {
 
       console.log("Attempting status update:", { targetId, status });
 
-      const response = await updateProgress(targetId, status);
+      const response = await updateProgress(targetId, status, topic);
       console.log("Update success response:", response);
 
       const updatedStatus = response?.data?.status || status;
@@ -209,7 +209,7 @@ const Progress = () => {
                             value={item.status || "NotStarted"}
                             disabled={updating === studentId}
                             onChange={(e) =>
-                              handleStatusChange(studentId, e.target.value)
+                              handleStatusChange(studentId, e.target.value, item.topic)
                             }
                             className={`rounded-xl border px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60 ${
                               item.status === "Completed"
@@ -281,7 +281,7 @@ const Progress = () => {
                         value={item.status || "NotStarted"}
                         disabled={updating === studentId}
                         onChange={(e) =>
-                          handleStatusChange(studentId, e.target.value)
+                          handleStatusChange(studentId, e.target.value, item.topic)
                         }
                         className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
                       >

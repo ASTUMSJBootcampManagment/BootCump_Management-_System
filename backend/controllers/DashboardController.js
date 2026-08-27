@@ -353,7 +353,43 @@ exports.getMentorDashboard = async (req, res) => {
     const atRiskIds = studentAttendance.map((student) => student.student);
     const atRiskStudents = await User.find({
       _id: { $in: atRiskIds },
-    }).select("name email");
+    }).select("name email").lean();
+
+    const attendanceByStudent = new Map(
+      studentAttendance.map((item) => [item.student.toString(), Math.round(item.percentage)]),
+    );
+    const atRiskStudentsWithAttendance = atRiskStudents.map((student) => ({
+      ...student,
+      attendance: attendanceByStudent.get(student._id.toString()) || 0,
+    }));
+    const progressByStudent = await Progress.aggregate([
+      { $match: { batch: mentorBatch._id, student: { $in: studentIds } } },
+      {
+        $group: {
+          _id: "$student",
+          total: { $sum: 1 },
+          completed: { $sum: { $cond: [{ $eq: ["$status", "Completed"] }, 1, 0] } },
+        },
+      },
+    ]);
+    const progressLookup = new Map(
+      progressByStudent.map((item) => [
+        item._id.toString(),
+        item.total ? Math.round((item.completed / item.total) * 100) : 0,
+      ]),
+    );
+    const students = mentorBatch.students.map((student) => {
+      const attendance = attendanceByStudent.get(student._id.toString()) || 0;
+      const progress = progressLookup.get(student._id.toString()) || 0;
+      return {
+        _id: student._id,
+        name: student.name,
+        email: student.email,
+        attendance,
+        progress,
+        status: attendance < 75 ? "At Risk" : attendance < 85 ? "Warning" : "Good",
+      };
+    });
 
     const pendingReviews = await Submission.countDocuments({
       student: { $in: studentIds },
@@ -392,7 +428,8 @@ exports.getMentorDashboard = async (req, res) => {
         },
 
         studentProgress: progressStats,
-        atRiskStudents,
+        students,
+        atRiskStudents: atRiskStudentsWithAttendance,
         recentSubmissions,
         upcomingAssignments,
         batch: {

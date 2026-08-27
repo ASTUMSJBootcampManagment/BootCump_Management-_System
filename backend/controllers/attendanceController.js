@@ -1,15 +1,26 @@
 const mongoose = require("mongoose");
 const Attendance = require("../models/attendance");
 const User = require("../models/userModel");
+const Batch = require("../models/Batches");
 
-exports.markAttendance = async (req, res) => {
+exports.markAttendance = async (req, res, next) => {
   try {
     const { student, status, date } = req.body;
-    const newAttendance = await Attendance.create({
-      student,
-      status,
-      date: date || Date.now(),
-    });
+    const batch = await Batch.findOne({ mentors: req.user.id, status: "Active" });
+    if (!batch) {
+      return res.status(403).json({ success: false, message: "You are not assigned to an active batch." });
+    }
+    if (!batch.students.some((studentId) => studentId.equals(student))) {
+      return res.status(403).json({ success: false, message: "This student is not assigned to your batch." });
+    }
+
+    const attendanceDate = new Date(date || Date.now());
+    attendanceDate.setHours(0, 0, 0, 0);
+    const newAttendance = await Attendance.findOneAndUpdate(
+      { student, batch: batch._id, date: attendanceDate },
+      { status, date: attendanceDate },
+      { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true },
+    );
 
     res.status(201).json({
       success: true,
@@ -21,11 +32,15 @@ exports.markAttendance = async (req, res) => {
   }
 };
 
-exports.getAttendance = async (req, res) => {
+exports.getAttendance = async (req, res, next) => {
   try {
-    const attendance = await Attendance.find()
+    const batch = await Batch.findOne({ mentors: req.user.id, status: "Active" });
+    if (!batch) {
+      return res.status(403).json({ success: false, message: "You are not assigned to an active batch." });
+    }
+    const attendance = await Attendance.find({ batch: batch._id })
       .populate("student", "name email")
-      .populate("batch", "batchName");
+      .populate("batch", "name");
 
     res.status(200).json({
       success: true,

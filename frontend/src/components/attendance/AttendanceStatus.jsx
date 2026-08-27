@@ -7,10 +7,8 @@ import {
   FiAlertCircle,
 } from "react-icons/fi";
 
-import {
-  getAttendance,
-  markAttendance,
-} from "../../services/attendanceService";
+import { markAttendance } from "../../services/attendanceService";
+import { getMentorDashboard } from "../../services/dashboardService";
 
 const statuses = ["Present", "Absent", "Late", "Excused"];
 
@@ -25,6 +23,7 @@ const Attendance = () => {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [batch, setBatch] = useState(null);
 
   useEffect(() => {
     const fetchAttendance = async () => {
@@ -32,26 +31,16 @@ const Attendance = () => {
         setLoading(true);
         setError("");
 
-        const response = await getAttendance();
-        const records = response?.data || [];
-
-        const studentMap = new Map();
-
-        records.forEach((record) => {
-          if (!record.student?._id) return;
-
-          const studentId = record.student._id;
-
-          if (!studentMap.has(studentId)) {
-            studentMap.set(studentId, {
-              id: studentId,
-              name: record.student.name,
-              email: record.student.email,
-            });
-          }
-        });
-
-        setStudents(Array.from(studentMap.values()));
+        const response = await getMentorDashboard();
+        const dashboard = response?.data || {};
+        setBatch(dashboard.batch || null);
+        setStudents(
+          (dashboard.students || []).map((student) => ({
+            id: student._id,
+            name: student.name,
+            email: student.email,
+          })),
+        );
       } catch (err) {
         setError(
           err?.response?.data?.message ||
@@ -165,7 +154,9 @@ const Attendance = () => {
               <div>
                 <h2 className="font-bold text-slate-900">Attendance</h2>
 
-                <p className="text-xs text-slate-500">Batch 2</p>
+                <p className="text-xs text-slate-500">
+                  {batch?.name || "Your assigned batch"}
+                </p>
               </div>
             </div>
           </div>
@@ -202,7 +193,7 @@ const Attendance = () => {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px]">
+                <table className="w-full min-w-150">
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -245,7 +236,7 @@ const Attendance = () => {
                               onChange={(e) =>
                                 handleStatusChange(student.id, e.target.value)
                               }
-                              className={`w-full max-w-[190px] rounded-xl border px-3 py-2.5 text-sm font-semibold outline-none transition focus:ring-2 ${
+                              className={`w-full max-w-47.5 rounded-xl border px-3 py-2.5 text-sm font-semibold outline-none transition focus:ring-2 ${
                                 selected === "Present"
                                   ? "border-green-200 bg-green-50 text-green-700 focus:ring-green-100"
                                   : selected === "Absent"

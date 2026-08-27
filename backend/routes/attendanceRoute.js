@@ -9,8 +9,8 @@ const {
 
 const { verifyToken, restrictTo } = require("../middlewares/authMiddleware");
 
-router.post("/attender",verifyToken, restrictTo("Mentor", "Admin"), markAttendance);
-router.get("/", getAttendance);
+router.post("/attender", verifyToken, restrictTo("Mentor"), markAttendance);
+router.get("/", verifyToken, restrictTo("Mentor"), getAttendance);
 router.get("/stats/:studentId",verifyToken, restrictTo("Mentor", "Admin", "Student"), getStudentAttendanceStats);
 
 module.exports = router;

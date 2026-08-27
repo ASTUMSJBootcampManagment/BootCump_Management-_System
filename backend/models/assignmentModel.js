@@ -14,6 +14,11 @@ const assignmentSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    batch: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Batch",
+      required: true,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "user",

@@ -1,49 +1,34 @@
 const Submission = require("../models/submissionModel");
 const Assignment = require("../models/assignmentModel");
-const user=require("../models/userModel"); 
+const Batch = require("../models/Batches");
 
-const submitAssignment = async (req, res) => {
+exports.submitAssignment = async (req, res) => {
   try {
     const { assignmentId, content } = req.body;
-
     const assignment = await Assignment.findById(assignmentId);
-    if (!assignment) {
-      return res.status(404).json({ message: "Assignment not found" });
-    }
-
-    const submission = new Submission({
-      assignment: assignmentId,
-      student: req.user.id,
-      content,
-    });
-    await submission.save();
-
-    res.status(201).json({ message: "Assignment submitted", submission });
-  } catch (err) {
-    console.log(err);
-    if (err.code === 11000) {
-      return res.status(409).json({ message: "You already submitted this assignment" });
-    }
-    res.status(500).json({ message: "Something went wrong" });
+    if (!assignment) return res.status(404).json({ success: false, message: "Assignment not found." });
+    const enrolled = await Batch.exists({ _id: assignment.batch, students: req.user.id });
+    if (!enrolled) return res.status(403).json({ success: false, message: "This assignment is not for your batch." });
+    const submission = await Submission.create({ assignment: assignmentId, student: req.user.id, content });
+    res.status(201).json({ success: true, data: submission });
+  } catch (error) {
+    res.status(error.code === 11000 ? 409 : 400).json({ success: false, message: error.code === 11000 ? "You already submitted this assignment." : error.message });
   }
 };
 
-const getSubmissionsForAssignment = async (req, res) => {
+exports.getSubmissionsForAssignment = async (req, res) => {
   try {
-    const submissions = await Submission.find({ assignment: req.params.assignmentId })
-      .populate("student", "username email");
-    res.status(200).json(submissions);
-  } catch (err) {
-    next(error);
-}};
+    const batch = await Batch.findOne({ mentors: req.user.id, status: "Active" });
+    const assignment = await Assignment.findOne({ _id: req.params.assignmentId, batch: batch?._id });
+    if (!assignment) return res.status(404).json({ success: false, message: "Assignment not found." });
+    const submissions = await Submission.find({ assignment: assignment._id }).populate("student", "name email").sort({ createdAt: -1 }).lean();
+    res.json({ success: true, data: submissions });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
 
-const getMySubmissions = async (req, res) => {
-  try {
-    const submissions = await Submission.find({ student: req.user.id })
-      .populate("assignment", "title dueDate");
-    res.status(200).json(submissions);
-  } catch (err) {
-   next(error);
-}};
-
-module.exports = { submitAssignment, getSubmissionsForAssignment, getMySubmissions };
+exports.getMySubmissions = async (req, res) => {
+  const submissions = await Submission.find({ student: req.user.id }).populate("assignment", "title dueDate");
+  res.json({ success: true, data: submissions });
+};

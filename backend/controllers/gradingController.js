@@ -1,33 +1,31 @@
 const Submission = require("../models/submissionModel");
-const Announcement = require("../models/announcement");
-const user=require("../models/userModel"); 
-const AppError = require("../utils/AppError");
+const Assignment = require("../models/assignmentModel");
+const Batch = require("../models/Batches");
+
 const gradeSubmission = async (req, res) => {
   try {
     const { grade, feedback } = req.body;
-    const submission = await Submission.findByIdAndUpdate(
-      req.params.id,
-      { grade, feedback, status: "Graded" },
-      { new: true, runValidators: true }
-    )
-      .populate("student")
-      .populate("assignment", "title");
-
-    if (!submission) {
-      return res.status(404).json({ message: "Submission not found" });
+    if (!Number.isFinite(Number(grade)) || Number(grade) < 0 || Number(grade) > 100) {
+      return res.status(400).json({ success: false, message: "Grade must be a number from 0 to 100." });
     }
-    const assignmentTitle = submission.assignment ? submission.assignment.title : "your submission";
-    await Announcement.create({
-      title: `📝 Grade Released: ${assignmentTitle}`,
-      content: `Your work for "${assignmentTitle}" has been graded. Grade: ${grade}.`,
-      announcedTo: "Student",
-      batch: submission.student?.batch || null,
-      createdBy: req.user._id || req.user.id,
-    });
+    const mentorBatch = req.user.role === "Mentor"
+      ? await Batch.findOne({ mentors: req.user.id, status: "Active" })
+      : null;
+    const submission = await Submission.findById(req.params.id);
+    if (!submission || (req.user.role === "Mentor" && !mentorBatch)) return res.status(404).json({ success: false, message: "Submission not found." });
+    const assignment = await Assignment.findOne(req.user.role === "Mentor"
+      ? { _id: submission.assignment, batch: mentorBatch._id }
+      : { _id: submission.assignment });
+    if (!assignment) return res.status(403).json({ success: false, message: "This submission is not in your batch." });
 
-    res.status(200).json({ message: "Submission graded and notification sent", submission });
-  } catch (err) {
-    next(error);
-}};
+    submission.grade = Number(grade);
+    submission.feedback = feedback || "";
+    submission.status = "Graded";
+    await submission.save();
+    res.json({ success: true, data: submission });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
 
 module.exports = { gradeSubmission };

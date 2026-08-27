@@ -1,19 +1,11 @@
 const express = require("express");
-const router = express.Router();
-
-const {
-  createAnnouncement,
-  getAnnouncements,
-  deleteAnnouncement,
-  updateAnnouncement
-} = require("../controllers/AnnouncementController");
-
+const { createAnnouncement, getAnnouncements, deleteAnnouncement, updateAnnouncement } = require("../controllers/AnnouncementController");
 const { verifyToken, restrictTo } = require("../middlewares/authMiddleware");
-router.use(verifyToken);
 
-router.post("/create", restrictTo("Admin","Mentor"), createAnnouncement);
-router.get("/get", restrictTo("Admin", "Mentor","Student"), getAnnouncements);
-router.put("/:id", restrictTo("Admin","Mentor"), updateAnnouncement);
-router.delete("/:id",restrictTo("Admin","Mentor"),deleteAnnouncement )
-router.put("/:id", restrictTo("Admin", "Mentor"), updateAnnouncement);
+const router = express.Router();
+router.use(verifyToken, restrictTo("Admin", "Mentor"));
+router.post("/create", createAnnouncement);
+router.get("/get", getAnnouncements);
+router.put("/:id", updateAnnouncement);
+router.delete("/:id", deleteAnnouncement);
 module.exports = router;
