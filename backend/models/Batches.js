@@ -1,46 +1,45 @@
-const mongoose= require("mongoose");
-const BatchSchema = new mongoose.Schema({
-    name:{
-       "type":String,
-       "required":[true,"name is required"],
-       "trim":true,
-       },
-    year:{
-       "type":Number,
-       required:[true,"year is required"],
-    
+const mongoose = require("mongoose");
+
+const batchSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Name is required"],
+      trim: true,
     },
-    startDate:{
-        "type":String,
-        "required":[true,"start day is required"],
-        "trim":true
-        
+    year: {
+      type: Number,
+      required: [true, "Year is required"],
     },
-    endDate:{
-        "type":String,
-        "required":[true,"start day is required"],
-        "trim":true
-   
+    startDate: {
+      type: Date,
+      required: [true, "Start date is required"],
+    },
+    endDate: {
+      type: Date,
+      required: [true, "End date is required"],
     },
     status: {
       type: String,
-      enum: ['Upcoming', 'Active', 'Completed'],
-      default: 'Active',
+      enum: ["Upcoming", "Active", "Completed"],
+      default: "Active",
     },
     mentors: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'user',
+        ref: "User",
       },
     ],
     students: [
-        {
-            type:mongoose.Schema.Types.ObjectId,
-            ref:'user'
-        }],
-    },
-    {
-        timestamps:true,
-    },
-)
-module.exports=mongoose.model("Batch",BatchSchema)
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+  },
+  {
+    timestamps: true,
+  }
+);
+
+module.exports = mongoose.model("Batch", batchSchema);
