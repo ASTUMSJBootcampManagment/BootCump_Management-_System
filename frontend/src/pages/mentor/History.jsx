@@ -3,10 +3,10 @@ import Sidebar from "../../components/Sidebar";
 
 function History() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
 
-      <main className="lg:ml-64">
+      <main className="flex-1 overflow-y-auto">
         <AttendanceHistory />
       </main>
     </div>

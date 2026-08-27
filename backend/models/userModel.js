@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
@@ -17,13 +18,7 @@ const userSchema = new mongoose.Schema(
 
     status: {
       type: String,
-
-      enum: [
-        "pending",
-        "approved",
-        "rejected",
-      ],
-
+      enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
 
@@ -33,21 +28,9 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
-    name: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-
     role: {
       type: String,
-
-      enum: [
-        "Admin",
-        "Mentor",
-        "Student",
-      ],
-
+      enum: ["Admin", "Mentor", "Student"],
       default: "Student",
     },
 
@@ -76,37 +59,102 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
-    phoneNumber: {
+    universityId: {
       type: String,
+      trim: true,
       default: "",
     },
 
-    githubAccount: {
+    codeforcesAccount: {
       type: String,
+      trim: true,
       default: "",
     },
 
     leetcodeAccount: {
       type: String,
+      trim: true,
       default: "",
     },
 
-    codeforcesAccount: {
+    githubAccount: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    reasonToJoin: {
       type: String,
       default: "",
     },
 
     telegramUsername: {
       type: String,
+      trim: true,
       default: "",
     },
-  },
 
+    phoneNumber: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    gender: {
+      type: String,
+      enum: ["Male", "Female"],
+    },
+
+    hasConstantInternet: {
+      type: Boolean,
+      default: false,
+    },
+
+    hasPersonalLaptop: {
+      type: Boolean,
+      default: false,
+    },
+
+    assignedBatch: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Batch",
+      default: null,
+    },
+
+    assignedMentor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      default: null,
+    },
+  },
   {
     timestamps: true,
   }
 );
 
-module.exports =
-  mongoose.models.user ||
-  mongoose.model("user", userSchema);
+/*
+|--------------------------------------------------------------------------
+| Hash password before saving
+|--------------------------------------------------------------------------
+*/
+
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) {
+    return;
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Compare password during login
+|--------------------------------------------------------------------------
+*/
+
+userSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
+
+module.exports = mongoose.models.user || mongoose.model("user", userSchema);
