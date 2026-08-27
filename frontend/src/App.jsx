@@ -6,10 +6,25 @@ import {
 } from "react-router-dom";
 
 import LandingPage from "./pages/LandingPage";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import Login from "./pages/login";
+import Register from "./pages/register";
 import ChangePassword from "./pages/ChangePassword";
+
 import ProtectedRoute from "./components/ProtectedRoute";
+
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminDashboard from "./pages/AdminDashbord";
+
+import Applications from "./pages/admin/Applications";
+import UserManagement from "./pages/admin/UserManagement";
+import Students from "./pages/admin/Students";
+import Mentors from "./pages/admin/Mentors";
+import BatchManagement from "./pages/admin/BatchManagement";
+import Attendance from "./pages/admin/Attendance";
+import Progress from "./pages/admin/Progress";
+import Assignments from "./pages/admin/Assignments";
+import Announcements from "./pages/admin/Announcements";
+import Settings from "./pages/admin/Settings";
 
 // Student
 import StudentDashboard from "./pages/student/StudentDashboard";
@@ -19,9 +34,6 @@ import StudentAssignments from "./pages/student/StudentAssignments";
 import StudentAnnouncements from "./pages/student/StudentAnnouncements";
 import StudentResources from "./pages/student/StudentResources";
 import StudentProfile from "./pages/student/StudentProfile";
-
-// Admin
-import AdminDashboard from "./pages/AdminDashbord";
 
 // Mentor
 import MentorDashboard from "./pages/mentor/Dashboard";
@@ -64,7 +76,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public */}
+
+        {/* PUBLIC */}
+
         <Route
           path="/"
           element={<LandingPage />}
@@ -85,7 +99,88 @@ export default function App() {
           element={<ChangePassword />}
         />
 
-        {/* ================= STUDENT ================= */}
+        {/* ADMIN */}
+
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={["Admin"]}
+            />
+          }
+        >
+          <Route
+            element={<AdminLayout />}
+          >
+
+            <Route
+              path="/admin"
+              element={
+                <Navigate
+                  to="/admin/dashboard"
+                  replace
+                />
+              }
+            />
+
+            <Route
+              path="/admin/dashboard"
+              element={<AdminDashboard />}
+            />
+
+            <Route
+              path="/admin/applications"
+              element={<Applications />}
+            />
+
+            <Route
+              path="/admin/users"
+              element={<UserManagement />}
+            />
+
+            <Route
+              path="/admin/students"
+              element={<Students />}
+            />
+
+            <Route
+              path="/admin/mentors"
+              element={<Mentors />}
+            />
+
+            <Route
+              path="/admin/batches"
+              element={<BatchManagement />}
+            />
+
+            <Route
+              path="/admin/attendance"
+              element={<Attendance />}
+            />
+
+            <Route
+              path="/admin/progress"
+              element={<Progress />}
+            />
+
+            <Route
+              path="/admin/assignments"
+              element={<Assignments />}
+            />
+
+            <Route
+              path="/admin/announcements"
+              element={<Announcements />}
+            />
+
+            <Route
+              path="/admin/settings"
+              element={<Settings />}
+            />
+
+          </Route>
+        </Route>
+
+        {/* STUDENT */}
 
         <Route
           element={
@@ -140,27 +235,7 @@ export default function App() {
           />
         </Route>
 
-        {/* ================= ADMIN ================= */}
-
-        <Route
-          element={
-            <ProtectedRoute
-              allowedRoles={["Admin"]}
-            />
-          }
-        >
-          <Route
-            path="/admin"
-            element={<AdminDashboard />}
-          />
-
-          <Route
-            path="/admin/dashboard"
-            element={<AdminDashboard />}
-          />
-        </Route>
-
-        {/* ================= MENTOR ================= */}
+        {/* MENTOR */}
 
         <Route
           element={
@@ -220,8 +295,6 @@ export default function App() {
           />
         </Route>
 
-        {/* ================= OTHER ================= */}
-
         <Route
           path="/unauthorized"
           element={<Unauthorized />}
@@ -236,6 +309,7 @@ export default function App() {
             />
           }
         />
+
       </Routes>
     </BrowserRouter>
   );

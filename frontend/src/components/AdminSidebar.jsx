@@ -5,15 +5,17 @@ import {
 
 import {
   LayoutDashboard,
+  ClipboardCheck,
   Users,
   UserCheck,
   Layers,
+  CalendarCheck,
+  TrendingUp,
+  BookOpenCheck,
   Megaphone,
-  BookOpen,
   Settings,
   LogOut,
-  ClipboardCheck,
-  TrendingUp,
+  X,
 } from "lucide-react";
 
 const items = [
@@ -25,6 +27,11 @@ const items = [
   {
     path: "/admin/applications",
     label: "Applications",
+    icon: ClipboardCheck,
+  },
+  {
+    path: "/admin/users",
+    label: "User Management",
     icon: Users,
   },
   {
@@ -43,9 +50,9 @@ const items = [
     icon: Layers,
   },
   {
-    path: "/admin/assignments",
-    label: "Assignments",
-    icon: ClipboardCheck,
+    path: "/admin/attendance",
+    label: "Attendance",
+    icon: CalendarCheck,
   },
   {
     path: "/admin/progress",
@@ -53,14 +60,14 @@ const items = [
     icon: TrendingUp,
   },
   {
+    path: "/admin/assignments",
+    label: "Assignments",
+    icon: BookOpenCheck,
+  },
+  {
     path: "/admin/announcements",
     label: "Announcements",
     icon: Megaphone,
-  },
-  {
-    path: "/admin/resources",
-    label: "Resources",
-    icon: BookOpen,
   },
   {
     path: "/admin/settings",
@@ -69,9 +76,23 @@ const items = [
   },
 ];
 
-export default function AdminSidebar() {
-  const navigate =
-    useNavigate();
+export default function AdminSidebar({
+  mobile = false,
+  onNavigate,
+}) {
+  const navigate = useNavigate();
+
+  let user = {};
+
+  try {
+    user = JSON.parse(
+      localStorage.getItem(
+        "user"
+      ) || "{}"
+    );
+  } catch {
+    user = {};
+  }
 
   const logout = () => {
     localStorage.removeItem(
@@ -86,145 +107,258 @@ export default function AdminSidebar() {
       "requiresPasswordChange"
     );
 
-    navigate("/login");
+    localStorage.removeItem(
+      "rememberMe"
+    );
+
+    navigate("/login", {
+      replace: true,
+    });
   };
 
   return (
-    <aside className="
-      fixed
-      left-0
-      top-0
-      bottom-0
-      z-40
-      w-[250px]
-      bg-[#062a5c]
-      text-white
-      flex
-      flex-col
-    ">
-      <div className="
-        px-6
-        py-6
-        border-b
-        border-white/10
-      ">
-        <div className="
+    <aside
+      className="
+        fixed
+        left-0
+        top-0
+        bottom-0
+        z-50
+        w-[250px]
+        bg-[#062a5c]
+        text-white
+      "
+    >
+      <div
+        className="
+          h-full
           flex
-          items-center
-          gap-3
-        ">
-          <div className="
-            w-11
-            h-11
-            rounded-xl
-            bg-[#08c98b]
-            flex
-            items-center
-            justify-center
-            font-black
-          ">
-            A
-          </div>
+          flex-col
+        "
+      >
 
-          <div>
-            <div className="
-              font-black
-              tracking-wide
-            ">
-              ASTUMSJ
-            </div>
-
-            <div className="
-              text-xs
-              text-white/50
-            ">
-              Admin Portal
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <nav className="
-        flex-1
-        overflow-y-auto
-        p-4
-        space-y-1
-      ">
-        <div className="
-          px-3
-          mb-3
-          mt-1
-          text-[10px]
-          uppercase
-          tracking-[.2em]
-          text-white/35
-          font-black
-        ">
-          Management
-        </div>
-
-        {items.map(
-          ({
-            path,
-            label,
-            icon: Icon,
-          }) => (
-            <NavLink
-              key={path}
-              to={path}
-              className={({
-                isActive,
-              }) =>
-                `
-                flex
-                items-center
-                gap-3
-                px-3
-                py-3
-                rounded-xl
-                text-sm
-                font-semibold
-                transition
-                ${
-                  isActive
-                    ? "bg-[#08c98b] text-white shadow-lg"
-                    : "text-white/65 hover:text-white hover:bg-white/10"
-                }
-              `
-              }
-            >
-              <Icon size={18} />
-              {label}
-            </NavLink>
-          )
-        )}
-      </nav>
-
-      <div className="
-        p-4
-        border-t
-        border-white/10
-      ">
-        <button
-          onClick={logout}
+        <div
           className="
-            w-full
-            flex
-            items-center
-            gap-3
-            px-3
-            py-3
-            rounded-xl
-            text-sm
-            font-semibold
-            text-white/60
-            hover:bg-red-500/10
-            hover:text-red-200
+            px-6
+            py-6
+            border-b
+            border-white/10
+            relative
           "
         >
-          <LogOut size={18} />
-          Sign out
-        </button>
+          {mobile && (
+            <button
+              type="button"
+              onClick={onNavigate}
+              className="
+                absolute
+                right-4
+                top-4
+                text-white/60
+              "
+            >
+              <X size={19} />
+            </button>
+          )}
+
+          <div
+            className="
+              flex
+              items-center
+              gap-3
+            "
+          >
+            <div
+              className="
+                w-11
+                h-11
+                rounded-xl
+                bg-[#08c98b]
+                grid
+                place-items-center
+                font-black
+                text-lg
+              "
+            >
+              A
+            </div>
+
+            <div className="min-w-0">
+              <p
+                className="
+                  text-[#08c98b]
+                  font-black
+                  tracking-[0.2em]
+                  text-xs
+                "
+              >
+                ASTUMSJ
+              </p>
+
+              <p
+                className="
+                  font-black
+                  text-sm
+                  truncate
+                "
+              >
+                Bootcamp Management
+              </p>
+
+              <p
+                className="
+                  text-white/40
+                  text-[10px]
+                  mt-0.5
+                "
+              >
+                Administration Portal
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <nav
+          className="
+            flex-1
+            overflow-y-auto
+            px-3
+            py-5
+            space-y-1
+          "
+        >
+          <p
+            className="
+              px-4
+              mb-3
+              text-[9px]
+              uppercase
+              tracking-[0.22em]
+              font-black
+              text-white/30
+            "
+          >
+            Management
+          </p>
+
+          {items.map(
+            ({
+              path,
+              label,
+              icon: Icon,
+            }) => (
+              <NavLink
+                key={path}
+                to={path}
+                onClick={onNavigate}
+                className={({ isActive }) =>
+                  `
+                    flex
+                    items-center
+                    gap-3
+                    px-4
+                    py-3
+                    rounded-xl
+                    text-sm
+                    font-bold
+                    transition
+                    ${
+                      isActive
+                        ? "bg-[#08c98b] text-white shadow-lg"
+                        : "text-white/60 hover:text-white hover:bg-white/10"
+                    }
+                  `
+                }
+              >
+                <Icon size={18} />
+                <span>
+                  {label}
+                </span>
+              </NavLink>
+            )
+          )}
+        </nav>
+
+        <div
+          className="
+            p-4
+            border-t
+            border-white/10
+          "
+        >
+          <div
+            className="
+              flex
+              items-center
+              gap-3
+              mb-4
+            "
+          >
+            <div
+              className="
+                w-10
+                h-10
+                rounded-full
+                bg-[#08c98b]
+                grid
+                place-items-center
+                font-black
+              "
+            >
+              {(
+                user.fullname ||
+                "A"
+              )
+                .charAt(0)
+                .toUpperCase()}
+            </div>
+
+            <div className="min-w-0">
+              <p
+                className="
+                  text-sm
+                  font-bold
+                  truncate
+                "
+              >
+                {user.fullname ||
+                  "Administrator"}
+              </p>
+
+              <p
+                className="
+                  text-[10px]
+                  text-white/40
+                "
+              >
+                Administrator
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={logout}
+            className="
+              w-full
+              flex
+              items-center
+              gap-3
+              px-4
+              py-3
+              rounded-xl
+              text-sm
+              font-bold
+              text-white/60
+              hover:text-white
+              hover:bg-white/10
+              transition
+            "
+          >
+            <LogOut size={17} />
+            Sign out
+          </button>
+        </div>
       </div>
     </aside>
   );

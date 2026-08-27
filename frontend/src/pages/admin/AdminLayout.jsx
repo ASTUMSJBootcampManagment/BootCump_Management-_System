@@ -2,51 +2,74 @@ import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  ClipboardCheck,
   Layers3,
-  UserRoundCog,
   Users,
-  BookOpen,
+  UserRoundCog,
+  ClipboardCheck,
+  TrendingUp,
+  ClipboardList,
+  Megaphone,
+  Settings,
   Menu,
   X,
   LogOut,
-  ShieldCheck
+  ShieldCheck,
 } from "lucide-react";
 
 const links = [
   {
-    label: "Overview",
-    path: "/admin",
-    icon: LayoutDashboard
+    to: "/admin/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
   },
   {
+    to: "/admin/batches",
+    label: "Batch Management",
+    icon: Layers3,
+  },
+  {
+    to: "/admin/applications",
     label: "Applications",
-    path: "/admin/applications",
-    icon: ClipboardCheck
+    icon: ClipboardCheck,
   },
   {
-    label: "Batches",
-    path: "/admin/batches",
-    icon: Layers3
-  },
-  {
-    label: "Mentors",
-    path: "/admin/mentors",
-    icon: UserRoundCog
-  },
-  {
+    to: "/admin/students",
     label: "Students",
-    path: "/admin/students",
-    icon: Users
+    icon: Users,
   },
   {
-    label: "Content",
-    path: "/admin/content",
-    icon: BookOpen
-  }
+    to: "/admin/mentors",
+    label: "Mentors",
+    icon: UserRoundCog,
+  },
+  {
+    to: "/admin/attendance",
+    label: "Attendance",
+    icon: ClipboardCheck,
+  },
+  {
+    to: "/admin/progress",
+    label: "Progress",
+    icon: TrendingUp,
+  },
+  {
+    to: "/admin/assignments",
+    label: "Assignments",
+    icon: ClipboardList,
+  },
+  {
+    to: "/admin/announcements",
+    label: "Announcements",
+    icon: Megaphone,
+  },
+  {
+    to: "/admin/settings",
+    label: "Settings",
+    icon: Settings,
+  },
 ];
 
-export default function AdminLayout({ children, title }) {
+export default function AdminLayout({ title, children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -55,138 +78,135 @@ export default function AdminLayout({ children, title }) {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f7fa] text-slate-800">
-
+    <div className="min-h-screen bg-[#f6f8f7] text-slate-800">
       {mobileOpen && (
         <button
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
           onClick={() => setMobileOpen(false)}
+          aria-label="Close menu"
         />
       )}
 
       <aside
-        className={`
-          fixed left-0 top-0 bottom-0 z-50
-          w-[250px] bg-[#062a5c] text-white
-          transform transition-transform duration-200
-          lg:translate-x-0
-          ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
-        `}
+        className={`fixed left-0 top-0 z-50 flex h-screen w-[270px] flex-col bg-[#062a5c] text-white shadow-xl transition-transform duration-300 ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
       >
-        <div className="h-full flex flex-col">
+        <div className="flex h-[76px] items-center justify-between border-b border-white/10 px-5">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#08c98b] text-[#062a5c]">
+                <ShieldCheck size={21} />
+              </div>
 
-          <div className="px-6 py-6 border-b border-white/10">
-            <div className="text-[#08c98b] font-black tracking-[0.25em] text-sm">
-              ASTUMSJ
+              <div>
+                <div className="text-sm font-black tracking-wide">
+                  ASTU MSJ
+                </div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">
+                  Bootcamp Admin
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button
+            className="rounded-lg p-2 hover:bg-white/10 lg:hidden"
+            onClick={() => setMobileOpen(false)}
+          >
+            <X size={19} />
+          </button>
+        </div>
+
+        <div className="px-5 py-5">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+              Administrator
             </div>
 
-            <div className="font-black text-lg mt-1">
-              Bootcamp Management
+            <div className="mt-2 truncate text-sm font-black">
+              {user.fullname || "System Administrator"}
             </div>
 
-            <div className="text-white/45 text-xs mt-1">
-              Administration Portal
+            <div className="mt-1 truncate text-xs text-white/50">
+              {user.email || "Admin account"}
             </div>
+          </div>
+        </div>
 
-            <button
-              className="lg:hidden absolute top-5 right-5 text-white/70"
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
+          {links.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
               onClick={() => setMobileOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
+                  isActive
+                    ? "bg-[#08c98b] text-[#062a5c] shadow-lg shadow-emerald-950/20"
+                    : "text-white/65 hover:bg-white/10 hover:text-white"
+                }`
+              }
             >
-              <X size={20} />
-            </button>
-          </div>
+              <Icon size={18} />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
 
-          <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
-            {links.map((link) => {
-              const Icon = link.icon;
-
-              return (
-                <NavLink
-                  key={link.path}
-                  to={link.path}
-                  end={link.path === "/admin"}
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    `
-                    flex items-center gap-3 px-4 py-3 rounded-xl
-                    text-sm font-bold transition
-                    ${
-                      isActive
-                        ? "bg-[#08c98b] text-white shadow-lg shadow-emerald-900/20"
-                        : "text-white/65 hover:text-white hover:bg-white/10"
-                    }
-                    `
-                  }
-                >
-                  <Icon size={18} />
-                  <span>{link.label}</span>
-                </NavLink>
-              );
-            })}
-          </nav>
-
-          <div className="p-4 border-t border-white/10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-[#08c98b] grid place-items-center font-black">
-                {(user.fullname || "A").charAt(0).toUpperCase()}
-              </div>
-
-              <div className="min-w-0">
-                <p className="font-bold text-sm truncate">
-                  {user.fullname || "Administrator"}
-                </p>
-
-                <p className="text-xs text-white/40 truncate">
-                  Administrator
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={logout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-white/60 hover:text-white hover:bg-white/10"
-            >
-              <LogOut size={17} />
-              Sign out
-            </button>
-          </div>
+        <div className="border-t border-white/10 p-3">
+          <button
+            onClick={logout}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-white/65 transition hover:bg-red-500/15 hover:text-red-200"
+          >
+            <LogOut size={18} />
+            Sign out
+          </button>
         </div>
       </aside>
 
-      <div className="lg:ml-[250px] min-h-screen">
-
-        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
-          <div className="px-5 sm:px-8 h-[76px] flex items-center gap-4">
-
+      <div className="lg:pl-[270px]">
+        <header className="sticky top-0 z-30 flex h-[76px] items-center justify-between border-b border-slate-200 bg-white/95 px-4 shadow-sm backdrop-blur lg:px-8">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden w-10 h-10 rounded-xl border border-slate-200 grid place-items-center"
+              className="rounded-xl border border-slate-200 p-2.5 text-slate-600 hover:bg-slate-50 lg:hidden"
             >
-              <Menu size={19} />
+              <Menu size={20} />
             </button>
 
-            <div className="flex-1">
-              <p className="text-xs uppercase tracking-[0.18em] font-black text-[#08ad81]">
-                Administration
-              </p>
-
-              <h1 className="text-xl sm:text-2xl font-black text-[#062a5c]">
-                {title}
+            <div>
+              <h1 className="text-xl font-black text-[#062a5c]">
+                {title || "Administration"}
               </h1>
+              <p className="hidden text-xs font-medium text-slate-400 sm:block">
+                ASTU MSJ Bootcamp Management System
+              </p>
+            </div>
+          </div>
+
+          <div className="hidden items-center gap-3 sm:flex">
+            <div className="text-right">
+              <div className="text-xs font-black text-slate-700">
+                {user.fullname || "Administrator"}
+              </div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Administrator
+              </div>
             </div>
 
-            <div className="hidden sm:flex w-10 h-10 rounded-xl bg-[#e8faf5] text-[#08ad81] items-center justify-center">
-              <ShieldCheck size={19} />
+            <div className="grid h-10 w-10 place-items-center rounded-full bg-[#e8faf5] font-black text-[#08ad81]">
+              {(user.fullname || "A").charAt(0).toUpperCase()}
             </div>
           </div>
         </header>
 
-        <main className="p-5 sm:p-8 max-w-[1500px] mx-auto">
-          {children}
+        <main className="min-h-[calc(100vh-76px)] p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto max-w-[1500px]">{children}</div>
         </main>
       </div>
     </div>
