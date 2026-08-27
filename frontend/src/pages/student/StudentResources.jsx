@@ -1,161 +1,181 @@
+import { useEffect, useState } from "react";
 import {
   BookOpen,
+  Download,
   ExternalLink,
-  Code2,
-  Database,
-  GitBranch,
-  Server,
-  FileCode2,
-  Globe2,
+  FileText,
+  Video,
+  Link as LinkIcon,
+  RefreshCw,
 } from "lucide-react";
 
+import API from "../../api/axios";
 import StudentLayout from "../../components/student/StudentLayout";
 import "../../components/student/student.css";
 
-const resources = [
-  {
-    title: "React Documentation",
-    description:
-      "Official React documentation for components, hooks, state and modern React development.",
-    icon: Code2,
-    url: "https://react.dev/",
-    category: "Frontend",
-  },
+function getResourceIcon(resource) {
+  const type = String(
+    resource.type || resource.resourceType || ""
+  ).toLowerCase();
 
-  {
-    title: "Node.js Documentation",
-    description:
-      "Learn the Node.js runtime, APIs and backend development concepts.",
-    icon: Server,
-    url: "https://nodejs.org/docs/latest/api/",
-    category: "Backend",
-  },
+  if (type.includes("video")) return Video;
 
-  {
-    title: "Express.js Documentation",
-    description:
-      "Reference material for creating APIs and web applications with Express.",
-    icon: Globe2,
-    url: "https://expressjs.com/",
-    category: "Backend",
-  },
+  if (
+    type.includes("link") ||
+    type.includes("url")
+  ) {
+    return LinkIcon;
+  }
 
-  {
-    title: "MongoDB Documentation",
-    description:
-      "MongoDB database concepts, queries, aggregation and application development.",
-    icon: Database,
-    url: "https://www.mongodb.com/docs/",
-    category: "Database",
-  },
-
-  {
-    title: "Git Documentation",
-    description:
-      "Learn version control, branches, commits, merges and collaboration.",
-    icon: GitBranch,
-    url: "https://git-scm.com/doc",
-    category: "Tools",
-  },
-
-  {
-    title: "MDN Web Docs",
-    description:
-      "HTML, CSS and JavaScript references for web development.",
-    icon: FileCode2,
-    url: "https://developer.mozilla.org/",
-    category: "Web",
-  },
-];
+  return FileText;
+}
 
 export default function StudentResources() {
-  return (
-    <StudentLayout title="Resources & Guides">
-      <div className="student-page-head">
-        <h2>Resources & Guides</h2>
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
+  const load = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await API.get(
+        "/student/resources"
+      );
+
+      setResources(response.data.data || []);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Unable to load resources."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <StudentLayout title="Resources">
+        <div className="student-card student-empty">
+          Loading resources...
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  return (
+    <StudentLayout title="Resources">
+      <div className="student-page-head">
+        <h2>Learning Resources</h2>
         <p>
-          Helpful documentation and references for
-          your Full-Stack development journey.
+          Materials shared by your mentors and bootcamp
+          administration.
         </p>
       </div>
 
-      <div className="student-banner">
-        <BookOpen
-          size={14}
-          style={{
-            verticalAlign: "middle",
-            marginRight: 6,
-          }}
-        />
+      {error && (
+        <div className="student-banner">
+          {error}
+        </div>
+      )}
 
-        Use these official references while
-        completing your bootcamp assignments and
-        projects.
+      <div className="flex justify-end mb-4">
+        <button
+          className="student-filter"
+          onClick={load}
+        >
+          <RefreshCw size={13} />
+          Refresh
+        </button>
       </div>
 
-      <div className="student-module-grid">
+      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
         {resources.map((resource) => {
-          const Icon = resource.icon;
+          const Icon = getResourceIcon(resource);
+
+          const url =
+            resource.url ||
+            resource.link ||
+            resource.fileUrl ||
+            resource.file;
 
           return (
             <article
-              className="student-card student-module"
-              key={resource.title}
+              key={resource._id}
+              className="student-card student-panel flex flex-col"
             >
-              <div className="module-top">
-                <span className="module-number">
-                  {resource.category}
-                </span>
+              <div className="flex items-start gap-3">
+                <div className="w-11 h-11 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center shrink-0">
+                  <Icon size={20} />
+                </div>
 
-                <span className="module-status">
-                  Resource
-                </span>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-black text-[#062a5c]">
+                    {resource.title ||
+                      resource.name ||
+                      "Learning resource"}
+                  </h3>
+
+                  {resource.category && (
+                    <div className="text-xs text-slate-400 mt-1">
+                      {resource.category}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 9,
-                  background: "#e8faf5",
-                  color: "#08ad81",
-                  display: "grid",
-                  placeItems: "center",
-                  marginTop: 12,
-                }}
-              >
-                <Icon size={18} />
+              {(resource.description ||
+                resource.content) && (
+                <p className="text-sm text-slate-500 mt-4 leading-6">
+                  {resource.description ||
+                    resource.content}
+                </p>
+              )}
+
+              <div className="mt-auto pt-5">
+                {url ? (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="student-btn w-full"
+                  >
+                    {resource.fileUrl ||
+                    resource.file ? (
+                      <>
+                        <Download size={14} />
+                        Open resource
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink size={14} />
+                        Open link
+                      </>
+                    )}
+                  </a>
+                ) : (
+                  <div className="text-xs text-slate-400 bg-slate-50 rounded-xl p-3">
+                    This resource does not currently have an
+                    external link.
+                  </div>
+                )}
               </div>
-
-              <div className="module-title">
-                {resource.title}
-              </div>
-
-              <div className="module-meta">
-                {resource.description}
-              </div>
-
-              <a
-                className="student-btn"
-                href={resource.url}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  marginTop: 13,
-                }}
-              >
-                Open Guide
-
-                <ExternalLink size={10} />
-              </a>
             </article>
           );
         })}
       </div>
+
+      {!resources.length && (
+        <div className="student-card student-empty">
+          No resources have been shared yet.
+        </div>
+      )}
     </StudentLayout>
   );
 }

@@ -1,92 +1,52 @@
-import React from "react";
 import {
   BrowserRouter,
   Routes,
   Route,
   Navigate,
-  Outlet,
-  useNavigate,
 } from "react-router-dom";
 
-// Public / Shared Pages
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-
-// Protection & Layouts
+import ChangePassword from "./pages/ChangePassword";
 import ProtectedRoute from "./components/ProtectedRoute";
-import DashboardLayout from "./components/layout/DashbordLayout";
-import AdminLayout from "./layouts/adminlayouts";
 
-// Admin Pages
+/* Student */
+import StudentDashboard from "./pages/student/StudentDashboard";
+import StudentAttendance from "./pages/student/StudentAttendance";
+import StudentProgress from "./pages/student/StudentProgress";
+import StudentAssignments from "./pages/student/StudentAssignments";
+import StudentAnnouncements from "./pages/student/StudentAnnouncements";
+import StudentResources from "./pages/student/StudentResources";
+import StudentProfile from "./pages/student/StudentProfile";
+
+/* Admin */
 import AdminDashboard from "./pages/AdminDashbord";
-import UserManagement from "./pages/admin/UserManagement";
-import BatchManagement from "./pages/admin/BatchManagement";
-import Announcements from "./pages/admin/Announcements";
 
-// Mentor Pages
-import Dashboard from "./pages/mentor/Dashboard";
-import Attendance from "./pages/mentor/Attendance";
-import History from "./pages/mentor/History";
-import Progress from "./pages/mentor/Progress";
-import Students from "./pages/mentor/Students";
+/* Mentor */
+import MentorDashboard from "./pages/mentor/Dashboard";
+import MentorAttendance from "./pages/mentor/Attendance";
+import MentorHistory from "./pages/mentor/History";
+import MentorProgress from "./pages/mentor/Progress";
+import MentorStudents from "./pages/mentor/Students";
 
-// Student Pages
-import StudentDashboard
-  from "./pages/student/StudentDashboard";
-
-import StudentAttendance
-  from "./pages/student/StudentAttendance";
-
-import StudentProgress
-  from "./pages/student/StudentProgress";
-
-import StudentAssignments
-  from "./pages/student/StudentAssignments";
-
-import StudentAnnouncements
-  from "./pages/student/StudentAnnouncements";
-
-import StudentResources
-  from "./pages/student/StudentResources";
-
-import StudentProfile
-  from "./pages/student/StudentProfile";
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Routes */}
+        {/* Public */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route
+          path="/change-password"
+          element={<ChangePassword />}
+        />
 
-        {/* Protected Admin Routes */}
-        <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="users" element={<UserManagement />} />
-            <Route path="batches" element={<BatchManagement />} />
-            <Route path="announcements" element={<Announcements />} />
-          </Route>
-        </Route>
-
-        {/* Protected Mentor Routes */}
-        <Route element={<ProtectedRoute allowedRoles={["Mentor"]} />}>
-          <Route path="/mentor/dashboard" element={<Dashboard />} />
-          <Route path="/mentor/students" element={<Students />} />
-          <Route path="/mentor/attendance" element={<Attendance />} />
-          <Route path="/mentor/history" element={<History />} />
-          <Route path="/mentor/progress" element={<Progress />} />
-        </Route>
-
-        {/* Protected Student Routes */}
+        {/* Student */}
         <Route
           element={
-            <ProtectedRoute
-              allowedRoles={["Student"]}
-            />
+            <ProtectedRoute allowedRoles={["Student"]} />
           }
         >
           <Route
@@ -119,17 +79,6 @@ function App() {
             element={<StudentAssignments />}
           />
 
-          {/* Keep old route working */}
-          <Route
-            path="/student/assignment"
-            element={
-              <Navigate
-                to="/student/assignments"
-                replace
-              />
-            }
-          />
-
           <Route
             path="/student/announcements"
             element={<StudentAnnouncements />}
@@ -146,21 +95,92 @@ function App() {
           />
         </Route>
 
-        {/* Access Denied Route */}
+        {/* Admin */}
+        <Route
+          element={
+            <ProtectedRoute allowedRoles={["Admin"]} />
+          }
+        >
+          <Route
+            path="/admin"
+            element={<AdminDashboard />}
+          />
+
+          <Route
+            path="/admin/dashboard"
+            element={<AdminDashboard />}
+          />
+        </Route>
+
+        {/* Mentor */}
+        <Route
+          element={
+            <ProtectedRoute allowedRoles={["Mentor"]} />
+          }
+        >
+          <Route
+            path="/mentor"
+            element={
+              <Navigate
+                to="/mentor/dashboard"
+                replace
+              />
+            }
+          />
+
+          <Route
+            path="/mentor/dashboard"
+            element={<MentorDashboard />}
+          />
+
+          <Route
+            path="/mentor/attendance"
+            element={<MentorAttendance />}
+          />
+
+          <Route
+            path="/mentor/history"
+            element={<MentorHistory />}
+          />
+
+          <Route
+            path="/mentor/progress"
+            element={<MentorProgress />}
+          />
+
+          <Route
+            path="/mentor/students"
+            element={<MentorStudents />}
+          />
+        </Route>
+
         <Route
           path="/unauthorized"
           element={
-            <div className="flex min-h-screen items-center justify-center bg-slate-50">
+            <div className="min-h-screen flex items-center justify-center">
               <div className="text-center">
-                <h1 className="text-3xl font-bold text-red-600">
-                  Access Denied
-                </h1>
-                <p className="mt-2 text-gray-600">
-                  You don't have permission to access this page
+                <div className="text-5xl font-black text-[#062a5c]">
+                  403
+                </div>
+
+                <p className="text-slate-500 mt-2">
+                  You do not have permission to access this page.
                 </p>
+
+                <a
+                  href="/"
+                  className="inline-block mt-5 bg-[#08c98b] text-white rounded-xl px-5 py-3 font-bold"
+                >
+                  Go home
+                </a>
               </div>
             </div>
           }
+        />
+
+        <Route
+          path="*"
+          element={<Navigate to="/" replace />}
         />
       </Routes>
     </BrowserRouter>

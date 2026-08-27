@@ -1,36 +1,53 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  CheckCircle2,
-  Clock3,
-  CircleAlert,
-  CalendarX2,
-  CalendarDays,
+  CalendarCheck2,
   RefreshCw,
+  CheckCircle2,
+  XCircle,
+  Clock3,
+  ShieldCheck,
 } from "lucide-react";
 
 import API from "../../api/axios";
 import StudentLayout from "../../components/student/StudentLayout";
 import "../../components/student/student.css";
 
+const STATUS = {
+  present: {
+    label: "Present",
+    icon: CheckCircle2,
+  },
+  late: {
+    label: "Late",
+    icon: Clock3,
+  },
+  absent: {
+    label: "Absent",
+    icon: XCircle,
+  },
+  excused: {
+    label: "Excused",
+    icon: ShieldCheck,
+  },
+};
+
 export default function StudentAttendance() {
-  const [records, setRecords] = useState([]);
+  const [data, setData] = useState(null);
+  const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadAttendance = async () => {
+  const load = async () => {
+    setLoading(true);
+    setError("");
+
     try {
-      setLoading(true);
-      setError("");
-
-      const response = await API.get("/attendance/mine");
-
-      setRecords(response.data?.data || []);
+      const response = await API.get("/student/attendance");
+      setData(response.data.data);
     } catch (err) {
-      console.error(err);
-
       setError(
         err.response?.data?.message ||
-          "Unable to load your attendance records."
+          "Unable to load attendance."
       );
     } finally {
       setLoading(false);
@@ -38,57 +55,53 @@ export default function StudentAttendance() {
   };
 
   useEffect(() => {
-    loadAttendance();
+    load();
   }, []);
 
-  const stats = useMemo(() => {
-    const present = records.filter(
-      (item) => String(item.status).toLowerCase() === "present"
-    ).length;
+  const records = useMemo(() => {
+    if (!data?.records) return [];
 
-    const late = records.filter(
-      (item) => String(item.status).toLowerCase() === "late"
-    ).length;
+    if (filter === "all") return data.records;
 
-    const absent = records.filter(
-      (item) => String(item.status).toLowerCase() === "absent"
-    ).length;
+    return data.records.filter(
+      (record) => record.status === filter
+    );
+  }, [data, filter]);
 
-    const excused = records.filter(
-      (item) => String(item.status).toLowerCase() === "excused"
-    ).length;
+  if (loading) {
+    return (
+      <StudentLayout title="Attendance">
+        <div className="student-card student-empty">
+          Loading attendance...
+        </div>
+      </StudentLayout>
+    );
+  }
 
-    const attended = present + late;
+  const all = data?.records || [];
 
-    const percentage = records.length
-      ? Math.round((attended / records.length) * 100)
-      : 0;
+  const present = all.filter(
+    (x) => x.status === "present"
+  ).length;
 
-    return {
-      present,
-      late,
-      absent,
-      excused,
-      attended,
-      total: records.length,
-      percentage,
-    };
-  }, [records]);
+  const late = all.filter(
+    (x) => x.status === "late"
+  ).length;
 
-  const sortedRecords = [...records].sort(
-    (a, b) =>
-      new Date(b.date).getTime() -
-      new Date(a.date).getTime()
-  );
+  const absent = all.filter(
+    (x) => x.status === "absent"
+  ).length;
+
+  const excused = all.filter(
+    (x) => x.status === "excused"
+  ).length;
 
   return (
-    <StudentLayout title="My Attendance Transcript">
+    <StudentLayout title="Attendance">
       <div className="student-page-head">
-        <h2>My Attendance Record</h2>
-
+        <h2>Attendance</h2>
         <p>
-          Monitor your attendance and keep your bootcamp
-          participation above the required threshold.
+          Track your attendance throughout the bootcamp.
         </p>
       </div>
 
@@ -98,214 +111,206 @@ export default function StudentAttendance() {
         </div>
       )}
 
-      <div className="student-banner">
-        <b>Attendance Policy:</b>{" "}
-        Students should maintain the required attendance
-        percentage throughout the bootcamp.
-      </div>
+      {data && (
+        <>
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="student-card p-5">
+              <div className="flex justify-between">
+                <div>
+                  <div className="text-xs font-bold text-slate-400 uppercase">
+                    Attendance rate
+                  </div>
 
-      <div className="student-stat-grid">
-        <AttendanceStat
-          icon={<CheckCircle2 size={15} />}
-          label="PRESENT"
-          value={stats.present}
-          note="on-time sessions"
-        />
+                  <div className="text-3xl font-black text-[#062a5c] mt-2">
+                    {data.percentage}%
+                  </div>
+                </div>
 
-        <AttendanceStat
-          icon={<Clock3 size={15} />}
-          label="LATE"
-          value={stats.late}
-          note="late arrivals"
-        />
+                <div className="w-11 h-11 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center">
+                  <CalendarCheck2 size={20} />
+                </div>
+              </div>
+            </div>
 
-        <AttendanceStat
-          icon={<CircleAlert size={15} />}
-          label="EXCUSED"
-          value={stats.excused}
-          note="approved absences"
-        />
+            <div className="student-card p-5">
+              <div className="text-xs font-bold text-slate-400 uppercase">
+                Present
+              </div>
 
-        <AttendanceStat
-          icon={<CalendarX2 size={15} />}
-          label="ABSENT"
-          value={stats.absent}
-          note="missed sessions"
-        />
-      </div>
+              <div className="text-3xl font-black text-[#062a5c] mt-2">
+                {present}
+              </div>
+            </div>
 
-      <section
-        className="student-card student-panel"
-        style={{ marginTop: 14 }}
-      >
-        <div className="student-panel-header">
-          <div>
-            <h3>Attendance Overview</h3>
+            <div className="student-card p-5">
+              <div className="text-xs font-bold text-slate-400 uppercase">
+                Late
+              </div>
 
-            <span
-              style={{
-                display: "block",
-                marginTop: 4,
-                color: "#8b97a5",
-                fontSize: 8,
-              }}
-            >
-              {stats.attended} of {stats.total} sessions attended
-            </span>
+              <div className="text-3xl font-black text-[#062a5c] mt-2">
+                {late}
+              </div>
+            </div>
+
+            <div className="student-card p-5">
+              <div className="text-xs font-bold text-slate-400 uppercase">
+                Absent
+              </div>
+
+              <div className="text-3xl font-black text-[#062a5c] mt-2">
+                {absent}
+              </div>
+            </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <span className="student-status">
-              {stats.percentage}% attendance
-            </span>
+          {/* Attendance visual */}
+          <section className="student-card student-panel mt-5">
+            <div className="student-panel-header">
+              <div>
+                <h3>Attendance overview</h3>
+                <span>
+                  {all.length} recorded session
+                  {all.length === 1 ? "" : "s"}
+                </span>
+              </div>
 
-            <button
-              className="student-filter"
-              onClick={loadAttendance}
-              title="Refresh attendance"
-            >
-              <RefreshCw size={12} />
-            </button>
+              <button
+                className="student-filter"
+                onClick={load}
+              >
+                <RefreshCw size={13} />
+                Refresh
+              </button>
+            </div>
+
+            <div className="grid sm:grid-cols-3 gap-4 mt-5">
+              <div className="rounded-xl bg-emerald-50 p-4">
+                <div className="text-xs text-emerald-700 font-bold">
+                  Present / Late
+                </div>
+
+                <div className="text-2xl font-black text-emerald-800 mt-1">
+                  {present + late}
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-red-50 p-4">
+                <div className="text-xs text-red-700 font-bold">
+                  Absent
+                </div>
+
+                <div className="text-2xl font-black text-red-800 mt-1">
+                  {absent}
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-blue-50 p-4">
+                <div className="text-xs text-blue-700 font-bold">
+                  Excused
+                </div>
+
+                <div className="text-2xl font-black text-blue-800 mt-1">
+                  {excused}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Filter */}
+          <div className="flex flex-wrap gap-2 mt-5">
+            {[
+              ["all", "All"],
+              ["present", "Present"],
+              ["late", "Late"],
+              ["absent", "Absent"],
+              ["excused", "Excused"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                className={`student-filter ${
+                  filter === value ? "active" : ""
+                }`}
+                onClick={() => setFilter(value)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
-        </div>
 
-        <div
-          style={{
-            height: 9,
-            background: "#e9eef1",
-            borderRadius: 10,
-            overflow: "hidden",
-            marginBottom: 18,
-          }}
-        >
-          <div
-            style={{
-              width: `${Math.min(stats.percentage, 100)}%`,
-              height: "100%",
-              background:
-                stats.percentage >= 80
-                  ? "#00bd8c"
-                  : "#e49b24",
-              borderRadius: 10,
-              transition: "width .3s ease",
-            }}
-          />
-        </div>
+          {/* History */}
+          <section className="student-card student-panel mt-4">
+            <div className="student-panel-header">
+              <div>
+                <h3>Attendance history</h3>
+                <span>Most recent sessions first</span>
+              </div>
+            </div>
 
-        {loading ? (
-          <div className="student-empty">
-            <CalendarDays
-              size={20}
-              style={{ marginBottom: 8 }}
-            />
-            <div>Loading attendance...</div>
-          </div>
-        ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table className="student-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Status</th>
-                  <th>Batch</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {sortedRecords.map((record) => {
-                  const status = String(
-                    record.status || ""
-                  ).toLowerCase();
-
-                  return (
-                    <tr key={record._id}>
-                      <td>
-                        {record.date
-                          ? new Date(
-                              record.date
-                            ).toLocaleDateString(
-                              undefined,
-                              {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric",
-                              }
-                            )
-                          : "—"}
-                      </td>
-
-                      <td>
-                        <span
-                          className={`student-status ${status}`}
-                        >
-                          {status
-                            ? status
-                                .charAt(0)
-                                .toUpperCase() +
-                              status.slice(1)
-                            : "Unknown"}
-                        </span>
-                      </td>
-
-                      <td>
-                        {record.batch?.batchName ||
-                          record.batch?.name ||
-                          "Current batch"}
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {!sortedRecords.length && (
-                  <tr>
-                    <td colSpan="3">
-                      <div className="student-empty">
-                        No attendance records have been
-                        recorded yet.
-                      </div>
-                    </td>
+            <div className="overflow-x-auto mt-4">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-slate-400 border-b">
+                    <th className="py-3 pr-4">Date</th>
+                    <th className="py-3 pr-4">Status</th>
+                    <th className="py-3">Note</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+                </thead>
+
+                <tbody>
+                  {records.map((record) => {
+                    const config =
+                      STATUS[record.status] ||
+                      STATUS.absent;
+
+                    const Icon = config.icon;
+
+                    return (
+                      <tr
+                        key={record._id}
+                        className="border-b last:border-0"
+                      >
+                        <td className="py-4 pr-4 font-semibold text-slate-700">
+                          {record.date
+                            ? new Date(
+                                record.date
+                              ).toLocaleDateString(
+                                undefined,
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              )
+                            : "—"}
+                        </td>
+
+                        <td className="py-4 pr-4">
+                          <span className="inline-flex items-center gap-2">
+                            <Icon size={15} />
+                            <span className="student-status">
+                              {config.label}
+                            </span>
+                          </span>
+                        </td>
+
+                        <td className="py-4 text-slate-500">
+                          {record.note || "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {!records.length && (
+                <div className="student-empty">
+                  No attendance records found.
+                </div>
+              )}
+            </div>
+          </section>
+        </>
+      )}
     </StudentLayout>
-  );
-}
-
-function AttendanceStat({
-  icon,
-  label,
-  value,
-  note,
-}) {
-  return (
-    <div className="student-card student-stat">
-      <div className="student-stat-top">
-        <span className="student-stat-label">
-          {label}
-        </span>
-
-        <span className="student-stat-icon">
-          {icon}
-        </span>
-      </div>
-
-      <div className="student-stat-value">
-        {value}
-      </div>
-
-      <span className="student-stat-note">
-        {note}
-      </span>
-    </div>
   );
 }

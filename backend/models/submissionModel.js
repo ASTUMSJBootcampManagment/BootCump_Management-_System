@@ -1,57 +1,71 @@
 const mongoose = require("mongoose");
 
-const assignmentSchema =
-  new mongoose.Schema(
-    {
-      title: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-
-      description: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-
-      instructions: {
-        type: String,
-        default: "",
-      },
-
-      dueDate: {
-        type: Date,
-        required: true,
-      },
-
-      maxScore: {
-        type: Number,
-        default: 100,
-        min: 0,
-      },
-
-      batch: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Batch",
-        default: null,
-      },
-
-      createdBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "user",
-        required: true,
-      },
+const submissionSchema = new mongoose.Schema(
+  {
+    assignment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Assignment",
+      required: true,
     },
 
-    {
-      timestamps: true,
-    }
-  );
+    student: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      required: true,
+    },
+
+    content: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    submittedAt: {
+      type: Date,
+      default: Date.now,
+    },
+
+    grade: {
+      type: Number,
+      min: 0,
+      default: null,
+    },
+
+    feedback: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    gradedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      default: null,
+    },
+
+    gradedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+submissionSchema.index(
+  {
+    assignment: 1,
+    student: 1,
+  },
+  {
+    unique: true,
+  }
+);
 
 module.exports =
-  mongoose.models.Assignment ||
+  mongoose.models.Submission ||
   mongoose.model(
-    "Assignment",
-    assignmentSchema
+    "Submission",
+    submissionSchema
   );

@@ -126,6 +126,53 @@ const userSchema = new mongoose.Schema(
       ref: "user",
       default: null,
     },
+    applicationStatus: {
+      type: String,
+      enum: [
+        "waiting",
+        "approved",
+        "rejected",
+        "withdrawn",
+      ],
+      default: "waiting",
+    },
+
+    appliedBatch: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Batch",
+      default: null,
+    },
+
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
+    },
+
+    temporaryPasswordExpiresAt: {
+      type: Date,
+      default: null,
+    },
+
+    approvedAt: {
+      type: Date,
+      default: null,
+    },
+
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      default: null,
+    },
+
+    rejectedAt: {
+      type: Date,
+      default: null,
+    },
+
+    rejectionReason: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
@@ -146,12 +193,6 @@ userSchema.pre("save", async function () {
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
-
-/*
-|--------------------------------------------------------------------------
-| Compare password during login
-|--------------------------------------------------------------------------
-*/
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);

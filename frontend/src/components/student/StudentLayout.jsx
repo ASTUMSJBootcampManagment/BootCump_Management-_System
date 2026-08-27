@@ -1,371 +1,223 @@
-import { useEffect, useState } from "react";
-
-import {
-  NavLink,
-  useNavigate,
-} from "react-router-dom";
-
+import { useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  CalendarCheck2,
   TrendingUp,
+  CalendarCheck2,
   ClipboardList,
   Megaphone,
   BookOpen,
-  UserRound,
+  User,
   LogOut,
   Menu,
   X,
-  Bell,
-  Search,
+  GraduationCap,
+  ChevronRight,
 } from "lucide-react";
 
-import {
-  STUDENT_PORTAL_CONFIG,
-} from "./studentConfig";
-
-const navigation = [
+const links = [
   {
-    label: "My Dashboard",
     to: "/student/dashboard",
+    label: "Dashboard",
     icon: LayoutDashboard,
   },
-
   {
-    label: "My Attendance",
-    to: "/student/attendance",
-    icon: CalendarCheck2,
-  },
-
-  {
-    label: "Topic Progress",
     to: "/student/progress",
+    label: "My Progress",
     icon: TrendingUp,
   },
-
   {
-    label: "My Assignments",
+    to: "/student/attendance",
+    label: "Attendance",
+    icon: CalendarCheck2,
+  },
+  {
     to: "/student/assignments",
+    label: "Assignments",
     icon: ClipboardList,
   },
-
   {
-    label: "Announcements",
     to: "/student/announcements",
+    label: "Announcements",
     icon: Megaphone,
   },
-
   {
-    label: "Resources & Guides",
     to: "/student/resources",
+    label: "Resources",
     icon: BookOpen,
   },
-
   {
-    label: "My Profile",
     to: "/student/profile",
-    icon: UserRound,
+    label: "My Profile",
+    icon: User,
   },
 ];
 
-export default function StudentLayout({
-  children,
-  title,
-}) {
+function getUser() {
+  try {
+    return JSON.parse(localStorage.getItem("user") || "{}");
+  } catch {
+    return {};
+  }
+}
+
+export default function StudentLayout({ title, children }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
-
-  const [mobileMenu, setMobileMenu] =
-    useState(false);
-
-  const [user, setUser] = useState(() =>
-    JSON.parse(
-      localStorage.getItem("user") || "null"
-    )
-  );
-
-  useEffect(() => {
-    const updateUser = () => {
-      setUser(
-        JSON.parse(
-          localStorage.getItem("user") ||
-            "null"
-        )
-      );
-    };
-
-    window.addEventListener(
-      "student-user-updated",
-      updateUser
-    );
-
-    return () =>
-      window.removeEventListener(
-        "student-user-updated",
-        updateUser
-      );
-  }, []);
-
-  const name =
-    user?.fullname ||
-    user?.name ||
-    "Student";
-
-  const initials = name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const user = getUser();
 
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-
+    localStorage.removeItem("requiresPasswordChange");
     navigate("/login");
   };
 
-  return (
-    <div className="min-h-screen bg-[#f5f7fa] text-[#10213a]">
-
-      {mobileMenu && (
-        <button
-          className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden"
-          onClick={() => setMobileMenu(false)}
-          aria-label="Close menu"
-        />
-      )}
-
-      <aside
-        className={`
-          fixed inset-y-0 left-0 z-50
-          flex w-[234px] flex-col
-          bg-[#061a31] text-white
-          transition-transform
-          lg:translate-x-0
-          ${
-            mobileMenu
-              ? "translate-x-0"
-              : "-translate-x-full"
-          }
-        `}
-      >
-
-        {/* BRAND */}
-
-        <div className="flex h-[74px] items-center border-b border-white/5 px-5">
-
-          <div className="mr-3 grid h-9 w-9 place-items-center rounded-xl bg-[#08c98b] font-black">
-            A
+  const sidebar = (
+    <aside className="h-full flex flex-col bg-[#062a5c] text-white">
+      <div className="px-6 py-6 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-[#08c98b] grid place-items-center">
+            <GraduationCap size={23} />
           </div>
 
           <div>
-            <div className="text-[11px] font-black tracking-[.18em] text-[#08c98b]">
+            <div className="font-black tracking-wider text-[#08c98b]">
               ASTUMSJ
             </div>
-
-            <div className="text-[11px] font-semibold text-white/50">
-              BOOTCAMP
+            <div className="text-xs text-white/60">
+              Bootcamp Portal
             </div>
           </div>
+        </div>
+      </div>
 
-          <button
-            className="ml-auto lg:hidden"
-            onClick={() =>
-              setMobileMenu(false)
-            }
-          >
-            <X size={20} />
-          </button>
+      <div className="px-4 py-5">
+        <div className="px-3 mb-3 text-[10px] uppercase tracking-widest text-white/40 font-black">
+          Student Menu
         </div>
 
-        {/* STUDENT */}
-
-        <div className="border-b border-white/5 px-4 py-4">
-
-          <div className="flex items-center gap-3">
-
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#0e8b6b] text-xs font-black">
-              {initials}
-            </div>
-
-            <div className="min-w-0">
-
-              <div className="truncate text-sm font-bold">
-                {name}
-              </div>
-
-              <div className="text-[10px] font-black uppercase tracking-wider text-[#08c98b]">
-                Student
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* NAVIGATION */}
-
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-
-          {navigation.map(
-            ({
-              label,
-              to,
-              icon: Icon,
-            }) => (
-              <NavLink
-                key={to}
-                to={to}
-                onClick={() =>
-                  setMobileMenu(false)
-                }
-                className={({ isActive }) =>
-                  `
-                  flex items-center gap-3
-                  rounded-xl px-3 py-2.5
-                  text-[12px] font-bold
-                  transition
-
-                  ${
-                    isActive
-                      ? "bg-[#08c98b] text-white shadow-lg shadow-[#08c98b]/20"
-                      : "text-white/65 hover:bg-white/5 hover:text-white"
-                  }
-                  `
-                }
-              >
-                <Icon size={17} />
-                {label}
-              </NavLink>
-            )
-          )}
-
+        <nav className="space-y-1">
+          {links.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              onClick={() => setMobileOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition ${
+                  isActive
+                    ? "bg-[#08c98b] text-white shadow-lg"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                }`
+              }
+            >
+              <Icon size={18} />
+              <span>{label}</span>
+            </NavLink>
+          ))}
         </nav>
+      </div>
 
-        {/* FOOTER */}
-
-        <div className="border-t border-white/5 p-3">
-
-          <div className="mb-3 rounded-xl bg-white/[.045] p-3">
-
-            <div className="mb-1 text-[9px] font-black uppercase tracking-widest text-white/40">
-              Bootcamp status
-            </div>
-
-            <div className="flex items-center justify-between gap-2 text-[11px] font-bold">
-
-              <span className="truncate">
-                {
-                  STUDENT_PORTAL_CONFIG.bootcampLabel
-                }
-              </span>
-
-              <span className="text-[#08c98b]">
-                Active
-              </span>
-
-            </div>
-
+      <div className="mt-auto p-4">
+        <div className="rounded-2xl bg-white/5 border border-white/10 p-4 mb-3">
+          <div className="text-xs text-white/40 uppercase tracking-wider">
+            Signed in as
           </div>
 
-          <button
-            onClick={() => navigate("/")}
-            className="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-bold text-white/55 hover:bg-white/5 hover:text-white"
-          >
-            <BookOpen size={16} />
-            Public Website
-          </button>
+          <div className="font-bold mt-1 truncate">
+            {user.fullname || "Student"}
+          </div>
 
-          <button
-            onClick={logout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-bold text-rose-300 hover:bg-rose-400/10"
-          >
-            <LogOut size={16} />
-            Sign Out
-          </button>
-
+          <div className="text-xs text-white/50 truncate mt-1">
+            {user.email || ""}
+          </div>
         </div>
 
-      </aside>
+        <button
+          onClick={logout}
+          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-white/70 hover:bg-red-500/20 hover:text-red-200"
+        >
+          <LogOut size={18} />
+          Sign out
+        </button>
+      </div>
+    </aside>
+  );
 
-      {/* CONTENT */}
+  return (
+    <div className="min-h-screen bg-[#f5f7fa] text-slate-800">
+      {/* Desktop sidebar */}
+      <div className="hidden lg:block fixed inset-y-0 left-0 w-[255px]">
+        {sidebar}
+      </div>
 
-      <div className="lg:pl-[234px]">
+      {/* Mobile sidebar */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setMobileOpen(false)}
+          />
 
-        <header className="sticky top-0 z-30 flex h-[66px] items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-7">
-
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="relative w-[270px] h-full">
+            {sidebar}
 
             <button
-              onClick={() =>
-                setMobileMenu(true)
-              }
-              className="rounded-lg p-2 text-slate-600 lg:hidden"
+              onClick={() => setMobileOpen(false)}
+              className="absolute top-5 right-[-45px] w-9 h-9 rounded-lg bg-white text-slate-700 grid place-items-center shadow"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main */}
+      <div className="lg:ml-[255px] min-h-screen">
+        <header className="sticky top-0 z-30 h-[72px] bg-white border-b border-slate-200 flex items-center justify-between px-5 sm:px-8">
+          <div className="flex items-center gap-3">
+            <button
+              className="lg:hidden w-10 h-10 rounded-xl border border-slate-200 grid place-items-center"
+              onClick={() => setMobileOpen(true)}
             >
               <Menu size={20} />
             </button>
 
-            <h1 className="truncate text-[17px] font-black sm:text-[18px]">
-              {title}
-            </h1>
-
-            <span className="hidden h-5 w-px bg-slate-200 sm:block" />
-
-            <span className="hidden text-xs font-semibold text-slate-400 sm:block">
-              Student Portal
-            </span>
-
+            <div>
+              <div className="text-xs uppercase tracking-wider text-slate-400 font-bold">
+                Student Portal
+              </div>
+              <h1 className="font-black text-[#062a5c] text-lg">
+                {title}
+              </h1>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
-
-            <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 md:flex">
-              <Search
-                size={15}
-                className="text-slate-400"
-              />
-
-              <span className="text-xs text-slate-400">
-                Search portal...
-              </span>
+          <NavLink
+            to="/student/profile"
+            className="flex items-center gap-3"
+          >
+            <div className="hidden sm:block text-right">
+              <div className="text-sm font-bold text-slate-700">
+                {user.fullname || "Student"}
+              </div>
+              <div className="text-xs text-slate-400">
+                Student
+              </div>
             </div>
 
-            <span className="hidden rounded-full border border-[#9ce8ce] bg-[#edfff8] px-3 py-1.5 text-[11px] font-black text-[#059669] sm:block">
-              Student
-            </span>
+            <div className="w-10 h-10 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center font-black">
+              {(user.fullname || "S").charAt(0).toUpperCase()}
+            </div>
 
-            <button className="relative grid h-9 w-9 place-items-center rounded-full border border-slate-200 bg-white">
-              <Bell size={16} />
-
-              <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[#08c98b]" />
-            </button>
-
-            <button
-              onClick={() =>
-                navigate("/student/profile")
-              }
-              className="flex items-center gap-2"
-            >
-              <div className="grid h-9 w-9 place-items-center rounded-full bg-[#0b294a] text-[10px] font-black text-white">
-                {initials}
-              </div>
-
-              <span className="hidden text-xs font-bold sm:block">
-                {name}
-              </span>
-            </button>
-
-          </div>
-
+            <ChevronRight size={15} className="text-slate-400" />
+          </NavLink>
         </header>
 
-        <main className="p-4 sm:p-6 lg:p-7">
+        <main className="p-5 sm:p-8 max-w-[1500px] mx-auto">
           {children}
         </main>
-
       </div>
-
     </div>
   );
 }

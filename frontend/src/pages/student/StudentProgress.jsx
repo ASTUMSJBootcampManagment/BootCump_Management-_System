@@ -1,75 +1,297 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { CheckCircle } from "lucide-react";
-import StudentLayout from "../../components/student/StudentLayout"; // Adjust path if needed
+import { useEffect, useMemo, useState } from "react";
+import {
+  CheckCircle2,
+  Clock3,
+  AlertTriangle,
+  CircleDashed,
+  RefreshCw,
+  TrendingUp,
+  Target,
+} from "lucide-react";
+
+import API from "../../api/axios";
+import StudentLayout from "../../components/student/StudentLayout";
+import "../../components/student/student.css";
+
+const STATUS = {
+  Completed: {
+    icon: CheckCircle2,
+    label: "Completed",
+  },
+  InProgress: {
+    icon: Clock3,
+    label: "In progress",
+  },
+  NeedsImprovement: {
+    icon: AlertTriangle,
+    label: "Needs improvement",
+  },
+  NotStarted: {
+    icon: CircleDashed,
+    label: "Not started",
+  },
+};
 
 export default function StudentProgress() {
-  const [progressData, setProgressData] = useState(null);
-  const user = JSON.parse(localStorage.getItem("user") || '{"id":"current_id"}');
+  const [data, setData] = useState(null);
+  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await API.get("/student/progress");
+      setData(response.data.data);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Unable to load your progress."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProgress = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(`http://localhost:3000/api/progress/get-one/${user.id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.data) setProgressData(res.data);
-      } catch (err) {
-        console.error("Progress fetch error:", err);
-      }
-    };
-    fetchProgress();
-  }, [user.id]);
+    load();
+  }, []);
 
-  const modules = Array(4).fill({
-    moduleNum: "Module #",
-    topic: "Upcoming topic",
-    status: "Completed",
-    mastery: "Mastered"
-  });
+  const filteredTopics = useMemo(() => {
+    if (!data?.topics) return [];
+
+    if (filter === "all") return data.topics;
+
+    return data.topics.filter(
+      (topic) => topic.status === filter
+    );
+  }, [data, filter]);
+
+  if (loading) {
+    return (
+      <StudentLayout title="My Progress">
+        <div className="student-card student-empty">
+          Loading your learning progress...
+        </div>
+      </StudentLayout>
+    );
+  }
 
   return (
-    <StudentLayout title="Topic Progress">
-      <div className="space-y-6 p-6 font-sans">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Curriculum Syllabus & Learning Journey</h1>
-          <p className="text-sm text-slate-500">Track technical competencies delivered in Full-Stack MERN Development.</p>
-        </div>
+    <StudentLayout title="My Progress">
+      <div className="student-page-head">
+        <h2>Learning Progress</h2>
+        <p>
+          Follow your progress through the bootcamp curriculum.
+          Your mentor updates these statuses.
+        </p>
+      </div>
 
-        <div className="rounded-2xl bg-[#0a192f] p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-emerald-400">Bootcamp Completion Rate</p>
-              <h2 className="mt-1 text-2xl font-extrabold">6 of 12 Modules Delivered</h2>
-            </div>
-            <span className="text-3xl font-black text-emerald-400">50%</span>
-          </div>
-          <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-slate-800">
-            <div className="h-full rounded-full bg-emerald-500" style={{ width: "50%" }}></div>
-          </div>
+      {error && (
+        <div className="student-banner">
+          {error}
         </div>
+      )}
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {modules.map((mod, index) => (
-            <div key={index} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400">{mod.moduleNum}</span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-600">
-                  • {mod.status}
-                </span>
-              </div>
-              <div className="mt-4 flex items-center justify-between">
-                <p className="text-sm font-medium text-slate-500">{mod.topic}</p>
-                <div className="flex items-center gap-1 text-xs font-bold text-emerald-600">
-                  <CheckCircle className="h-4 w-4" />
-                  <span>{mod.mastery}</span>
+      {data && (
+        <>
+          {/* Summary */}
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="student-card p-5">
+              <div className="flex justify-between">
+                <div>
+                  <div className="text-xs font-bold text-slate-400 uppercase">
+                    Overall progress
+                  </div>
+                  <div className="text-3xl font-black text-[#062a5c] mt-2">
+                    {data.percentage}%
+                  </div>
+                </div>
+
+                <div className="w-11 h-11 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center">
+                  <TrendingUp size={20} />
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+
+            <div className="student-card p-5">
+              <div className="text-xs font-bold text-slate-400 uppercase">
+                Completed
+              </div>
+
+              <div className="text-3xl font-black text-[#062a5c] mt-2">
+                {data.completed}
+              </div>
+
+              <div className="text-xs text-slate-400 mt-1">
+                of {data.total} topics
+              </div>
+            </div>
+
+            <div className="student-card p-5">
+              <div className="text-xs font-bold text-slate-400 uppercase">
+                In progress
+              </div>
+
+              <div className="text-3xl font-black text-[#062a5c] mt-2">
+                {
+                  data.topics.filter(
+                    (x) => x.status === "InProgress"
+                  ).length
+                }
+              </div>
+            </div>
+
+            <div className="student-card p-5">
+              <div className="text-xs font-bold text-slate-400 uppercase">
+                Remaining
+              </div>
+
+              <div className="text-3xl font-black text-[#062a5c] mt-2">
+                {Math.max(data.total - data.completed, 0)}
+              </div>
+
+              <div className="text-xs text-slate-400 mt-1">
+                topics to complete
+              </div>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <section className="student-card student-panel mt-5">
+            <div className="student-panel-header">
+              <div>
+                <h3>Curriculum completion</h3>
+                <span>
+                  {data.completed} of {data.total} topics completed
+                </span>
+              </div>
+
+              <button
+                className="student-filter"
+                onClick={load}
+              >
+                <RefreshCw size={13} />
+                Refresh
+              </button>
+            </div>
+
+            <div className="h-4 bg-slate-100 rounded-full overflow-hidden mt-6">
+              <div
+                className="h-full bg-[#08c98b] rounded-full transition-all duration-500"
+                style={{
+                  width: `${Math.min(
+                    Math.max(data.percentage, 0),
+                    100
+                  )}%`,
+                }}
+              />
+            </div>
+
+            <div className="flex justify-between text-xs text-slate-400 mt-2">
+              <span>0%</span>
+              <span className="font-bold text-[#08ad81]">
+                {data.percentage}%
+              </span>
+              <span>100%</span>
+            </div>
+          </section>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-2 mt-5">
+            {[
+              ["all", "All topics"],
+              ["Completed", "Completed"],
+              ["InProgress", "In progress"],
+              ["NeedsImprovement", "Needs improvement"],
+              ["NotStarted", "Not started"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                onClick={() => setFilter(value)}
+                className={`student-filter ${
+                  filter === value ? "active" : ""
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Topics */}
+          <div className="grid md:grid-cols-2 gap-4 mt-5">
+            {filteredTopics.map((topic) => {
+              const config =
+                STATUS[topic.status] || STATUS.NotStarted;
+
+              const Icon = config.icon;
+
+              return (
+                <article
+                  key={topic._id}
+                  className="student-card student-panel"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-11 h-11 shrink-0 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center">
+                      <Icon size={20} />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h3 className="font-black text-[#062a5c]">
+                            {topic.topic}
+                          </h3>
+
+                          {topic.module && (
+                            <div className="text-xs text-slate-400 mt-1">
+                              {topic.module}
+                            </div>
+                          )}
+                        </div>
+
+                        <span className="student-status">
+                          {config.label}
+                        </span>
+                      </div>
+
+                      {topic.notes && (
+                        <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                          <div className="text-[10px] uppercase font-black text-slate-400 mb-1">
+                            Mentor note
+                          </div>
+
+                          <p className="text-sm text-slate-600">
+                            {topic.notes}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 text-xs text-slate-400 mt-4">
+                        <Target size={13} />
+                        Updated{" "}
+                        {topic.updatedAt
+                          ? new Date(
+                              topic.updatedAt
+                            ).toLocaleDateString()
+                          : "recently"}
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          {!filteredTopics.length && (
+            <div className="student-card student-empty mt-5">
+              No topics match this filter.
+            </div>
+          )}
+        </>
+      )}
     </StudentLayout>
   );
 }

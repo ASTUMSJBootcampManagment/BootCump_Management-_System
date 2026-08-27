@@ -1,19 +1,13 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-
+import { useEffect, useMemo, useState } from "react";
 import {
   ClipboardList,
-  CalendarDays,
-  ExternalLink,
   Send,
-  X,
   RefreshCw,
+  X,
   CheckCircle2,
   Clock3,
   AlertCircle,
+  Award,
 } from "lucide-react";
 
 import API from "../../api/axios";
@@ -21,66 +15,35 @@ import StudentLayout from "../../components/student/StudentLayout";
 import "../../components/student/student.css";
 
 export default function StudentAssignments() {
-  const [assignments, setAssignments] =
-    useState([]);
+  const [assignments, setAssignments] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [content, setContent] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
-  const [submissions, setSubmissions] =
-    useState([]);
+  const load = async () => {
+    setLoading(true);
+    setError("");
 
-  const [selected, setSelected] =
-    useState(null);
-
-  const [content, setContent] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [submitting, setSubmitting] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
-
-  const [message, setMessage] =
-    useState("");
-
-  const [filter, setFilter] =
-    useState("all");
-
-  const loadAssignments = async () => {
     try {
-      setLoading(true);
-      setError("");
-
-      const [
-        assignmentsResponse,
-        submissionsResponse,
-      ] = await Promise.all([
-        API.get("/assignments"),
-        API.get("/assignments/my-submissions"),
-      ]);
+      const [assignmentResponse, submissionResponse] =
+        await Promise.all([
+          API.get("/assignments"),
+          API.get("/assignments/my-submissions"),
+        ]);
 
       setAssignments(
-        Array.isArray(
-          assignmentsResponse.data
-        )
-          ? assignmentsResponse.data
-          : assignmentsResponse.data?.data ||
-              []
+        assignmentResponse.data.data || []
       );
 
       setSubmissions(
-        Array.isArray(
-          submissionsResponse.data
-        )
-          ? submissionsResponse.data
-          : submissionsResponse.data?.data ||
-              []
+        submissionResponse.data.data || []
       );
     } catch (err) {
-      console.error(err);
-
       setError(
         err.response?.data?.message ||
           "Unable to load assignments."
@@ -91,39 +54,37 @@ export default function StudentAssignments() {
   };
 
   useEffect(() => {
-    loadAssignments();
+    load();
   }, []);
 
-  const getSubmission = (assignmentId) =>
-    submissions.find(
+  const getSubmission = (assignmentId) => {
+    return submissions.find(
       (submission) =>
         String(
           submission.assignment?._id ||
             submission.assignment
         ) === String(assignmentId)
     );
+  };
 
   const getStatus = (assignment) => {
-    const submission = getSubmission(
-      assignment._id
-    );
+    const submission = getSubmission(assignment._id);
+
+    if (
+      submission &&
+      submission.grade !== null &&
+      submission.grade !== undefined
+    ) {
+      return "graded";
+    }
 
     if (submission) {
-      if (
-        submission.grade !== null &&
-        submission.grade !== undefined &&
-        submission.grade !== ""
-      ) {
-        return "graded";
-      }
-
-      return "review";
+      return "submitted";
     }
 
     if (
       assignment.dueDate &&
-      new Date(assignment.dueDate) <
-        new Date()
+      new Date(assignment.dueDate) < new Date()
     ) {
       return "overdue";
     }
@@ -131,81 +92,64 @@ export default function StudentAssignments() {
     return "pending";
   };
 
-  const filteredAssignments = useMemo(() => {
-    if (filter === "all") {
-      return assignments;
-    }
+  const filtered = useMemo(() => {
+    if (filter === "all") return assignments;
 
     return assignments.filter(
       (assignment) =>
         getStatus(assignment) === filter
     );
-  }, [
-    assignments,
-    submissions,
-    filter,
-  ]);
-
-  const openSubmission = (assignment) => {
-    setSelected(assignment);
-    setContent("");
-    setMessage("");
-  };
-
-  const closeSubmission = () => {
-    if (submitting) return;
-
-    setSelected(null);
-    setContent("");
-  };
+  }, [assignments, submissions, filter]);
 
   const submit = async () => {
     if (!selected) return;
 
     if (!content.trim()) {
-      setMessage(
-        "Please add your submission before sending it."
-      );
+      setMessage("Please enter your submission.");
       return;
     }
 
-    try {
-      setSubmitting(true);
-      setMessage("");
+    setSaving(true);
+    setMessage("");
 
+    try {
       await API.post("/assignments/submit", {
         assignmentId: selected._id,
         content: content.trim(),
       });
 
-      setMessage(
-        "Assignment submitted successfully."
-      );
-
+      setMessage("Assignment submitted successfully.");
       setSelected(null);
       setContent("");
 
-      await loadAssignments();
+      await load();
     } catch (err) {
-      console.error(err);
-
       setMessage(
         err.response?.data?.message ||
-          "Unable to submit the assignment."
+          "Unable to submit assignment."
       );
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
   };
 
-  return (
-    <StudentLayout title="My Assignments">
-      <div className="student-page-head">
-        <h2>My Assignments & Projects</h2>
+  if (loading) {
+    return (
+      <StudentLayout title="Assignments">
+        <div className="student-card student-empty">
+          Loading assignments...
+        </div>
+      </StudentLayout>
+    );
+  }
 
+  return (
+    <StudentLayout title="Assignments">
+      <div className="student-page-head">
+        <h2>Assignments & Projects</h2>
         <p>
-          View your tasks, submit your work, and
-          review grades and mentor feedback.
+          View your assignments, submit your work and
+          review mentor feedback.
         </p>
       </div>
 
@@ -221,367 +165,295 @@ export default function StudentAssignments() {
         </div>
       )}
 
-      <div
-        className="student-filter-row"
-        style={{
-          flexWrap: "wrap",
-        }}
-      >
-        <FilterButton
-          active={filter === "all"}
-          onClick={() => setFilter("all")}
-        >
-          All Tasks
-        </FilterButton>
+      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
+        <div className="student-card p-5">
+          <div className="text-xs text-slate-400 font-bold uppercase">
+            Total
+          </div>
 
-        <FilterButton
-          active={filter === "pending"}
-          onClick={() => setFilter("pending")}
-        >
-          Pending Submission
-        </FilterButton>
+          <div className="text-3xl font-black text-[#062a5c] mt-2">
+            {assignments.length}
+          </div>
+        </div>
 
-        <FilterButton
-          active={filter === "review"}
-          onClick={() => setFilter("review")}
-        >
-          Under Review
-        </FilterButton>
+        <div className="student-card p-5">
+          <div className="text-xs text-slate-400 font-bold uppercase">
+            Pending
+          </div>
 
-        <FilterButton
-          active={filter === "graded"}
-          onClick={() => setFilter("graded")}
-        >
-          Graded
-        </FilterButton>
+          <div className="text-3xl font-black text-[#062a5c] mt-2">
+            {
+              assignments.filter(
+                (x) => getStatus(x) === "pending"
+              ).length
+            }
+          </div>
+        </div>
+
+        <div className="student-card p-5">
+          <div className="text-xs text-slate-400 font-bold uppercase">
+            Submitted
+          </div>
+
+          <div className="text-3xl font-black text-[#062a5c] mt-2">
+            {
+              assignments.filter(
+                (x) => getStatus(x) === "submitted"
+              ).length
+            }
+          </div>
+        </div>
+
+        <div className="student-card p-5">
+          <div className="text-xs text-slate-400 font-bold uppercase">
+            Graded
+          </div>
+
+          <div className="text-3xl font-black text-[#062a5c] mt-2">
+            {
+              assignments.filter(
+                (x) => getStatus(x) === "graded"
+              ).length
+            }
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        {[
+          ["all", "All"],
+          ["pending", "Pending"],
+          ["submitted", "Submitted"],
+          ["graded", "Graded"],
+          ["overdue", "Overdue"],
+        ].map(([value, label]) => (
+          <button
+            key={value}
+            className={`student-filter ${
+              filter === value ? "active" : ""
+            }`}
+            onClick={() => setFilter(value)}
+          >
+            {label}
+          </button>
+        ))}
 
         <button
           className="student-filter"
-          onClick={loadAssignments}
+          onClick={load}
         >
-          <RefreshCw
-            size={11}
-            style={{
-              verticalAlign: "middle",
-              marginRight: 4,
-            }}
-          />
+          <RefreshCw size={13} />
           Refresh
         </button>
       </div>
 
-      {loading ? (
-        <div className="student-card student-empty">
-          Loading assignments...
-        </div>
-      ) : (
-        <>
-          {filteredAssignments.map(
-            (assignment) => {
-              const submission =
-                getSubmission(
-                  assignment._id
-                );
+      <div className="space-y-4">
+        {filtered.map((assignment) => {
+          const submission = getSubmission(
+            assignment._id
+          );
 
-              const status =
-                getStatus(assignment);
+          const status = getStatus(assignment);
 
-              return (
-                <AssignmentCard
-                  key={assignment._id}
-                  assignment={assignment}
-                  submission={submission}
-                  status={status}
-                  onSubmit={() =>
-                    openSubmission(
-                      assignment
-                    )
-                  }
-                />
-              );
-            }
-          )}
+          return (
+            <article
+              key={assignment._id}
+              className="student-card student-panel"
+            >
+              <div className="student-panel-header">
+                <div>
+                  <h3>{assignment.title}</h3>
 
-          {!filteredAssignments.length && (
-            <div className="student-card student-empty">
-              <ClipboardList
-                size={22}
-                style={{
-                  marginBottom: 8,
-                }}
-              />
+                  <span>
+                    Due{" "}
+                    {assignment.dueDate
+                      ? new Date(
+                          assignment.dueDate
+                        ).toLocaleString()
+                      : "No deadline"}
+                  </span>
+                </div>
 
-              <div>
-                No assignments found in this
-                category.
+                <span className="student-status">
+                  {status}
+                </span>
               </div>
-            </div>
-          )}
-        </>
+
+              <p className="text-sm text-slate-600 mt-4 leading-6">
+                {assignment.description}
+              </p>
+
+              {assignment.instructions && (
+                <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="text-xs uppercase font-black text-slate-400 mb-2">
+                    Instructions
+                  </div>
+
+                  <div className="text-sm text-slate-600 whitespace-pre-wrap">
+                    {assignment.instructions}
+                  </div>
+                </div>
+              )}
+
+              {submission && (
+                <div className="mt-4 p-4 rounded-xl bg-[#f8fafc] border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2
+                        size={16}
+                        className="text-[#08ad81]"
+                      />
+
+                      <span className="font-bold text-sm">
+                        Your submission
+                      </span>
+                    </div>
+
+                    {submission.grade !== null &&
+                      submission.grade !== undefined && (
+                        <span className="inline-flex items-center gap-1 font-black text-[#062a5c]">
+                          <Award size={15} />
+                          {submission.grade}/
+                          {assignment.maxScore || 100}
+                        </span>
+                      )}
+                  </div>
+
+                  {submission.content && (
+                    <p className="text-sm text-slate-600 mt-3 whitespace-pre-wrap">
+                      {submission.content}
+                    </p>
+                  )}
+
+                  {submission.feedback && (
+                    <div className="mt-4 rounded-xl bg-white border p-3">
+                      <div className="text-xs uppercase font-black text-slate-400">
+                        Mentor feedback
+                      </div>
+
+                      <p className="text-sm text-slate-600 mt-1">
+                        {submission.feedback}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end mt-5">
+                {status === "pending" && (
+                  <button
+                    className="student-btn"
+                    onClick={() => {
+                      setSelected(assignment);
+                      setContent("");
+                      setMessage("");
+                    }}
+                  >
+                    <Send size={14} />
+                    Submit assignment
+                  </button>
+                )}
+
+                {status === "overdue" && (
+                  <span className="inline-flex items-center gap-2 text-sm font-bold text-red-600">
+                    <AlertCircle size={15} />
+                    Deadline passed
+                  </span>
+                )}
+
+                {status === "submitted" && (
+                  <span className="inline-flex items-center gap-2 text-sm font-bold text-slate-500">
+                    <Clock3 size={15} />
+                    Waiting for mentor review
+                  </span>
+                )}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      {!filtered.length && (
+        <div className="student-card student-empty">
+          No assignments match this filter.
+        </div>
       )}
 
+      {/* Submission modal */}
       {selected && (
-        <div
-          className="student-card student-panel"
-          style={{
-            marginTop: 14,
-            borderColor: "#08bd8b",
-          }}
-        >
-          <div className="student-panel-header">
-            <div>
-              <h3>
-                Submit: {selected.title}
-              </h3>
+        <div className="fixed inset-0 z-50 bg-black/50 p-4 flex items-center justify-center">
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl">
+            <div className="p-5 border-b flex justify-between items-start">
+              <div>
+                <h2 className="text-xl font-black text-[#062a5c]">
+                  Submit assignment
+                </h2>
 
-              <span
-                style={{
-                  display: "block",
-                  marginTop: 4,
-                  color: "#8b97a5",
-                  fontSize: 8,
+                <p className="text-sm text-slate-400 mt-1">
+                  {selected.title}
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setSelected(null);
+                  setContent("");
+                  setMessage("");
                 }}
+                className="w-9 h-9 rounded-lg bg-slate-100 grid place-items-center"
               >
-                Your submission will be sent to
-                your mentor for review.
-              </span>
+                <X size={17} />
+              </button>
             </div>
 
-            <button
-              className="student-filter"
-              onClick={closeSubmission}
-              disabled={submitting}
-            >
-              <X size={12} />
-            </button>
-          </div>
+            <div className="p-5">
+              <label className="student-label">
+                Your submission
+              </label>
 
-          {message && (
-            <div className="student-banner">
-              {message}
-            </div>
-          )}
-
-          <div className="student-form">
-            <label>
-              Submission
               <textarea
-                className="student-textarea"
                 value={content}
-                onChange={(event) =>
-                  setContent(event.target.value)
+                onChange={(e) =>
+                  setContent(e.target.value)
                 }
-                placeholder={`Paste your GitHub repository, live demo URL, or explain where your submission can be reviewed.
-
-Example:
-GitHub: https://github.com/username/project
-Live Demo: https://example.com
-
-Notes:
-I completed the authentication and dashboard features.`}
-                disabled={submitting}
+                rows={10}
+                placeholder="Paste your solution, explanation, GitHub link, or other required work here..."
+                className="student-input resize-none"
               />
-            </label>
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: 8,
-              }}
-            >
+              {message && (
+                <div className="mt-3 text-sm font-semibold text-red-600">
+                  {message}
+                </div>
+              )}
+            </div>
+
+            <div className="p-5 border-t flex justify-end gap-2">
               <button
                 className="student-filter"
-                onClick={closeSubmission}
-                disabled={submitting}
+                onClick={() => {
+                  setSelected(null);
+                  setContent("");
+                  setMessage("");
+                }}
               >
                 Cancel
               </button>
 
               <button
                 className="student-btn"
+                disabled={saving}
                 onClick={submit}
-                disabled={submitting}
               >
-                <Send
-                  size={12}
-                  style={{
-                    verticalAlign: "middle",
-                    marginRight: 5,
-                  }}
-                />
-
-                {submitting
+                <Send size={14} />
+                {saving
                   ? "Submitting..."
-                  : "Submit for Review"}
+                  : "Submit work"}
               </button>
             </div>
           </div>
         </div>
       )}
     </StudentLayout>
-  );
-}
-
-function FilterButton({
-  active,
-  onClick,
-  children,
-}) {
-  return (
-    <button
-      className={`student-filter ${
-        active ? "active" : ""
-      }`}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-}
-
-function AssignmentCard({
-  assignment,
-  submission,
-  status,
-  onSubmit,
-}) {
-  const statusInfo = {
-    pending: {
-      label: "Pending Submission",
-      className: "pending",
-      icon: <Clock3 size={11} />,
-    },
-
-    review: {
-      label: "Under Review",
-      className: "",
-      icon: <Clock3 size={11} />,
-    },
-
-    graded: {
-      label: "Graded",
-      className: "",
-      icon: <CheckCircle2 size={11} />,
-    },
-
-    overdue: {
-      label: "Overdue",
-      className: "absent",
-      icon: <AlertCircle size={11} />,
-    },
-  }[status];
-
-  return (
-    <article className="student-card assignment">
-      <div className="assignment-top">
-        <div style={{ minWidth: 0 }}>
-          <span className="assignment-tag">
-            Bootcamp Assignment
-          </span>
-
-          <h3>{assignment.title}</h3>
-
-          <p>
-            {assignment.description ||
-              "No assignment description provided."}
-          </p>
-        </div>
-
-        <div
-          style={{
-            textAlign: "right",
-            flexShrink: 0,
-          }}
-        >
-          <div className="assignment-due">
-            <CalendarDays
-              size={11}
-              style={{
-                verticalAlign: "middle",
-                marginRight: 3,
-              }}
-            />
-
-            {assignment.dueDate
-              ? new Date(
-                  assignment.dueDate
-                ).toLocaleDateString()
-              : "No due date"}
-          </div>
-
-          <span
-            className={`student-status ${
-              statusInfo.className
-            }`}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              marginTop: 7,
-            }}
-          >
-            {statusInfo.icon}
-            {statusInfo.label}
-          </span>
-        </div>
-      </div>
-
-      <div className="assignment-footer">
-        <div>
-          {submission?.grade !==
-          null &&
-          submission?.grade !==
-            undefined ? (
-            <>
-              <span className="student-status">
-                Grade: {submission.grade}%
-              </span>
-
-              {submission.feedback && (
-                <div
-                  style={{
-                    marginTop: 7,
-                    fontSize: 8,
-                    color: "#7f8b95",
-                  }}
-                >
-                  <b>Mentor feedback:</b>{" "}
-                  {submission.feedback}
-                </div>
-              )}
-            </>
-          ) : submission ? (
-            <span
-              style={{
-                fontSize: 8,
-                color: "#7f8b95",
-              }}
-            >
-              Your submission is waiting for
-              mentor review.
-            </span>
-          ) : (
-            <span
-              style={{
-                fontSize: 8,
-                color: "#7f8b95",
-              }}
-            >
-              Submit your work before the due date.
-            </span>
-          )}
-        </div>
-
-        {!submission && (
-          <button
-            className="assignment-submit"
-            onClick={onSubmit}
-          >
-            Submit Assignment
-          </button>
-        )}
-      </div>
-    </article>
   );
 }
