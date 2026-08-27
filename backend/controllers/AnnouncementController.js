@@ -1,122 +1,269 @@
-const mongoose = require("mongoose");
 const Announcement = require("../models/announcement");
-const User = require("../models/userModel");
+const Batch = require("../models/Batches");
+
+async function mentorCanAccessBatch(req, batchId) {
+  if (req.user.role !== "Mentor") {
+    return true;
+  }
+
+  if (!batchId) {
+    return true;
+  }
+
+  return Boolean(
+    await Batch.exists({
+      _id: batchId,
+      mentors: req.user._id,
+    })
+  );
+}
 
 exports.createAnnouncement = async (req, res, next) => {
   try {
-    const { title, content, announcementDate, announcedTo, batch } = req.body;
-
-    const newAnnouncement = await Announcement.create({
+    const {
       title,
       content,
       announcementDate,
-      announcedTo,
-      batch: batch || null,
-      createdBy: req.user._id,
-    });
+      announcedTo = "Student",
+      batch = null,
+    } = req.body;
+
+    if (!title?.trim() || !content?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Title and content are required.",
+      });
+    }
+
+    if (
+      req.user.role === "Mentor" &&
+      !(await mentorCanAccessBatch(req, batch))
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You are not assigned to this batch.",
+      });
+    }
+
+    const announcement =
+      await Announcement.create({
+        title: title.trim(),
+        content: content.trim(),
+        announcementDate:
+          announcementDate || new Date(),
+        announcedTo,
+        batch: batch || null,
+        createdBy: req.user._id,
+      });
 
     res.status(201).json({
       success: true,
-      message: "Announcement created successfully",
-      data: newAnnouncement,
+      data: announcement,
     });
   } catch (error) {
     next(error);
   }
 };
 
-exports.getAnnouncements = async (req, res, next) => {
+exports.getAnnouncements = async (
+  req,
+  res,
+  next
+) => {
   try {
     let query = {};
+
     if (req.user.role === "Student") {
       query = {
         $and: [
-          { announcedTo: { $in: ["All", "Student"] } },
+          {
+            announcedTo: {
+              $in: ["All", "Student"],
+            },
+          },
           {
             $or: [
-              { batch: req.user.batch },
-              { batch: { $exists: false } },
-              { batch: null },
+              {
+                batch: req.user.assignedBatch,
+              },
+              {
+                batch: null,
+              },
             ],
           },
         ],
       };
-    } else if (req.user.role === "Mentor") {
+    }
+
+    if (req.user.role === "Mentor") {
+      const mentorBatches =
+        await Batch.find({
+          mentors: req.user._id,
+        }).distinct("_id");
+
       query = {
-        announcedTo: { $in: ["All", "Mentor"] },
+        $and: [
+          {
+            $or: [
+              {
+                announcedTo: {
+                  $in: ["All", "Mentor"],
+                },
+              },
+              {
+                announcedTo: "Student",
+              },
+            ],
+          },
+          {
+            $or: [
+              {
+                batch: {
+                  $in: mentorBatches,
+                },
+              },
+              {
+                batch: null,
+              },
+            ],
+          },
+        ],
       };
     }
 
-    const announcements = await Announcement.find(query)
+    const rows = await Announcement.find(
+      query
+    )
       .populate("batch", "name year")
-      .populate("createdBy", "name role email")
-      .sort({ createdAt: -1 });
+      .populate(
+        "createdBy",
+        "fullname role"
+      )
+      .sort({
+        announcementDate: -1,
+      });
 
-    res.status(200).json({
+    res.json({
       success: true,
-      count: announcements.length,
-      data: announcements,
+      data: rows,
     });
   } catch (error) {
     next(error);
   }
 };
 
-exports.updateAnnouncement = async (req, res, next) => {
+exports.updateAnnouncement = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const { id } = req.params;
-
-    const {
-      title,
-      content,
-      batch,
-      announcedTo,
-      announcementDate,
-    } = req.body;
-
-    const announcement = await Announcement.findById(id);
+    const announcement =
+      await Announcement.findById(
+        req.params.id
+      );
 
     if (!announcement) {
       return res.status(404).json({
         success: false,
-        message: "Announcement not found.",
+        message:
+          "Announcement not found.",
       });
     }
 
-    if (title !== undefined) announcement.title = title;
-    if (content !== undefined) announcement.content = content;
-    if (batch !== undefined) announcement.batch = batch;
-    if (announcedTo !== undefined) announcement.announcedTo = announcedTo;
-    if (announcementDate !== undefined) announcement.announcementDate = announcementDate;
+    if (
+      req.user.role === "Mentor" &&
+      !(await mentorCanAccessBatch(
+        req,
+        announcement.batch
+      ))
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied.",
+      });
+    }
+
+    const allowed = [
+      "title",
+      "content",
+      "batch",
+      "announcedTo",
+      "announcementDate",
+    ];
+
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) {
+        announcement[key] =
+          req.body[key];
+      }
+    }
+
+    if (
+      req.user.role === "Mentor" &&
+      req.body.batch !== undefined &&
+      !(await mentorCanAccessBatch(
+        req,
+        req.body.batch
+      ))
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You are not assigned to the selected batch.",
+      });
+    }
 
     await announcement.save();
 
-    res.status(200).json({
+    res.json({
       success: true,
-      message: "Announcement updated successfully.",
-      announcement,
+      data: announcement,
     });
   } catch (error) {
     next(error);
   }
 };
 
-exports.deleteAnnouncement = async (req, res, next) => {
+exports.deleteAnnouncement = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const { id } = req.params;
+    const announcement =
+      await Announcement.findById(
+        req.params.id
+      );
 
-    const deletedAnnouncement = await Announcement.findByIdAndDelete(id);
-
-    if (!deletedAnnouncement) {
+    if (!announcement) {
       return res.status(404).json({
         success: false,
-        message: "Announcement not found",
+        message:
+          "Announcement not found.",
       });
     }
 
-    res.status(200).json({
+    if (
+      req.user.role === "Mentor" &&
+      !(await mentorCanAccessBatch(
+        req,
+        announcement.batch
+      ))
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied.",
+      });
+    }
+
+    await announcement.deleteOne();
+
+    res.json({
       success: true,
-      message: "Announcement deleted successfully",
+      message:
+        "Announcement deleted.",
     });
   } catch (error) {
     next(error);

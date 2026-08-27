@@ -11,7 +11,7 @@ import Register from "./pages/Register";
 import ChangePassword from "./pages/ChangePassword";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-/* Student */
+// Student
 import StudentDashboard from "./pages/student/StudentDashboard";
 import StudentAttendance from "./pages/student/StudentAttendance";
 import StudentProgress from "./pages/student/StudentProgress";
@@ -20,33 +20,78 @@ import StudentAnnouncements from "./pages/student/StudentAnnouncements";
 import StudentResources from "./pages/student/StudentResources";
 import StudentProfile from "./pages/student/StudentProfile";
 
-/* Admin */
+// Admin
 import AdminDashboard from "./pages/AdminDashbord";
 
-/* Mentor */
+// Mentor
 import MentorDashboard from "./pages/mentor/Dashboard";
 import MentorAttendance from "./pages/mentor/Attendance";
 import MentorHistory from "./pages/mentor/History";
 import MentorProgress from "./pages/mentor/Progress";
 import MentorStudents from "./pages/mentor/Students";
+import MentorAssignments from "./pages/mentor/Assignments";
+import MentorAnnouncements from "./pages/mentor/Announcements";
+import MentorResources from "./pages/mentor/Resources";
 
-function App() {
+function Unauthorized() {
+  return (
+    <div className="min-h-screen bg-[#f7f4ea] grid place-items-center p-5">
+      <div className="bg-white rounded-3xl shadow-xl p-10 text-center max-w-md">
+        <div className="text-[#08c98b] font-black tracking-widest">
+          ASTU MSJ BOOTCAMP
+        </div>
+
+        <h1 className="text-3xl font-black text-[#062a5c] mt-4">
+          Access denied
+        </h1>
+
+        <p className="text-slate-500 mt-3">
+          You do not have permission to access this page.
+        </p>
+
+        <a
+          href="/"
+          className="inline-block mt-6 px-5 py-3 rounded-xl bg-[#062a5c] text-white font-bold"
+        >
+          Back to website
+        </a>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Public */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route
+          path="/"
+          element={<LandingPage />}
+        />
+
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
         <Route
           path="/change-password"
           element={<ChangePassword />}
         />
 
-        {/* Student */}
+        {/* ================= STUDENT ================= */}
+
         <Route
           element={
-            <ProtectedRoute allowedRoles={["Student"]} />
+            <ProtectedRoute
+              allowedRoles={["Student"]}
+            />
           }
         >
           <Route
@@ -95,10 +140,13 @@ function App() {
           />
         </Route>
 
-        {/* Admin */}
+        {/* ================= ADMIN ================= */}
+
         <Route
           element={
-            <ProtectedRoute allowedRoles={["Admin"]} />
+            <ProtectedRoute
+              allowedRoles={["Admin"]}
+            />
           }
         >
           <Route
@@ -112,10 +160,13 @@ function App() {
           />
         </Route>
 
-        {/* Mentor */}
+        {/* ================= MENTOR ================= */}
+
         <Route
           element={
-            <ProtectedRoute allowedRoles={["Mentor"]} />
+            <ProtectedRoute
+              allowedRoles={["Mentor"]}
+            />
           }
         >
           <Route
@@ -134,13 +185,13 @@ function App() {
           />
 
           <Route
-            path="/mentor/attendance"
-            element={<MentorAttendance />}
+            path="/mentor/students"
+            element={<MentorStudents />}
           />
 
           <Route
-            path="/mentor/history"
-            element={<MentorHistory />}
+            path="/mentor/attendance"
+            element={<MentorAttendance />}
           />
 
           <Route
@@ -149,42 +200,43 @@ function App() {
           />
 
           <Route
-            path="/mentor/students"
-            element={<MentorStudents />}
+            path="/mentor/assignments"
+            element={<MentorAssignments />}
+          />
+
+          <Route
+            path="/mentor/announcements"
+            element={<MentorAnnouncements />}
+          />
+
+          <Route
+            path="/mentor/resources"
+            element={<MentorResources />}
+          />
+
+          <Route
+            path="/mentor/history"
+            element={<MentorHistory />}
           />
         </Route>
 
+        {/* ================= OTHER ================= */}
+
         <Route
           path="/unauthorized"
-          element={
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-5xl font-black text-[#062a5c]">
-                  403
-                </div>
-
-                <p className="text-slate-500 mt-2">
-                  You do not have permission to access this page.
-                </p>
-
-                <a
-                  href="/"
-                  className="inline-block mt-5 bg-[#08c98b] text-white rounded-xl px-5 py-3 font-bold"
-                >
-                  Go home
-                </a>
-              </div>
-            </div>
-          }
+          element={<Unauthorized />}
         />
 
         <Route
           path="*"
-          element={<Navigate to="/" replace />}
+          element={
+            <Navigate
+              to="/"
+              replace
+            />
+          }
         />
       </Routes>
     </BrowserRouter>
   );
 }
-
-export default App;

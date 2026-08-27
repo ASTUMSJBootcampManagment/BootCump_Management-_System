@@ -44,7 +44,7 @@ export default function StudentProgress() {
 
     try {
       const response = await API.get("/student/progress");
-      setData(response.data.data);
+      setData(response.data?.data || null);
     } catch (err) {
       setError(
         err.response?.data?.message ||
@@ -59,15 +59,18 @@ export default function StudentProgress() {
     load();
   }, []);
 
+  const topicsList = useMemo(() => {
+    return data?.topics || [];
+  }, [data]);
+
   const filteredTopics = useMemo(() => {
-    if (!data?.topics) return [];
+    if (filter === "all") return topicsList;
+    return topicsList.filter((topic) => topic.status === filter);
+  }, [topicsList, filter]);
 
-    if (filter === "all") return data.topics;
-
-    return data.topics.filter(
-      (topic) => topic.status === filter
-    );
-  }, [data, filter]);
+  const inProgressCount = useMemo(() => {
+    return topicsList.filter((x) => x.status === "InProgress").length;
+  }, [topicsList]);
 
   if (loading) {
     return (
@@ -106,7 +109,7 @@ export default function StudentProgress() {
                     Overall progress
                   </div>
                   <div className="text-3xl font-black text-[#062a5c] mt-2">
-                    {data.percentage}%
+                    {data.percentage ?? 0}%
                   </div>
                 </div>
 
@@ -122,11 +125,11 @@ export default function StudentProgress() {
               </div>
 
               <div className="text-3xl font-black text-[#062a5c] mt-2">
-                {data.completed}
+                {data.completed ?? 0}
               </div>
 
               <div className="text-xs text-slate-400 mt-1">
-                of {data.total} topics
+                of {data.total ?? 0} topics
               </div>
             </div>
 
@@ -136,11 +139,7 @@ export default function StudentProgress() {
               </div>
 
               <div className="text-3xl font-black text-[#062a5c] mt-2">
-                {
-                  data.topics.filter(
-                    (x) => x.status === "InProgress"
-                  ).length
-                }
+                {inProgressCount}
               </div>
             </div>
 
@@ -150,7 +149,7 @@ export default function StudentProgress() {
               </div>
 
               <div className="text-3xl font-black text-[#062a5c] mt-2">
-                {Math.max(data.total - data.completed, 0)}
+                {Math.max((data.total ?? 0) - (data.completed ?? 0), 0)}
               </div>
 
               <div className="text-xs text-slate-400 mt-1">
@@ -165,7 +164,7 @@ export default function StudentProgress() {
               <div>
                 <h3>Curriculum completion</h3>
                 <span>
-                  {data.completed} of {data.total} topics completed
+                  {data.completed ?? 0} of {data.total ?? 0} topics completed
                 </span>
               </div>
 
@@ -183,7 +182,7 @@ export default function StudentProgress() {
                 className="h-full bg-[#08c98b] rounded-full transition-all duration-500"
                 style={{
                   width: `${Math.min(
-                    Math.max(data.percentage, 0),
+                    Math.max(data.percentage ?? 0, 0),
                     100
                   )}%`,
                 }}
@@ -193,7 +192,7 @@ export default function StudentProgress() {
             <div className="flex justify-between text-xs text-slate-400 mt-2">
               <span>0%</span>
               <span className="font-bold text-[#08ad81]">
-                {data.percentage}%
+                {data.percentage ?? 0}%
               </span>
               <span>100%</span>
             </div>
@@ -230,7 +229,7 @@ export default function StudentProgress() {
 
               return (
                 <article
-                  key={topic._id}
+                  key={topic._id || topic.topic}
                   className="student-card student-panel"
                 >
                   <div className="flex items-start gap-4">

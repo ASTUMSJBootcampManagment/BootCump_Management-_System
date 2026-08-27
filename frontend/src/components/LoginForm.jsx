@@ -1,8 +1,7 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { FiMail, FiLock, FiEye, FiEyeOff, FiCheck } from "react-icons/fi";
+import { FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -18,17 +17,28 @@ const LoginForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     try {
       const url = "http://localhost:3000/api/auth/login";
       const { data: res } = await axios.post(url, data);
+
+      // Save token AND user object to localStorage so ProtectedRoute can read them
       localStorage.setItem("token", res.token);
-      console.log("Login successfull:", res.message);
+      localStorage.setItem("user", JSON.stringify(res.user));
+
+      console.log("Login successful:", res.message);
       console.log("Role:", res.user.role);
+
+      // Redirect based on forced password change or role matching App.jsx routes
+      if (res.user.mustChangePassword) {
+        navigate("/change-password");
+        return;
+      }
 
       switch (res.user.role) {
         case "Mentor":
-          navigate("/mentor/attendance");
+          navigate("/mentor");
           break;
 
         case "Student":
@@ -36,7 +46,7 @@ const LoginForm = () => {
           break;
 
         case "Admin":
-          navigate("/admin/dashboard");
+          navigate("/admin");
           break;
 
         default:
@@ -52,7 +62,9 @@ const LoginForm = () => {
         error.response.status >= 400 &&
         error.response.status <= 500
       ) {
-        setError(error.response.data.message);
+        setError(error.response.data.message || "An error occurred during login.");
+      } else {
+        setError("Unable to connect to the server.");
       }
     }
   };
@@ -74,6 +86,12 @@ const LoginForm = () => {
               Sign in to continue to your account
             </p>
           </div>
+
+          {error && (
+            <div className="mt-4 rounded-xl bg-red-50 p-3 text-center text-sm text-red-600 border border-red-200">
+              {error}
+            </div>
+          )}
 
           <form
             onSubmit={handleSubmit}
@@ -134,7 +152,6 @@ const LoginForm = () => {
                 >
                   {showPassword ? <FiEyeOff /> : <FiEye />}
                 </button>
-
               </div>
             </div>
 
@@ -146,7 +163,6 @@ const LoginForm = () => {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 rounded border-gray-300 text-[#16B86A] focus:ring-[#16B86A]"
                 />
-
                 Remember me
               </label>
 
@@ -156,7 +172,6 @@ const LoginForm = () => {
               >
                 Forgot password?
               </button>
-
             </div>
 
             <button
@@ -165,12 +180,10 @@ const LoginForm = () => {
             >
               Sign In
             </button>
-
           </form>
 
           <p className="mt-7 text-center text-sm text-[#64748B]">
             Don't have an account?{" "}
-
             <Link
               to="/register"
               className="font-semibold text-[#0AA6A6] hover:text-[#16B86A]"
@@ -178,13 +191,11 @@ const LoginForm = () => {
               Sign up
             </Link>
           </p>
-
         </div>
 
         <p className="mt-6 text-center text-sm text-[#94A3B8]">
           © 2026 ASTUMSJ Summer BootCamp. All rights reserved.
         </p>
-
       </div>
     </div>
   );

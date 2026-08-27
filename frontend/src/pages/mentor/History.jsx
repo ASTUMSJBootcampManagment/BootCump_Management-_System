@@ -1,32 +1,33 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   History as HistoryIcon,
   RefreshCw,
-  AlertCircle,
+  Search,
+  CalendarDays,
 } from "lucide-react";
-import API from "../../api/axios";
 import MentorLayout from "../../components/mentor/MentorLayout";
+import Toast from "../../components/common/Toast";
+import API from "../../api/axios";
 
 export default function History() {
   const [records, setRecords] = useState([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [toast, setToast] = useState(null);
 
   const load = async () => {
     setLoading(true);
-    setError("");
 
     try {
-      const response = await API.get(
-        "/attendance/history"
-      );
-
+      const response = await API.get("/attendance");
       setRecords(response.data.data || []);
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Unable to load attendance history."
-      );
+    } catch (error) {
+      setToast({
+        message:
+          error.response?.data?.message ||
+          "Unable to load attendance history.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -36,93 +37,159 @@ export default function History() {
     load();
   }, []);
 
+  const filtered = useMemo(() => {
+    const value = search.trim().toLowerCase();
+
+    if (!value) return records;
+
+    return records.filter(
+      (row) =>
+        row.student?.fullname?.toLowerCase().includes(value) ||
+        row.status?.toLowerCase().includes(value)
+    );
+  }, [records, search]);
+
   return (
     <MentorLayout title="History">
-      <div className="bg-white border rounded-2xl p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-black text-[#062a5c]">
-              Attendance History
-            </h2>
+      <Toast
+        {...toast}
+        onClose={() => setToast(null)}
+      />
 
-            <p className="text-sm text-slate-500 mt-1">
-              Previous attendance records.
-            </p>
-          </div>
+      <div className="mb-6 flex flex-wrap justify-between items-end gap-4">
+        <div>
+          <h2 className="text-3xl font-black text-[#062a5c]">
+            Attendance History
+          </h2>
 
-          <button
-            onClick={load}
-            className="border rounded-xl p-2"
-          >
-            <RefreshCw size={16} />
-          </button>
+          <p className="text-slate-500 mt-2">
+            Review previously recorded attendance.
+          </p>
         </div>
 
-        {error && (
-          <div className="mt-5 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 flex gap-2">
-            <AlertCircle size={17} />
-            {error}
-          </div>
-        )}
+        <button
+          onClick={load}
+          className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 font-bold flex gap-2 items-center"
+        >
+          <RefreshCw
+            size={16}
+            className={loading ? "animate-spin" : ""}
+          />
+          Refresh
+        </button>
+      </div>
 
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-5">
+        <div className="relative">
+          <Search
+            size={17}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+          />
+
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search student or attendance status..."
+            className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl outline-none focus:border-[#08c98b]"
+          />
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
         {loading ? (
-          <div className="py-12 text-center text-slate-500">
+          <div className="p-12 text-center text-slate-400">
             Loading history...
           </div>
         ) : (
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b text-left">
-                  <th className="px-4 py-3 text-xs uppercase text-slate-400">
-                    Date
-                  </th>
-
-                  <th className="px-4 py-3 text-xs uppercase text-slate-400">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px] text-sm">
+              <thead className="bg-[#062a5c] text-white">
+                <tr>
+                  <th className="text-left px-5 py-4">
                     Student
                   </th>
 
-                  <th className="px-4 py-3 text-xs uppercase text-slate-400">
+                  <th className="text-left px-5 py-4">
+                    Date
+                  </th>
+
+                  <th className="text-left px-5 py-4">
                     Status
+                  </th>
+
+                  <th className="text-left px-5 py-4">
+                    Recorded
                   </th>
                 </tr>
               </thead>
 
               <tbody>
-                {records.map((record) => (
+                {filtered.map((row) => (
                   <tr
-                    key={record._id}
-                    className="border-b last:border-0"
+                    key={row._id}
+                    className="border-t border-slate-100"
                   >
-                    <td className="px-4 py-4 text-sm">
-                      {record.date
-                        ? new Date(
-                            record.date
-                          ).toLocaleDateString()
-                        : "—"}
+                    <td className="px-5 py-4 font-black">
+                      {row.student?.fullname ||
+                        row.studentName ||
+                        "Unknown"}
                     </td>
 
-                    <td className="px-4 py-4 font-bold text-sm">
-                      {record.student?.fullname ||
-                        record.studentName ||
-                        "Student"}
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2">
+                        <CalendarDays
+                          size={14}
+                          className="text-[#08ad81]"
+                        />
+
+                        {row.date
+                          ? new Date(row.date).toLocaleDateString()
+                          : "—"}
+                      </div>
                     </td>
 
-                    <td className="px-4 py-4">
-                      <span className="px-3 py-1 rounded-full bg-slate-100 text-xs font-black">
-                        {record.status}
+                    <td className="px-5 py-4">
+                      <span
+                        className={`px-3 py-1.5 rounded-full text-xs font-black ${
+                          row.status === "present"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : row.status === "late"
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-red-50 text-red-700"
+                        }`}
+                      >
+                        {row.status || "absent"}
                       </span>
+                    </td>
+
+                    <td className="px-5 py-4 text-slate-400">
+                      {row.createdAt
+                        ? new Date(
+                            row.createdAt
+                          ).toLocaleString()
+                        : "—"}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
 
-            {!records.length && (
-              <div className="py-12 text-center text-slate-500">
-                No attendance history found.
-              </div>
-            )}
+        {!loading && !filtered.length && (
+          <div className="p-12 text-center">
+            <HistoryIcon
+              size={42}
+              className="mx-auto text-slate-300"
+            />
+
+            <div className="font-black mt-3">
+              No history yet
+            </div>
+
+            <p className="text-sm text-slate-400 mt-1">
+              Attendance records will appear here after they are recorded.
+            </p>
           </div>
         )}
       </div>

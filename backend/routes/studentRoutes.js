@@ -7,9 +7,12 @@ const {
   restrictTo,
 } = require("../middlewares/authMiddleware");
 
-const studentController = require(
-  "../controllers/studentController"
-);
+const studentController =
+  require("../controllers/studentController");
+
+const {
+  getResources,
+} = require("../controllers/resourceController");
 
 router.use(
   verifyToken,
@@ -46,68 +49,14 @@ router.get(
   studentController.getMyAnnouncements
 );
 
-router.patch(
-  "/profile",
-  studentController.updateMyProfile
+router.get(
+  "/resources",
+  getResources
 );
 
 router.patch(
   "/profile",
-  verifyToken,
-  restrictTo("Student"),
-  async (req, res) => {
-    try {
-      const User = require("../models/userModel");
-
-      const allowed = [
-        "fullname",
-        "phoneNumber",
-        "githubAccount",
-        "leetcodeAccount",
-        "codeforcesAccount",
-        "telegramUsername",
-      ];
-
-      const updates = {};
-
-      allowed.forEach((field) => {
-        if (req.body[field] !== undefined) {
-          updates[field] =
-            req.body[field];
-        }
-      });
-
-      const user =
-        await User.findByIdAndUpdate(
-          req.user.id,
-          updates,
-          {
-            new: true,
-            runValidators: true,
-          }
-        ).select("-password");
-
-      if (!user) {
-        return res.status(404).json({
-          message: "Student not found",
-        });
-      }
-
-      res.json({
-        success: true,
-        message:
-          "Profile updated successfully",
-        data: user,
-      });
-    } catch (error) {
-      console.error(error);
-
-      res.status(500).json({
-        message:
-          "Unable to update profile",
-      });
-    }
-  }
+  studentController.updateMyProfile
 );
 
 module.exports = router;

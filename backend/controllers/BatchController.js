@@ -1,47 +1,101 @@
 const Batch = require("../models/Batches");
 const User = require("../models/userModel");
-const createBatch = async (req, res, next) => {
-  try {
-    const { name, year, startDate, endDate, status } = req.body;
 
-    const newBatch = await Batch.create({
+exports.createBatch = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const {
       name,
       year,
+      track,
       startDate,
       endDate,
-      status: status || "Active",
-    });
+    } = req.body;
 
-    res.status(201).json({
+    if (
+      !name ||
+      !year ||
+      !startDate ||
+      !endDate
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Name, year, start date and end date are required.",
+      });
+    }
+
+    const batch =
+      await Batch.create({
+        name,
+        year,
+        track:
+          track ||
+          "Full-Stack MERN Development",
+        startDate,
+        endDate,
+        status: "Upcoming",
+      });
+
+    return res.status(201).json({
       success: true,
-      message: "Batch created successfully.",
-      data: newBatch,
+      message:
+        "Batch created successfully.",
+      data: batch,
     });
   } catch (error) {
     next(error);
   }
 };
-const getAllBatches = async (req, res, next) => {
-  try {
-    const batches = await Batch.find()
-      .populate("mentors", "name email role")
-      .populate("students", "name email role");
 
-    res.status(200).json({
+exports.getAllBatches = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const batches =
+      await Batch.find()
+        .populate(
+          "mentors",
+          "fullname email role"
+        )
+        .populate(
+          "students",
+          "fullname email role status applicationStatus assignedMentor"
+        )
+        .sort({ createdAt: -1 });
+
+    res.json({
       success: true,
-      count: batches.length,
       data: batches,
     });
   } catch (error) {
     next(error);
   }
 };
-const getBatchById = async (req, res, next) => {
+
+exports.getBatchById = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const { id } = req.params;
-    const batch = await Batch.findById(id)
-      .populate("mentors", "name email role")
-      .populate("students", "name email role");
+    const batch =
+      await Batch.findById(
+        req.params.id
+      )
+        .populate(
+          "mentors",
+          "fullname email role"
+        )
+        .populate(
+          "students",
+          "fullname email role status assignedMentor"
+        );
 
     if (!batch) {
       return res.status(404).json({
@@ -50,7 +104,7 @@ const getBatchById = async (req, res, next) => {
       });
     }
 
-    res.status(200).json({
+    res.json({
       success: true,
       data: batch,
     });
@@ -58,29 +112,43 @@ const getBatchById = async (req, res, next) => {
     next(error);
   }
 };
-const updateBatch = async (req, res, next) => {
+
+exports.updateBatch = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const { id } = req.params;
-    const allowedFields = ["name", "year", "startDate", "endDate", "status"];
+    const allowed = [
+      "name",
+      "year",
+      "track",
+      "startDate",
+      "endDate",
+      "status",
+    ];
 
     const updates = {};
-    allowedFields.forEach((field) => {
-      if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
+
+    allowed.forEach((key) => {
+      if (
+        req.body[key] !==
+        undefined
+      ) {
+        updates[key] =
+          req.body[key];
       }
     });
 
-    if (Object.keys(updates).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No valid fields provided for update.",
-      });
-    }
-
-    const batch = await Batch.findByIdAndUpdate(id, updates, {
-      new: true,
-      runValidators: true,
-    });
+    const batch =
+      await Batch.findByIdAndUpdate(
+        req.params.id,
+        updates,
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
 
     if (!batch) {
       return res.status(404).json({
@@ -89,19 +157,27 @@ const updateBatch = async (req, res, next) => {
       });
     }
 
-    res.status(200).json({
+    res.json({
       success: true,
-      message: "Batch updated successfully.",
+      message:
+        "Batch updated successfully.",
       data: batch,
     });
   } catch (error) {
     next(error);
   }
 };
-const deleteBatch = async (req, res, next) => {
+
+exports.deleteBatch = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const { id } = req.params;
-    const batch = await Batch.findByIdAndDelete(id);
+    const batch =
+      await Batch.findById(
+        req.params.id
+      );
 
     if (!batch) {
       return res.status(404).json({
@@ -110,27 +186,49 @@ const deleteBatch = async (req, res, next) => {
       });
     }
 
-    res.status(200).json({
+    if (
+      batch.students.length ||
+      batch.mentors.length
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "A batch with students or mentors cannot be deleted.",
+      });
+    }
+
+    await batch.deleteOne();
+
+    res.json({
       success: true,
-      message: "Batch deleted successfully.",
+      message:
+        "Batch deleted successfully.",
     });
   } catch (error) {
     next(error);
   }
 };
-const assignMentorToBatch = async (req, res, next) => {
+
+exports.assignMentorToBatch = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const { id } = req.params;
-    const { mentorId } = req.body;
+    const {
+      mentorId,
+    } = req.body;
 
-    if (!mentorId) {
-      return res.status(400).json({
-        success: false,
-        message: "mentorId is required.",
-      });
-    }
+    const batch =
+      await Batch.findById(
+        req.params.id
+      );
 
-    const batch = await Batch.findById(id);
+    const mentor =
+      await User.findById(
+        mentorId
+      );
+
     if (!batch) {
       return res.status(404).json({
         success: false,
@@ -138,71 +236,136 @@ const assignMentorToBatch = async (req, res, next) => {
       });
     }
 
-    if (batch.status !== "Active") {
-      return res.status(400).json({
-        success: false,
-        message: "Cannot assign mentor. Batch status must be Active.",
-      });
-    }
-
-    const mentor = await User.findById(mentorId);
-    if (!mentor) {
+    if (
+      !mentor ||
+      mentor.role !== "Mentor"
+    ) {
       return res.status(404).json({
         success: false,
-        message: "Mentor user not found.",
+        message:
+          "Valid mentor not found.",
       });
     }
 
-    if (mentor.role !== "Mentor") {
-      return res.status(400).json({
-        success: false,
-        message: "Selected user does not have the Mentor role.",
-      });
-    }
+    batch.mentors.push(
+      mentor._id
+    );
 
-    const existingActiveBatch = await Batch.findOne({
-      mentors: mentorId,
-      status: "Active",
-      _id: { $ne: id },
-    });
+    batch.mentors =
+      [
+        ...new Map(
+          batch.mentors.map(
+            (id) => [
+              String(id),
+              id,
+            ]
+          )
+        ).values(),
+      ];
 
-    if (existingActiveBatch) {
-      return res.status(400).json({
-        success: false,
-        message: `Mentor is already assigned to active batch: ${existingActiveBatch.name}`,
-      });
-    }
+    await batch.save();
 
-    const updatedBatch = await Batch.findByIdAndUpdate(
-      id,
-      { $addToSet: { mentors: mentorId } },
-      { new: true }
-    )
-      .populate("mentors", "name email role")
-      .populate("students", "name email role");
-
-    res.status(200).json({
+    res.json({
       success: true,
-      message: "Mentor assigned to batch successfully.",
-      data: updatedBatch,
+      message:
+        "Mentor assigned to batch.",
+      data: batch,
     });
   } catch (error) {
     next(error);
   }
 };
-const enrollStudentInBatch = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { studentId } = req.body;
 
-    if (!studentId) {
-      return res.status(400).json({
-        success: false,
-        message: "studentId is required.",
+exports.enrollStudentInBatch =
+  async (req, res, next) => {
+    try {
+      const {
+        studentId,
+      } = req.body;
+
+      const batch =
+        await Batch.findById(
+          req.params.id
+        );
+
+      const student =
+        await User.findById(
+          studentId
+        );
+
+      if (!batch || !student) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Batch or student not found.",
+        });
+      }
+
+      if (
+        student.role !==
+        "Student"
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Selected user is not a student.",
+        });
+      }
+
+      student.assignedBatch =
+        batch._id;
+
+      student.appliedBatch =
+        batch._id;
+
+      student.status =
+        "approved";
+
+      student.applicationStatus =
+        "approved";
+
+      await student.save();
+
+      batch.students.push(
+        student._id
+      );
+
+      batch.students =
+        [
+          ...new Map(
+            batch.students.map(
+              (id) => [
+                String(id),
+                id,
+              ]
+            )
+          ).values(),
+        ];
+
+      await batch.save();
+
+      res.json({
+        success: true,
+        message:
+          "Student enrolled successfully.",
+        data: batch,
       });
+    } catch (error) {
+      next(error);
     }
+  };
 
-    const batch = await Batch.findById(id);
+exports.completeBatch = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const batch =
+      await Batch.findById(
+        req.params.id
+      );
+
     if (!batch) {
       return res.status(404).json({
         success: false,
@@ -210,71 +373,37 @@ const enrollStudentInBatch = async (req, res, next) => {
       });
     }
 
-    if (batch.status !== "Active") {
+    if (
+      req.body.confirm !== true
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Cannot enroll student. Batch status must be Active.",
+        message:
+          "Batch completion requires explicit confirmation.",
       });
     }
 
-    const student = await User.findById(studentId);
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: "Student user not found.",
-      });
-    }
+    batch.status =
+      "Completed";
 
-    if (student.role !== "Student") {
-      return res.status(400).json({
-        success: false,
-        message: "Selected user does not have the Student role.",
-      });
-    }
+    batch.completedAt =
+      new Date();
 
-    if (student.status && student.status !== "accepted") {
-      return res.status(400).json({
-        success: false,
-        message: "Student account status must be 'accepted' to enroll.",
-      });
-    }
+    batch.registrationEnabled =
+      false;
 
-    const existingBatch = await Batch.findOne({
-      students: studentId,
-      status: "Active",
-    });
+    batch.registrationClosedAt =
+      new Date();
 
-    if (existingBatch) {
-      return res.status(400).json({
-        success: false,
-        message: `Student is already enrolled in active batch: ${existingBatch.name}`,
-      });
-    }
+    await batch.save();
 
-    const updatedBatch = await Batch.findByIdAndUpdate(
-      id,
-      { $addToSet: { students: studentId } },
-      { new: true }
-    )
-      .populate("mentors", "name email role")
-      .populate("students", "name email role");
-
-    res.status(200).json({
+    return res.json({
       success: true,
-      message: "Student enrolled successfully.",
-      data: updatedBatch,
+      message:
+        "Batch has been marked as completed.",
+      data: batch,
     });
   } catch (error) {
     next(error);
   }
-};
-
-module.exports = {
-  createBatch,
-  getAllBatches,
-  getBatchById,
-  updateBatch,
-  deleteBatch,
-  assignMentorToBatch,
-  enrollStudentInBatch,
 };

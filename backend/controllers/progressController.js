@@ -1,119 +1,315 @@
-const mongoose = require("mongoose");
-const progress = require("../models/progress");
-const User = require("../models/userModel");
-const Batch = require("../models/Batches"); 
-const AppError = require("../utils/AppError");
-exports.createTopic = async (req, res) => {
-    try {
-        const { topic } = req.body;
-        const batches = await Batch.find({});
+const Progress =
+  require("../models/progress");
 
-        for (const batch of batches) {
-            await progress.create({
-                topic: topic,
-                batch: batch._id
-            });
-        }
+const Batch =
+  require("../models/Batches");
 
-        res.status(201).json({
-            success: true,
-            message: "Topic progress created for all batches successfully!",
-        });
-    } catch (error) {
-        next(error);
+const User =
+  require("../models/userModel");
+
+exports.createTopic = async (
+  req,
+  res
+) => {
+  try {
+    const {
+      topic,
+      batchId,
+    } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Topic name is required.",
+      });
     }
+
+    const batches = batchId
+      ? await Batch.find({
+          _id: batchId,
+        })
+      : await Batch.find({
+          status: {
+            $ne: "Completed",
+          },
+        });
+
+    let created = 0;
+
+    for (const batch of batches) {
+      const students =
+        await User.find({
+          _id: {
+            $in: batch.students,
+          },
+          role: "Student",
+        }).select("_id");
+
+      for (const student of students) {
+        const exists =
+          await Progress.findOne({
+            topic,
+            batch: batch._id,
+            student:
+              student._id,
+          });
+
+        if (!exists) {
+          await Progress.create({
+            topic,
+            batch: batch._id,
+            student:
+              student._id,
+            status: "NotStarted",
+          });
+
+          created++;
+        }
+      }
+    }
+
+    return res.status(201).json({
+      success: true,
+      message:
+        `Progress topic created for ${created} student records.`,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Unable to create progress topic.",
+    });
+  }
 };
 
-exports.updateProgress = async (req, res) => {
-    try {
-        const StudentId = req.params.StudentId || req.params.studentId || req.params.id;
-        const { status } = req.body; 
-        let batchQuery = {};
-        if (req.user.role === "Mentor") {
-            const mentorBatch = await Batch.findOne({ mentors: req.user.id });
-            if (!mentorBatch) {
-                return res.status(403).json({
-                    success: false,
-                    message: "Access denied. You are not assigned to any active batch.",
-                });
-            }
-            batchQuery.batch = mentorBatch._id;
-        }
-        let updatedProgress = await progress.findOneAndUpdate(
-            { student: StudentId, ...batchQuery },
-            { status },
-            { new: true, runValidators: true }
+exports.getProgress = async (
+  req,
+  res
+) => {
+  try {
+    let studentId =
+      req.params.StudentId;
+
+    if (
+      String(req.user.role) ===
+      "Student"
+    ) {
+      studentId =
+        req.user._id;
+    }
+
+    const records =
+      await Progress.find({
+        student: studentId,
+      })
+        .sort({
+          createdAt: 1,
+        })
+        .lean();
+
+    const completed =
+      records.filter(
+        (item) =>
+          item.status ===
+          "Completed"
+      ).length;
+
+    const completion =
+      records.length
+        ? Math.round(
+            (completed /
+              records.length) *
+              100
+          )
+        : 0;
+
+    return res.json({
+      success: true,
+      data: records,
+      completion,
+      completed,
+      total: records.length,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Unable to load progress.",
+    });
+  }
+};
+
+exports.updateProgress = async (
+  req,
+  res
+) => {
+  try {
+    const studentId =
+      req.params.StudentId;
+
+    const {
+      topic,
+      status,
+      notes,
+    } = req.body;
+
+    if (!studentId || !status) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Student and status are required.",
+      });
+    }
+
+    const student =
+      await User.findById(
+        studentId
+      );
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Student not found.",
+      });
+    }
+
+    const batch =
+      await Batch.findOne({
+        students: studentId,
+        mentors:
+          req.user.role ===
+          "Mentor"
+            ? req.user._id
+            : { $exists: true },
+      });
+
+    if (
+      req.user.role ===
+        "Mentor" &&
+      !batch
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "This student is not assigned to you.",
+      });
+    }
+
+    let progress;
+
+    if (topic) {
+      progress =
+        await Progress.findOneAndUpdate(
+          {
+            student:
+              studentId,
+            topic,
+          },
+          {
+            status,
+            notes:
+              notes || "",
+            updatedBy:
+              req.user._id,
+          },
+          {
+            new: true,
+            upsert: false,
+          }
         );
-        if (!updatedProgress) {
-            updatedProgress = await progress.findOneAndUpdate(
-                { ...batchQuery, $or: [{ student: null }, { student: { $exists: false } }] },
-                { status, student: StudentId },
-                { new: true, runValidators: true }
-            );
-        }
-
-        if (!updatedProgress) {
-            return res.status(404).json({
-                success: false,
-                message: "Progress record not found or student is not in your assigned batch",
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            message: "Progress updated successfully",
-            data: updatedProgress,
-        });
-    } catch (error) {
-        next(error);
+    } else {
+      progress =
+        await Progress.findOneAndUpdate(
+          {
+            student:
+              studentId,
+          },
+          {
+            status,
+            notes:
+              notes || "",
+            updatedBy:
+              req.user._id,
+          },
+          {
+            new: true,
+          }
+        );
     }
+
+    if (!progress) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Progress record not found.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message:
+        "Progress updated successfully.",
+      data: progress,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Unable to update progress.",
+    });
+  }
 };
 
-exports.getProgress = async (req, res) => {
+exports.getMentorStudentsProgress =
+  async (req, res) => {
     try {
-        const { StudentId } = req.params;
-        let query = {};
-        if (StudentId) {
-            query.student = StudentId;
-        } else {
-            const { topic, status, batch ,name} = req.query;
-            if (topic) query.topic = topic;
-            if (status) query.status = status;
-            if (batch) query.batch = batch;
-            if(name) query.name=name;
-        }
-
-        const getProgresses = await progress.find(query);
-
-        res.status(200).json({
-            success: true,
-            message: "Progress retrieved successfully",
-            data: getProgresses,
+      const batch =
+        await Batch.findOne({
+          mentors: req.user._id,
         });
-    } catch (error) {
-        next(error);
-    }
-};
-exports.getMentorStudentsProgress = async (req, res) => {
-    try {
-        const mentorBatch = await Batch.findOne({ mentors: req.user.id });
 
-        if (!mentorBatch) {
-            return res.status(403).json({
-                success: false,
-                message: "Access denied. You are not assigned to any batch.",
-            });
-        }
-        const progresses = await progress.find({ batch: mentorBatch._id })
-            .populate("student", "name email")
-            .populate("batch", "name");
-
-        return res.status(200).json({
-            success: true,
-            count: progresses.length,
-            data: progresses,
+      if (!batch) {
+        return res.json({
+          success: true,
+          data: [],
         });
+      }
+
+      const records =
+        await Progress.find({
+          batch: batch._id,
+          student: {
+            $ne: null,
+          },
+        })
+          .populate(
+            "student",
+            "fullname email"
+          )
+          .sort({
+            student: 1,
+            createdAt: 1,
+          });
+
+      return res.json({
+        success: true,
+        data: records,
+      });
     } catch (error) {
-       next(error);
+      console.error(error);
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Unable to load student progress.",
+      });
     }
-};
+  };

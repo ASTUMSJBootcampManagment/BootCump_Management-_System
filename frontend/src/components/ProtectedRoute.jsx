@@ -1,37 +1,48 @@
-import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
+import { Navigate, useLocation } from "react-router-dom";
 
-const ProtectedRoute = ({ allowedRoles = [] }) => {
-  const token = localStorage.getItem("token");
+export default function ProtectedRoute({ children, role }) {
   const location = useLocation();
 
-  if (!token) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+
+  // Check authentication status
+  if (!token || !user) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: location.pathname,
+        }}
+      />
+    );
   }
 
-  try {
-    const decoded = jwtDecode(token);
-
-    if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-      localStorage.removeItem("token");
-
-      return <Navigate to="/login" replace />;
+  // Handle Role-based route authorization
+  if (role && user.role !== role) {
+    if (user.role === "Admin") {
+      return <Navigate to="/admin" replace />;
     }
 
-    const userRole = decoded.role;
-
-    if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
-      return <Navigate to="/unauthorized" replace />;
+    if (user.role === "Mentor") {
+      return <Navigate to="/mentor" replace />;
     }
 
-    return <Outlet />;
-  } catch (error) {
-    console.error("Invalid token:", error);
-
-    localStorage.removeItem("token");
+    if (user.role === "Student") {
+      return <Navigate to="/student/dashboard" replace />;
+    }
 
     return <Navigate to="/login" replace />;
   }
-};
 
-export default ProtectedRoute;
+  // Handle temporary password requirement redirect
+  if (
+    user.mustChangePassword === true &&
+    location.pathname !== "/change-password"
+  ) {
+    return <Navigate to="/change-password" replace />;
+  }
+
+  return children;
+}

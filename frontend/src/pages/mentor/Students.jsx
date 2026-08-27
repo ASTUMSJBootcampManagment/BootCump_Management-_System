@@ -1,34 +1,49 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Users,
   Search,
   RefreshCw,
   Mail,
-  User,
-  AlertCircle,
+  FolderGit2,
+  Code2,
 } from "lucide-react";
-import API from "../../api/axios";
 import MentorLayout from "../../components/mentor/MentorLayout";
+import Toast from "../../components/common/Toast";
+import API from "../../api/axios";
 
 export default function Students() {
-  const [students, setStudents] = useState([]);
+  const [records, setRecords] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [toast, setToast] = useState(null);
 
   const load = async () => {
     setLoading(true);
-    setError("");
 
     try {
-      const response = await API.get("/admin/users?role=Student");
-
-      setStudents(response.data.data || []);
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Unable to load students."
+      const response = await API.get(
+        "/progress/get/students-progress"
       );
+
+      const map = new Map();
+
+      (response.data.data || []).forEach((row) => {
+        if (row.student?._id) {
+          map.set(row.student._id, {
+            ...row.student,
+            batch: row.batch,
+          });
+        }
+      });
+
+      setRecords(Array.from(map.values()));
+    } catch (error) {
+      setToast({
+        message:
+          error.response?.data?.message ||
+          "Unable to load your students.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -38,73 +53,78 @@ export default function Students() {
     load();
   }, []);
 
-  const filtered = students.filter((student) => {
-    const value = search.toLowerCase();
+  const filtered = useMemo(() => {
+    const value = search.trim().toLowerCase();
 
-    return (
-      student.fullname?.toLowerCase().includes(value) ||
-      student.email?.toLowerCase().includes(value)
+    if (!value) return records;
+
+    return records.filter(
+      (student) =>
+        student.fullname?.toLowerCase().includes(value) ||
+        student.email?.toLowerCase().includes(value) ||
+        student.universityId?.toLowerCase().includes(value)
     );
-  });
+  }, [records, search]);
 
   return (
     <MentorLayout title="My Students">
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-5">
-        <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-          <div>
-            <h2 className="font-black text-[#062a5c]">
-              Student Management
-            </h2>
+      <Toast
+        {...toast}
+        onClose={() => setToast(null)}
+      />
 
-            <p className="text-sm text-slate-500 mt-1">
-              Students available in the system.
-            </p>
-          </div>
+      <div className="mb-6 flex flex-wrap justify-between items-end gap-4">
+        <div>
+          <h2 className="text-3xl font-black text-[#062a5c]">
+            My Students
+          </h2>
 
-          <button
-            onClick={load}
-            className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold"
-          >
-            <RefreshCw size={15} />
-            Refresh
-          </button>
+          <p className="text-slate-500 mt-2">
+            Only students authorized under your mentor assignment are shown.
+          </p>
         </div>
 
-        <div className="relative mt-5">
+        <button
+          onClick={load}
+          className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl font-bold flex gap-2 items-center"
+        >
+          <RefreshCw
+            size={16}
+            className={loading ? "animate-spin" : ""}
+          />
+          Refresh
+        </button>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-5">
+        <div className="relative">
           <Search
-            size={17}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            size={18}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
           />
 
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search student by name or email..."
-            className="w-full pl-10 pr-4 py-3 border rounded-xl outline-none focus:border-[#08c98b]"
+            placeholder="Search by name, email or university ID..."
+            className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-[#08c98b] focus:ring-4 focus:ring-[#08c98b]/10"
           />
         </div>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 mb-5 flex gap-3">
-          <AlertCircle size={18} />
-          {error}
-        </div>
-      )}
-
       {loading ? (
-        <div className="bg-white rounded-2xl border p-10 text-center text-slate-500">
+        <div className="bg-white rounded-2xl border p-12 text-center text-slate-400">
           Loading students...
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filtered.map((student) => (
             <article
               key={student._id}
-              className="bg-white border border-slate-200 rounded-2xl p-5"
+              className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-[#e8faf5] text-[#08ad81] grid place-items-center font-black">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-[#062a5c] text-white grid place-items-center text-lg font-black">
                   {(student.fullname || "S")
                     .charAt(0)
                     .toUpperCase()}
@@ -115,49 +135,81 @@ export default function Students() {
                     {student.fullname}
                   </h3>
 
-                  <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                    <Mail size={12} />
-                    <span className="truncate">
-                      {student.email}
-                    </span>
-                  </div>
+                  <p className="text-xs text-slate-400 truncate mt-1">
+                    {student.email}
+                  </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 mt-5">
-                <div className="bg-slate-50 rounded-xl p-3">
-                  <div className="text-[10px] uppercase font-black text-slate-400">
-                    Status
-                  </div>
+              <div className="mt-5 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">
+                    University ID
+                  </span>
 
-                  <div className="font-bold text-sm mt-1">
-                    {student.status || "Active"}
-                  </div>
+                  <span className="font-bold">
+                    {student.universityId || "—"}
+                  </span>
                 </div>
 
-                <div className="bg-slate-50 rounded-xl p-3">
-                  <div className="text-[10px] uppercase font-black text-slate-400">
-                    Mentor
-                  </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">
+                    Batch
+                  </span>
 
-                  <div className="font-bold text-sm mt-1">
-                    {student.assignedMentor
-                      ? "Assigned"
-                      : "Not assigned"}
-                  </div>
+                  <span className="font-bold">
+                    {student.batch?.name || "Assigned batch"}
+                  </span>
                 </div>
               </div>
 
-              <div className="mt-4 text-xs text-slate-400 flex items-center gap-2">
-                <User size={13} />
-                Student account
+              <div className="border-t border-slate-100 mt-5 pt-4 flex flex-wrap gap-2">
+                {student.githubAccount && (
+                  <a
+                    href={student.githubAccount}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-bold px-3 py-2 rounded-lg bg-slate-100 flex items-center gap-1"
+                  >
+                    <FolderGit2 size={13} />
+                    GitHub
+                  </a>
+                )}
+
+                {student.leetcodeAccount && (
+                  <a
+                    href={student.leetcodeAccount}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-bold px-3 py-2 rounded-lg bg-slate-100 flex items-center gap-1"
+                  >
+                    <Code2 size={13} />
+                    LeetCode
+                  </a>
+                )}
+
+                <a
+                  href={`mailto:${student.email}`}
+                  className="text-xs font-bold px-3 py-2 rounded-lg bg-[#e8faf5] text-[#08ad81] flex items-center gap-1"
+                >
+                  <Mail size={13} />
+                  Email
+                </a>
               </div>
             </article>
           ))}
 
           {!filtered.length && (
-            <div className="md:col-span-2 xl:col-span-3 bg-white rounded-2xl border p-12 text-center text-slate-500">
-              No students found.
+            <div className="md:col-span-2 xl:col-span-3 bg-white rounded-2xl border p-12 text-center">
+              <Users className="mx-auto text-slate-300" size={40} />
+
+              <h3 className="font-black mt-3">
+                No students found
+              </h3>
+
+              <p className="text-sm text-slate-400 mt-1">
+                Students assigned to you will appear here.
+              </p>
             </div>
           )}
         </div>

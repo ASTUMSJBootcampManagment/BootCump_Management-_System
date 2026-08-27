@@ -3,46 +3,64 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
-  ClipboardCheck,
+  CalendarCheck,
   TrendingUp,
+  ClipboardList,
+  Megaphone,
+  BookOpen,
   History,
   Menu,
   X,
   LogOut,
-  GraduationCap,
+  ShieldCheck,
   ChevronRight,
 } from "lucide-react";
 
 const links = [
   {
-    to: "/mentor/dashboard",
     label: "Dashboard",
+    path: "/mentor/dashboard",
     icon: LayoutDashboard,
   },
   {
-    to: "/mentor/students",
     label: "My Students",
+    path: "/mentor/students",
     icon: Users,
   },
   {
-    to: "/mentor/attendance",
     label: "Attendance",
-    icon: ClipboardCheck,
+    path: "/mentor/attendance",
+    icon: CalendarCheck,
   },
   {
-    to: "/mentor/progress",
-    label: "Student Progress",
+    label: "Progress",
+    path: "/mentor/progress",
     icon: TrendingUp,
   },
   {
-    to: "/mentor/history",
+    label: "Assignments",
+    path: "/mentor/assignments",
+    icon: ClipboardList,
+  },
+  {
+    label: "Announcements",
+    path: "/mentor/announcements",
+    icon: Megaphone,
+  },
+  {
+    label: "Resources",
+    path: "/mentor/resources",
+    icon: BookOpen,
+  },
+  {
     label: "History",
+    path: "/mentor/history",
     icon: History,
   },
 ];
 
-export default function MentorLayout({ children, title }) {
-  const [open, setOpen] = useState(false);
+export default function MentorLayout({ children, title = "Mentor Portal" }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -50,153 +68,140 @@ export default function MentorLayout({ children, title }) {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
-  return (
-    <div className="min-h-screen bg-[#f5f7fa] text-slate-800">
-      {/* Mobile header */}
-      <header className="lg:hidden h-16 bg-[#062a5c] text-white flex items-center justify-between px-5 sticky top-0 z-40">
-        <div>
-          <div className="text-[#08c98b] font-black tracking-widest">
-            ASTUMSJ
+  const Sidebar = () => (
+    <aside className="h-full flex flex-col bg-[#062a5c] text-white">
+      <div className="px-6 py-6 border-b border-white/10">
+        <div className="text-[#08c98b] font-black tracking-[0.22em] text-sm">
+          ASTU MSJ
+        </div>
+
+        <div className="text-lg font-black mt-1">
+          Bootcamp
+        </div>
+
+        <div className="text-xs text-white/50 mt-1">
+          Mentor Portal
+        </div>
+      </div>
+
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        {links.map(({ label, path, icon: Icon }) => (
+          <NavLink
+            key={path}
+            to={path}
+            onClick={() => setMobileOpen(false)}
+            className={({ isActive }) =>
+              [
+                "group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition",
+                isActive
+                  ? "bg-[#08c98b] text-white shadow-lg shadow-emerald-950/20"
+                  : "text-white/65 hover:bg-white/10 hover:text-white",
+              ].join(" ")
+            }
+          >
+            <Icon size={18} />
+            <span>{label}</span>
+            <ChevronRight
+              size={14}
+              className="ml-auto opacity-0 group-hover:opacity-100"
+            />
+          </NavLink>
+        ))}
+      </nav>
+
+      <div className="p-4 border-t border-white/10">
+        <div className="rounded-xl bg-white/5 p-3 mb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#08c98b] grid place-items-center font-black">
+              {(user.fullname || "M").charAt(0).toUpperCase()}
+            </div>
+
+            <div className="min-w-0">
+              <div className="font-bold text-sm truncate">
+                {user.fullname || "Mentor"}
+              </div>
+
+              <div className="text-[11px] text-white/45 truncate">
+                {user.email || ""}
+              </div>
+            </div>
           </div>
-          <div className="text-xs text-white/70">Mentor Portal</div>
         </div>
 
         <button
-          onClick={() => setOpen(true)}
-          className="p-2 rounded-lg hover:bg-white/10"
+          onClick={logout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-white/60 hover:bg-red-500/10 hover:text-red-300"
         >
-          <Menu size={22} />
+          <LogOut size={17} />
+          Sign out
         </button>
-      </header>
+      </div>
+    </aside>
+  );
 
-      {/* Overlay */}
-      {open && (
+  return (
+    <div className="min-h-screen bg-[#f5f7fa] text-slate-800">
+      <div className="hidden lg:block fixed inset-y-0 left-0 w-72 z-40">
+        <Sidebar />
+      </div>
+
+      {mobileOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
-          onClick={() => setOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed z-50 left-0 top-0 bottom-0 w-[270px]
-          bg-[#062a5c] text-white
-          transform transition-transform duration-300
-          lg:translate-x-0
-          ${open ? "translate-x-0" : "-translate-x-full"}
-        `}
-      >
-        <div className="h-full flex flex-col">
-          {/* Logo */}
-          <div className="px-6 py-6 border-b border-white/10">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-[#08c98b] font-black tracking-[0.2em] text-lg">
-                  ASTUMSJ
-                </div>
-
-                <div className="text-white font-bold mt-1">
-                  Bootcamp Portal
-                </div>
-              </div>
-
-              <button
-                onClick={() => setOpen(false)}
-                className="lg:hidden text-white/70"
-              >
-                <X size={20} />
-              </button>
-            </div>
-          </div>
-
-          {/* Mentor profile */}
-          <div className="px-5 py-5">
-            <div className="bg-white/10 rounded-2xl p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-[#08c98b] grid place-items-center font-black">
-                  {(user.fullname || "M").charAt(0).toUpperCase()}
-                </div>
-
-                <div className="min-w-0">
-                  <div className="font-bold truncate">
-                    {user.fullname || "Mentor"}
-                  </div>
-
-                  <div className="text-xs text-white/60 truncate">
-                    {user.email || "Mentor account"}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <nav className="px-4 space-y-1 flex-1">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-black px-3 py-3">
-              Mentor workspace
-            </div>
-
-            {links.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                onClick={() => setOpen(false)}
-                className={({ isActive }) =>
-                  `
-                  flex items-center gap-3 px-4 py-3 rounded-xl
-                  font-semibold text-sm transition
-                  ${
-                    isActive
-                      ? "bg-[#08c98b] text-white shadow-lg"
-                      : "text-white/70 hover:bg-white/10 hover:text-white"
-                  }
-                  `
-                }
-              >
-                <Icon size={18} />
-
-                <span>{label}</span>
-
-                <ChevronRight
-                  size={15}
-                  className="ml-auto opacity-50"
-                />
-              </NavLink>
-            ))}
-          </nav>
-
-          {/* Bottom */}
-          <div className="p-4 border-t border-white/10">
-            <button
-              onClick={logout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-red-500/20 hover:text-white transition font-semibold"
-            >
-              <LogOut size={18} />
-              Sign out
-            </button>
+          className="fixed inset-0 z-50 bg-slate-950/50 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        >
+          <div
+            className="w-[290px] h-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Sidebar />
           </div>
         </div>
-      </aside>
+      )}
 
-      {/* Main */}
-      <div className="lg:ml-[270px] min-h-screen">
-        <main className="p-5 sm:p-7 lg:p-9 max-w-[1500px]">
-          {/* Desktop title bar */}
-          <div className="mb-7">
-            <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold mb-2">
-              <GraduationCap size={14} />
-              Mentor Portal
+      <div className="lg:pl-72 min-h-screen">
+        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
+          <div className="px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setMobileOpen(true)}
+                className="lg:hidden w-10 h-10 rounded-xl border border-slate-200 grid place-items-center"
+              >
+                <Menu size={20} />
+              </button>
+
+              <div>
+                <div className="text-xs uppercase tracking-[0.18em] font-black text-[#08ad81]">
+                  Mentor workspace
+                </div>
+
+                <h1 className="text-xl sm:text-2xl font-black text-[#062a5c]">
+                  {title}
+                </h1>
+              </div>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-black text-[#062a5c]">
-              {title}
-            </h1>
-          </div>
+            <div className="hidden sm:flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-[#e8faf5] text-[#08ad81] grid place-items-center">
+                <ShieldCheck size={18} />
+              </div>
 
+              <div className="text-right">
+                <div className="text-sm font-black">
+                  {user.fullname || "Mentor"}
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  Authorized mentor
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="p-4 sm:p-6 lg:p-8 max-w-[1500px]">
           {children}
         </main>
       </div>

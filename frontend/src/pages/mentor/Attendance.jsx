@@ -1,230 +1,272 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  ClipboardCheck,
+  CalendarCheck,
+  Check,
   RefreshCw,
-  Save,
-  AlertCircle,
+  Search,
 } from "lucide-react";
-import API from "../../api/axios";
 import MentorLayout from "../../components/mentor/MentorLayout";
+import Toast from "../../components/common/Toast";
+import API from "../../api/axios";
 
 export default function Attendance() {
   const [students, setStudents] = useState([]);
-  const [records, setRecords] = useState({});
+  const [present, setPresent] = useState({});
   const [date, setDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState({});
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  const load = async () => {
+  const loadStudents = async () => {
     setLoading(true);
-    setError("");
-    setMessage("");
 
     try {
       const response = await API.get(
-        "/admin/users?role=Student"
+        "/progress/get/students-progress"
       );
 
-      const list = response.data.data || [];
+      const map = new Map();
 
-      setStudents(list);
-
-      const initial = {};
-
-      list.forEach((student) => {
-        initial[student._id] = "Present";
+      (response.data.data || []).forEach((row) => {
+        if (row.student?._id) {
+          map.set(row.student._id, row.student);
+        }
       });
 
-      setRecords(initial);
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Unable to load students."
-      );
+      setStudents(Array.from(map.values()));
+    } catch (error) {
+      setToast({
+        message:
+          error.response?.data?.message ||
+          "Unable to load students.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    load();
+    loadStudents();
   }, []);
 
-  const saveAttendance = async (studentId) => {
-    setSaving((prev) => ({
-      ...prev,
-      [studentId]: true,
-    }));
+  const filteredStudents = useMemo(() => {
+    const value = search.trim().toLowerCase();
 
-    setError("");
-    setMessage("");
+    if (!value) return students;
+
+    return students.filter(
+      (student) =>
+        student.fullname?.toLowerCase().includes(value) ||
+        student.email?.toLowerCase().includes(value)
+    );
+  }, [students, search]);
+
+  const toggle = (id) => {
+    setPresent((previous) => ({
+      ...previous,
+      [id]: !previous[id],
+    }));
+  };
+
+  const markAll = (value) => {
+    const next = {};
+
+    students.forEach((student) => {
+      next[student._id] = value;
+    });
+
+    setPresent(next);
+  };
+
+  const submit = async () => {
+    if (!date) {
+      setToast({
+        message: "Select an attendance date.",
+        type: "error",
+      });
+      return;
+    }
+
+    setSaving(true);
 
     try {
-      await API.post("/attendance/create", {
-        studentId,
+      await API.post("/attendance/attender", {
         date,
-        status: records[studentId],
+        presentIds: Object.keys(present).filter(
+          (id) => present[id]
+        ),
       });
 
-      setMessage("Attendance saved successfully.");
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Unable to save attendance."
-      );
+      setToast({
+        message: "Attendance recorded successfully.",
+        type: "success",
+      });
+    } catch (error) {
+      setToast({
+        message:
+          error.response?.data?.message ||
+          "Unable to record attendance.",
+        type: "error",
+      });
     } finally {
-      setSaving((prev) => ({
-        ...prev,
-        [studentId]: false,
-      }));
+      setSaving(false);
     }
   };
 
+  const presentCount = Object.values(present).filter(Boolean).length;
+
   return (
     <MentorLayout title="Attendance">
-      <div className="bg-white border rounded-2xl p-5 mb-5">
-        <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-          <div>
-            <h2 className="font-black text-[#062a5c]">
-              Daily Attendance
-            </h2>
+      <Toast
+        {...toast}
+        onClose={() => setToast(null)}
+      />
 
-            <p className="text-sm text-slate-500 mt-1">
-              Record attendance for your students.
-            </p>
-          </div>
+      <div className="mb-6">
+        <h2 className="text-3xl font-black text-[#062a5c]">
+          Record Attendance
+        </h2>
 
-          <div className="flex gap-2">
+        <p className="text-slate-500 mt-2">
+          Mark attendance for students assigned to you.
+        </p>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 mb-5">
+        <div className="grid md:grid-cols-[220px_1fr_auto] gap-4 items-end">
+          <label className="text-sm font-bold">
+            Attendance date
+
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="border rounded-xl px-3 py-2 text-sm"
+              className="block w-full mt-2 border border-slate-200 rounded-xl px-3 py-3 outline-none focus:border-[#08c98b]"
             />
+          </label>
+
+          <label className="text-sm font-bold">
+            Search students
+
+            <div className="relative mt-2">
+              <Search
+                size={17}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search..."
+                className="w-full pl-10 border border-slate-200 rounded-xl px-3 py-3 outline-none focus:border-[#08c98b]"
+              />
+            </div>
+          </label>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => markAll(true)}
+              className="px-3 py-3 rounded-xl bg-[#e8faf5] text-[#08ad81] font-bold text-xs"
+            >
+              All present
+            </button>
 
             <button
-              onClick={load}
-              className="border rounded-xl px-3"
+              onClick={() => markAll(false)}
+              className="px-3 py-3 rounded-xl bg-slate-100 font-bold text-xs"
             >
-              <RefreshCw size={16} />
+              Clear
             </button>
           </div>
         </div>
       </div>
 
-      {message && (
-        <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl p-3">
-          {message}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 bg-[#062a5c] text-white flex justify-between items-center">
+          <div className="font-black">
+            Students
+          </div>
+
+          <div className="text-xs font-bold text-white/70">
+            {presentCount} / {students.length} present
+          </div>
         </div>
-      )}
 
-      {error && (
-        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 flex gap-2">
-          <AlertCircle size={17} />
-          {error}
-        </div>
-      )}
+        {loading ? (
+          <div className="p-12 text-center text-slate-400">
+            Loading students...
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {filteredStudents.map((student) => {
+              const isPresent = Boolean(present[student._id]);
 
-      {loading ? (
-        <div className="bg-white border rounded-2xl p-10 text-center">
-          Loading attendance...
-        </div>
-      ) : (
-        <div className="bg-white border rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b">
-                <tr>
-                  <th className="text-left px-5 py-4 text-xs uppercase tracking-wider text-slate-400">
-                    Student
-                  </th>
+              return (
+                <button
+                  key={student._id}
+                  type="button"
+                  onClick={() => toggle(student._id)}
+                  className="w-full text-left px-5 py-4 flex items-center justify-between hover:bg-slate-50 transition"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 text-[#062a5c] grid place-items-center font-black">
+                      {(student.fullname || "S")
+                        .charAt(0)
+                        .toUpperCase()}
+                    </div>
 
-                  <th className="text-left px-5 py-4 text-xs uppercase tracking-wider text-slate-400">
-                    Status
-                  </th>
-
-                  <th className="text-right px-5 py-4 text-xs uppercase tracking-wider text-slate-400">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {students.map((student) => (
-                  <tr
-                    key={student._id}
-                    className="border-b last:border-0"
-                  >
-                    <td className="px-5 py-4">
-                      <div className="font-bold">
+                    <div>
+                      <div className="font-black">
                         {student.fullname}
                       </div>
 
                       <div className="text-xs text-slate-400">
                         {student.email}
                       </div>
-                    </td>
+                    </div>
+                  </div>
 
-                    <td className="px-5 py-4">
-                      <select
-                        value={records[student._id] || "Present"}
-                        onChange={(e) =>
-                          setRecords((prev) => ({
-                            ...prev,
-                            [student._id]: e.target.value,
-                          }))
-                        }
-                        className="border rounded-lg px-3 py-2 text-sm"
-                      >
-                        <option value="Present">
-                          Present
-                        </option>
-
-                        <option value="Late">
-                          Late
-                        </option>
-
-                        <option value="Absent">
-                          Absent
-                        </option>
-                      </select>
-                    </td>
-
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        onClick={() =>
-                          saveAttendance(student._id)
-                        }
-                        disabled={saving[student._id]}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#08c98b] text-white font-bold text-sm disabled:opacity-50"
-                      >
-                        {saving[student._id] ? (
-                          "Saving..."
-                        ) : (
-                          <>
-                            <Save size={14} />
-                            Save
-                          </>
-                        )}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  <div
+                    className={`w-9 h-9 rounded-xl grid place-items-center border ${
+                      isPresent
+                        ? "bg-[#08c98b] border-[#08c98b] text-white"
+                        : "bg-white border-slate-200 text-transparent"
+                    }`}
+                  >
+                    <Check size={18} />
+                  </div>
+                </button>
+              );
+            })}
           </div>
+        )}
 
-          {!students.length && (
-            <div className="p-10 text-center text-slate-500">
-              No students found.
-            </div>
+        {!loading && !filteredStudents.length && (
+          <div className="p-12 text-center text-slate-400">
+            No students found.
+          </div>
+        )}
+      </div>
+
+      <div className="mt-5 flex justify-end">
+        <button
+          onClick={submit}
+          disabled={saving || loading || !students.length}
+          className="px-6 py-3.5 rounded-xl bg-[#08c98b] text-white font-black flex items-center gap-2 disabled:opacity-50"
+        >
+          {saving ? (
+            <RefreshCw size={17} className="animate-spin" />
+          ) : (
+            <CalendarCheck size={17} />
           )}
-        </div>
-      )}
+
+          {saving ? "Saving..." : "Save attendance"}
+        </button>
+      </div>
     </MentorLayout>
   );
 }

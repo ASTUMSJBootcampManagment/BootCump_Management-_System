@@ -7,19 +7,13 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      unique: true,
       lowercase: true,
+      unique: true,
     },
 
     password: {
       type: String,
       required: true,
-    },
-
-    status: {
-      type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
     },
 
     fullname: {
@@ -34,29 +28,25 @@ const userSchema = new mongoose.Schema(
       default: "Student",
     },
 
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+
     verified: {
       type: Boolean,
       default: false,
     },
 
-    verificationCode: {
-      type: String,
-      default: "",
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
     },
 
-    verificationCodeValidation: {
-      type: Number,
-      select: false,
-    },
-
-    forgotPasswordCode: {
-      type: String,
-      select: false,
-    },
-
-    forgotPasswordCodeValidation: {
-      type: Number,
-      select: false,
+    temporaryPasswordExpiresAt: {
+      type: Date,
+      default: null,
     },
 
     universityId: {
@@ -103,6 +93,7 @@ const userSchema = new mongoose.Schema(
     gender: {
       type: String,
       enum: ["Male", "Female"],
+      default: undefined,
     },
 
     hasConstantInternet: {
@@ -115,17 +106,6 @@ const userSchema = new mongoose.Schema(
       default: false,
     },
 
-    assignedBatch: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Batch",
-      default: null,
-    },
-
-    assignedMentor: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "user",
-      default: null,
-    },
     applicationStatus: {
       type: String,
       enum: [
@@ -143,13 +123,15 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
-    mustChangePassword: {
-      type: Boolean,
-      default: false,
+    assignedBatch: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Batch",
+      default: null,
     },
 
-    temporaryPasswordExpiresAt: {
-      type: Date,
+    assignedMentor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
       default: null,
     },
 
@@ -179,23 +161,17 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-/*
-|--------------------------------------------------------------------------
-| Hash password before saving
-|--------------------------------------------------------------------------
-*/
-
 userSchema.pre("save", async function () {
-  if (!this.isModified("password")) {
-    return;
-  }
+  if (!this.isModified("password")) return;
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-userSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+userSchema.methods.matchPassword = function (password) {
+  return bcrypt.compare(password, this.password);
 };
 
-module.exports = mongoose.models.user || mongoose.model("user", userSchema);
+module.exports =
+  mongoose.models.user ||
+  mongoose.model("user", userSchema);

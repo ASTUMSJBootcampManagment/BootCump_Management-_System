@@ -1,20 +1,46 @@
 const express = require("express");
+
 const router = express.Router();
 
-const { register } = require("../controllers/registrationController");
-const { login } = require("../controllers/loginController");
-const { getRegistrationStatus } = require("../controllers/systemController");
-const { verifyToken, restrictTo } = require("../middlewares/authMiddleware");
+const {
+  register,
+} = require("../controllers/registrationController");
 
-// Public auth and status routes
-router.get("/registration-status", getRegistrationStatus);
-router.post("/register", register);
-router.post("/login", login);
+const {
+  login,
+} = require("../controllers/loginController");
 
-// Admin-only registration routes (commented out until needed)
-// router.post("/updateRegistration/:id", verifyToken, restrictTo("Admin"), UpdateRegistrationStatus);
+const {
+  getRegistrationStatus,
+} = require("../controllers/systemController");
 
-console.log("Register Controller:", register);
-console.log("Login Controller:", login);
+const {
+  changePassword,
+} = require("../controllers/authController");
+
+const {
+  verifyToken,
+} = require("../middlewares/authMiddleware");
+
+router.get(
+  "/registration-status",
+  getRegistrationStatus
+);
+
+router.post(
+  "/register",
+  register
+);
+
+router.post(
+  "/login",
+  login
+);
+
+router.patch(
+  "/change-password",
+  verifyToken,
+  changePassword
+);
 
 module.exports = router;

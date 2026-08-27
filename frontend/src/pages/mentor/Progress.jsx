@@ -1,285 +1,269 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  TrendingUp,
   RefreshCw,
   Save,
-  AlertCircle,
+  TrendingUp,
+  Search,
 } from "lucide-react";
-import API from "../../api/axios";
 import MentorLayout from "../../components/mentor/MentorLayout";
+import Toast from "../../components/common/Toast";
+import API from "../../api/axios";
 
-const statuses = [
-  "NotStarted",
-  "InProgress",
+const STATUSES = [
+  "Not started",
+  "In progress",
+  "Needs improvement",
   "Completed",
-  "NeedsImprovement",
 ];
 
-export default function Progress() {
-  const [students, setStudents] = useState([]);
-  const [selected, setSelected] = useState("");
-  const [topics, setTopics] = useState([]);
-  const [topic, setTopic] = useState("");
-  const [status, setStatus] = useState("NotStarted");
-  const [notes, setNotes] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+function normalizeStatus(status) {
+  if (!status) return "Not started";
 
-  const loadStudents = async () => {
+  const value = String(status).toLowerCase();
+
+  if (value === "inprogress" || value === "in progress") {
+    return "In progress";
+  }
+
+  if (value === "needsimprovement" || value === "needs improvement") {
+    return "Needs improvement";
+  }
+
+  if (value === "completed") {
+    return "Completed";
+  }
+
+  return "Not started";
+}
+
+export default function Progress() {
+  const [records, setRecords] = useState([]);
+  const [search, setSearch] = useState("");
+  const [saving, setSaving] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
+
+  const load = async () => {
     setLoading(true);
 
     try {
       const response = await API.get(
-        "/admin/users?role=Student"
+        "/progress/get/students-progress"
       );
 
-      setStudents(response.data.data || []);
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Unable to load students."
-      );
+      setRecords(response.data.data || []);
+    } catch (error) {
+      setToast({
+        message:
+          error.response?.data?.message ||
+          "Unable to load progress records.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const loadProgress = async (studentId) => {
-    if (!studentId) {
-      setTopics([]);
-      return;
-    }
-
-    try {
-      const response = await API.get(
-        `/progress/student/${studentId}`
-      );
-
-      setTopics(response.data.data || []);
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Unable to load progress."
-      );
-    }
-  };
-
   useEffect(() => {
-    loadStudents();
+    load();
   }, []);
 
-  useEffect(() => {
-    loadProgress(selected);
-  }, [selected]);
+  const filtered = useMemo(() => {
+    const value = search.trim().toLowerCase();
 
-  const save = async (e) => {
-    e.preventDefault();
+    if (!value) return records;
 
-    if (!selected || !topic.trim()) {
-      setError("Select a student and enter a topic.");
-      return;
-    }
+    return records.filter(
+      (row) =>
+        row.student?.fullname?.toLowerCase().includes(value) ||
+        row.topic?.toLowerCase().includes(value)
+    );
+  }, [records, search]);
 
-    setSaving(true);
-    setError("");
-    setMessage("");
+  const update = async (row, status) => {
+    setSaving(row._id);
 
     try {
-      await API.post("/progress/create", {
-        studentId: selected,
-        topic: topic.trim(),
+      const response = await API.post("/progress/update", {
+        studentId: row.student?._id || row.student,
+        topic: row.topic,
         status,
-        notes,
       });
 
-      setMessage("Progress updated successfully.");
+      const updated = response.data.data;
 
-      setTopic("");
-      setNotes("");
-
-      await loadProgress(selected);
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Unable to update progress."
+      setRecords((previous) =>
+        previous.map((item) =>
+          item._id === row._id
+            ? { ...item, ...updated, status }
+            : item
+        )
       );
+
+      setToast({
+        message: `${row.student?.fullname || "Student"} progress updated.`,
+        type: "success",
+      });
+
+      await load();
+    } catch (error) {
+      setToast({
+        message:
+          error.response?.data?.message ||
+          "Unable to update progress.",
+        type: "error",
+      });
     } finally {
-      setSaving(false);
+      setSaving("");
     }
   };
 
   return (
-    <MentorLayout title="Student Progress">
-      <div className="grid lg:grid-cols-[.7fr_1.3fr] gap-5">
-        <section className="bg-white border rounded-2xl p-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="font-black text-[#062a5c]">
-                Update Progress
-              </h2>
+    <MentorLayout title="Progress">
+      <Toast
+        {...toast}
+        onClose={() => setToast(null)}
+      />
 
-              <p className="text-sm text-slate-500 mt-1">
-                Update a student's learning status.
-              </p>
-            </div>
+      <div className="mb-6 flex flex-wrap justify-between gap-4 items-end">
+        <div>
+          <h2 className="text-3xl font-black text-[#062a5c]">
+            Student Progress
+          </h2>
 
-            <button
-              onClick={loadStudents}
-              className="p-2 border rounded-xl"
-            >
-              <RefreshCw size={15} />
-            </button>
-          </div>
+          <p className="text-slate-500 mt-2">
+            Update curriculum status for students assigned to you.
+          </p>
+        </div>
 
-          {error && (
-            <div className="mt-5 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 flex gap-2 text-sm">
-              <AlertCircle size={16} />
-              {error}
-            </div>
-          )}
-
-          {message && (
-            <div className="mt-5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl p-3 text-sm">
-              {message}
-            </div>
-          )}
-
-          <form onSubmit={save} className="mt-6 space-y-4">
-            <div>
-              <label className="text-xs font-black text-slate-500 uppercase">
-                Student
-              </label>
-
-              <select
-                value={selected}
-                onChange={(e) => setSelected(e.target.value)}
-                className="w-full mt-2 border rounded-xl px-3 py-3"
-              >
-                <option value="">
-                  Select student
-                </option>
-
-                {students.map((student) => (
-                  <option
-                    key={student._id}
-                    value={student._id}
-                  >
-                    {student.fullname}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-black text-slate-500 uppercase">
-                Topic
-              </label>
-
-              <input
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="Example: React Hooks"
-                className="w-full mt-2 border rounded-xl px-3 py-3"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-black text-slate-500 uppercase">
-                Status
-              </label>
-
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full mt-2 border rounded-xl px-3 py-3"
-              >
-                {statuses.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-black text-slate-500 uppercase">
-                Mentor Notes
-              </label>
-
-              <textarea
-                rows="4"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add feedback or notes..."
-                className="w-full mt-2 border rounded-xl px-3 py-3 resize-none"
-              />
-            </div>
-
-            <button
-              disabled={saving}
-              className="w-full bg-[#08c98b] text-white rounded-xl py-3 font-black flex justify-center items-center gap-2 disabled:opacity-50"
-            >
-              <Save size={16} />
-              {saving ? "Saving..." : "Save Progress"}
-            </button>
-          </form>
-        </section>
-
-        <section className="bg-white border rounded-2xl p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center">
-              <TrendingUp size={20} />
-            </div>
-
-            <div>
-              <h2 className="font-black text-[#062a5c]">
-                Progress History
-              </h2>
-
-              <p className="text-sm text-slate-500">
-                {selected
-                  ? "Selected student's recorded progress."
-                  : "Select a student to view progress."}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 space-y-3">
-            {topics.map((item) => (
-              <div
-                key={item._id}
-                className="border rounded-xl p-4"
-              >
-                <div className="flex justify-between gap-3">
-                  <div>
-                    <div className="font-bold">
-                      {item.topic}
-                    </div>
-
-                    {item.notes && (
-                      <p className="text-sm text-slate-500 mt-2">
-                        {item.notes}
-                      </p>
-                    )}
-                  </div>
-
-                  <span className="text-xs font-black bg-slate-100 px-3 py-1 rounded-full h-fit">
-                    {item.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-
-            {selected && !topics.length && (
-              <div className="text-center text-slate-500 py-10">
-                No progress records yet.
-              </div>
-            )}
-          </div>
-        </section>
+        <button
+          onClick={load}
+          className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 font-bold flex items-center gap-2"
+        >
+          <RefreshCw
+            size={16}
+            className={loading ? "animate-spin" : ""}
+          />
+          Refresh
+        </button>
       </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-5">
+        <div className="relative">
+          <Search
+            size={17}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+          />
+
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search student or topic..."
+            className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-[#08c98b]"
+          />
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="bg-white border rounded-2xl p-12 text-center text-slate-400">
+          Loading progress...
+        </div>
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead className="bg-[#062a5c] text-white">
+                <tr>
+                  <th className="text-left px-5 py-4">
+                    Student
+                  </th>
+
+                  <th className="text-left px-5 py-4">
+                    Topic
+                  </th>
+
+                  <th className="text-left px-5 py-4">
+                    Current status
+                  </th>
+
+                  <th className="text-left px-5 py-4">
+                    Update
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filtered.map((row) => {
+                  const current = normalizeStatus(row.status);
+
+                  return (
+                    <tr
+                      key={row._id}
+                      className="border-t border-slate-100"
+                    >
+                      <td className="px-5 py-4">
+                        <div className="font-black">
+                          {row.student?.fullname || "Unknown"}
+                        </div>
+
+                        <div className="text-xs text-slate-400">
+                          {row.batch?.name || ""}
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-4 font-bold">
+                        {row.topic || "Untitled topic"}
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#e8faf5] text-[#078b68] font-bold text-xs">
+                          <TrendingUp size={13} />
+                          {current}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <div className="flex gap-2">
+                          <select
+                            value={current}
+                            disabled={saving === row._id}
+                            onChange={(e) =>
+                              update(row, e.target.value)
+                            }
+                            className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-[#08c98b]"
+                          >
+                            {STATUSES.map((status) => (
+                              <option
+                                key={status}
+                                value={status}
+                              >
+                                {status}
+                              </option>
+                            ))}
+                          </select>
+
+                          {saving === row._id && (
+                            <Save
+                              size={17}
+                              className="text-[#08ad81] animate-pulse mt-2"
+                            />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {!filtered.length && (
+            <div className="p-12 text-center text-slate-400">
+              No progress records found.
+            </div>
+          )}
+        </div>
+      )}
     </MentorLayout>
   );
 }
