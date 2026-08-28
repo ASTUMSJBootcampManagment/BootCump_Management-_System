@@ -162,10 +162,7 @@ export default function Resources() {
 
       <div className="mb-6 flex flex-wrap justify-between items-end gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#062a5c]">
-            Learning Resources
-          </h2>
-
+          
           <p className="text-slate-500 mt-2">
             Share useful learning materials with your students.
           </p>

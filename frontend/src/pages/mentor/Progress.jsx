@@ -113,9 +113,7 @@ export default function Progress() {
 
       <div className="mb-6 flex flex-wrap justify-between gap-4 items-end">
         <div>
-          <h2 className="text-3xl font-black text-[#062a5c]">
-            Student Progress
-          </h2>
+         
 
           <p className="text-slate-500 mt-2">
             Update curriculum status for students assigned to you.

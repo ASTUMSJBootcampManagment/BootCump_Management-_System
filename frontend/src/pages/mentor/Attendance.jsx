@@ -124,10 +124,7 @@ export default function Attendance() {
     <MentorLayout title="Attendance">
       <Toast {...toast} onClose={() => setToast(null)} />
       <div className="mb-6">
-        <h2 className="text-3xl font-black text-[#062a5c]">Attendance</h2>
-        <p className="text-slate-500 mt-2">
-          Record, correct and review attendance for your assigned students.
-        </p>
+       
       </div>
       <div className="bg-white border border-slate-200 rounded-2xl p-5 mb-5 grid lg:grid-cols-4 gap-4 items-end">
         <label className="text-sm font-bold">

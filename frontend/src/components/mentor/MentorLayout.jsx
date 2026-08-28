@@ -10,11 +10,11 @@ import {
   BookOpen,
   History,
   Menu,
-  X,
   LogOut,
-  ShieldCheck,
   ChevronRight,
 } from "lucide-react";
+
+import astumsjLogo from "../../assets/astumsj-logo.png";
 
 const links = [
   {
@@ -73,14 +73,26 @@ export default function MentorLayout({ children, title = "Mentor Portal" }) {
 
   const Sidebar = () => (
     <aside className="h-full flex flex-col bg-[#062a5c] text-white">
-      <div className="px-6 py-6 border-b border-white/10">
-        <div className="text-[#08c98b] font-black tracking-[0.22em] text-sm">
-          ASTU MSJ
+      <div className="px-6 py-6 border-b border-white/10 flex items-center gap-3">
+        <div className="w-11 h-11 rounded-xl bg-white p-1 grid place-items-center overflow-hidden shrink-0">
+          <img
+            src={astumsjLogo}
+            alt="ASTU MSJ Logo"
+            className="w-full h-full object-contain"
+          />
         </div>
 
-        <div className="text-lg font-black mt-1">Bootcamp</div>
+        <div className="min-w-0">
+          <div className="text-[#08c98b] font-black tracking-[0.22em] text-xs">
+            ASTU MSJ
+          </div>
 
-        <div className="text-xs text-white/50 mt-1">Mentor Portal</div>
+          <div className="text-sm font-black truncate">Bootcamp</div>
+
+          <div className="text-[10px] text-white/50 mt-0.5 truncate">
+            Mentor Portal
+          </div>
+        </div>
       </div>
 
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -111,8 +123,12 @@ export default function MentorLayout({ children, title = "Mentor Portal" }) {
       <div className="p-4 border-t border-white/10">
         <div className="rounded-xl bg-white/5 p-3 mb-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#08c98b] grid place-items-center font-black">
-              {(user.fullname || "M").charAt(0).toUpperCase()}
+            <div className="w-10 h-10 rounded-full bg-white p-1 grid place-items-center overflow-hidden shrink-0">
+              <img
+                src={astumsjLogo}
+                alt="ASTU MSJ Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
 
             <div className="min-w-0">
@@ -129,7 +145,7 @@ export default function MentorLayout({ children, title = "Mentor Portal" }) {
 
         <button
           onClick={logout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-white/60 hover:bg-red-500/10 hover:text-red-300"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-white/60 hover:bg-red-500/10 hover:text-red-300 transition"
         >
           <LogOut size={17} />
           Sign out
@@ -149,10 +165,7 @@ export default function MentorLayout({ children, title = "Mentor Portal" }) {
           className="fixed inset-0 z-50 bg-slate-950/50 lg:hidden"
           onClick={() => setMobileOpen(false)}
         >
-          <div
-            className="w-[290px] h-full"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="w-72.5 h-full" onClick={(e) => e.stopPropagation()}>
             <Sidebar />
           </div>
         </div>
@@ -179,25 +192,10 @@ export default function MentorLayout({ children, title = "Mentor Portal" }) {
                 </h1>
               </div>
             </div>
-
-            <div className="hidden sm:flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-[#e8faf5] text-[#08ad81] grid place-items-center">
-                <ShieldCheck size={18} />
-              </div>
-
-              <div className="text-right">
-                <div className="text-sm font-black">
-                  {user.fullname || "Mentor"}
-                </div>
-                <div className="text-[11px] text-slate-400">
-                  Authorized mentor
-                </div>
-              </div>
-            </div>
           </div>
         </header>
 
-        <main className="p-4 sm:p-6 lg:p-8 max-w-[1500px]">{children}</main>
+        <main className="p-4 sm:p-6 lg:p-8 max-w-375">{children}</main>
       </div>
     </div>
   );
