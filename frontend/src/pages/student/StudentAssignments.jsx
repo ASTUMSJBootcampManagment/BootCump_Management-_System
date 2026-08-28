@@ -8,11 +8,14 @@ import {
   Clock3,
   AlertCircle,
   Award,
+  FileText,
+  Download,
 } from "lucide-react";
 
 import API from "../../api/axios";
 import StudentLayout from "../../components/student/StudentLayout";
 import "../../components/student/student.css";
+import { downloadPdfFile } from "../../utils/downloadFile";
 
 export default function StudentAssignments() {
   const [assignments, setAssignments] = useState([]);
@@ -40,9 +43,9 @@ export default function StudentAssignments() {
         const fetchedAssignments = Array.isArray(rawData)
           ? rawData
           : rawData?.data?.assignments ||
-            rawData?.data ||
-            rawData?.assignments ||
-            [];
+          rawData?.data ||
+          rawData?.assignments ||
+          [];
         setAssignments(fetchedAssignments);
       } else {
         console.error("Assignments fetch failed:", assignmentRes.reason);
@@ -54,9 +57,9 @@ export default function StudentAssignments() {
         const fetchedSubmissions = Array.isArray(rawSubData)
           ? rawSubData
           : rawSubData?.data?.submissions ||
-            rawSubData?.data ||
-            rawSubData?.submissions ||
-            [];
+          rawSubData?.data ||
+          rawSubData?.submissions ||
+          [];
         setSubmissions(fetchedSubmissions);
       } else {
         console.error("Submissions fetch failed:", submissionRes.reason);
@@ -254,6 +257,38 @@ export default function StudentAssignments() {
                   <div className="text-sm text-slate-600 whitespace-pre-wrap">
                     {assignment.instructions}
                   </div>
+                </div>
+              )}
+
+              {(assignment.pdfUrl || assignment.pdfOriginalName) && (
+                <div className="mt-4 p-4 rounded-xl bg-emerald-50/70 border border-emerald-100 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-100 text-[#08ad81] grid place-items-center shrink-0">
+                      <FileText size={18} />
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase font-black text-emerald-800">
+                        Assignment Material (PDF)
+                      </div>
+                      <div className="text-sm font-semibold text-slate-700 truncate max-w-xs sm:max-w-md">
+                        {assignment.pdfOriginalName || "Assignment PDF Document"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      downloadPdfFile(
+                        assignment._id,
+                        assignment.pdfOriginalName || `${assignment.title}.pdf`
+                      )
+                    }
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#08ad81] hover:bg-emerald-600 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+                  >
+                    <Download size={14} />
+                    Download PDF
+                  </button>
                 </div>
               )}
 

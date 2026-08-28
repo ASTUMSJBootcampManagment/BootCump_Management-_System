@@ -41,8 +41,6 @@ require("./models/userModel");
 require("./models/Batches");
 require("./models/Resource");
 
-dbConnect();
-
 const app = express();
 
 app.use(
@@ -113,6 +111,16 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT_API || process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await dbConnect();
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error("Failed to start server:", err);
+    process.exit(1);
+  }
+};
+
+startServer();

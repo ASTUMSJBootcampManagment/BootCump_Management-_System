@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   ClipboardList,
   Plus,
@@ -7,10 +7,14 @@ import {
   Eye,
   X,
   RefreshCw,
+  FileText,
+  Download,
+  Paperclip,
 } from "lucide-react";
 import MentorLayout from "../../components/mentor/MentorLayout";
 import Toast from "../../components/common/Toast";
 import API from "../../api/axios";
+import { downloadPdfFile } from "../../utils/downloadFile";
 
 const emptyForm = {
   title: "",
@@ -34,6 +38,8 @@ export default function Assignments() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
+  const [pdfFile, setPdfFile] = useState(null);
+  const fileInputRef = useRef(null);
 
   const load = async () => {
     setLoading(true);
@@ -71,6 +77,27 @@ export default function Assignments() {
     load();
   }, []);
 
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (
+        file.type !== "application/pdf" &&
+        !file.name.toLowerCase().endsWith(".pdf")
+      ) {
+        setToast({
+          message: "Please select a valid PDF file.",
+          type: "error",
+        });
+        e.target.value = "";
+        setPdfFile(null);
+        return;
+      }
+      setPdfFile(file);
+    } else {
+      setPdfFile(null);
+    }
+  };
+
   const submit = async (event) => {
     event.preventDefault();
 
@@ -91,15 +118,30 @@ export default function Assignments() {
     setSaving(true);
 
     try {
+      const submitData = new FormData();
+      submitData.append("title", form.title.trim());
+      submitData.append("description", form.description.trim());
+      submitData.append("instructions", form.instructions || "");
+      submitData.append("dueDate", new Date(form.dueDate).toISOString());
+      submitData.append("maxScore", form.maxScore || 100);
+      submitData.append("group", form.group);
+      if (pdfFile) {
+        submitData.append("pdfFile", pdfFile);
+      }
+
       if (editing) {
-        await API.put(`/assignments/${editing._id}`, form);
+        await API.put(`/assignments/${editing._id}`, submitData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
 
         setToast({
           message: "Assignment updated successfully.",
           type: "success",
         });
       } else {
-        await API.post("/assignments", form);
+        await API.post("/assignments", submitData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
 
         setToast({
           message: "Assignment created successfully.",
@@ -108,6 +150,7 @@ export default function Assignments() {
       }
 
       setForm(emptyForm);
+      setPdfFile(null);
       setEditing(null);
       setShowForm(false);
       await load();
@@ -373,6 +416,55 @@ export default function Assignments() {
               />
             </label>
 
+            <div className="md:col-span-2">
+              <label className="font-bold text-sm block mb-2">
+                Upload PDF Material (Cloudinary)
+              </label>
+              <div className="border border-dashed border-slate-300 hover:border-[#08c98b] rounded-xl p-3 bg-slate-50/50 transition">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="mentor-assignment-pdf"
+                />
+                <label
+                  htmlFor="mentor-assignment-pdf"
+                  className="cursor-pointer flex items-center justify-between gap-2"
+                >
+                  <div className="flex items-center gap-2 text-sm text-slate-600 truncate">
+                    <Paperclip size={16} className="text-[#08c98b] shrink-0" />
+                    <span className="truncate">
+                      {pdfFile
+                        ? pdfFile.name
+                        : editing?.pdfUrl
+                          ? "Current PDF attached (click to replace)"
+                          : "Choose a PDF file to attach..."}
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-[#08ad81] px-2.5 py-1 bg-[#e8faf5] rounded-lg shrink-0">
+                    {pdfFile ? "Change" : "Browse"}
+                  </span>
+                </label>
+                {pdfFile && (
+                  <div className="mt-2 flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-200">
+                    <span>{(pdfFile.size / 1024).toFixed(1)} KB</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPdfFile(null);
+                        if (fileInputRef.current) fileInputRef.current.value = "";
+                      }}
+                      className="text-rose-500 hover:text-rose-700 font-bold"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="md:col-span-2 flex justify-end gap-2">
               <button
                 type="button"
@@ -436,6 +528,28 @@ export default function Assignments() {
                 ? new Date(assignment.dueDate).toLocaleString()
                 : "—"}
             </div>
+
+            {(assignment.pdfUrl || assignment.pdfOriginalName) && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadPdfFile(
+                      assignment._id,
+                      assignment.pdfOriginalName || `${assignment.title}.pdf`
+                    )
+                  }
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-[#08ad81] hover:bg-emerald-100 font-bold text-xs transition cursor-pointer"
+                  title="Download Assignment PDF"
+                >
+                  <FileText size={13} />
+                  <span className="truncate max-w-[150px]">
+                    {assignment.pdfOriginalName || "Download PDF"}
+                  </span>
+                  <Download size={13} />
+                </button>
+              </div>
+            )}
 
             <div className="border-t border-slate-100 mt-5 pt-4 flex flex-wrap gap-2">
               <button

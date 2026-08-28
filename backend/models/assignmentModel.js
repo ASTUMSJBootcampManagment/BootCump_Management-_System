@@ -47,6 +47,23 @@ const assignmentSchema =
         ref: "user",
         required: true,
       },
+
+      pdfUrl: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
+      pdfOriginalName: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
+      pdfData: {
+        type: String,
+        default: "",
+      },
     },
 
     {
