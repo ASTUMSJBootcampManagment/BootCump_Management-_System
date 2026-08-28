@@ -15,6 +15,7 @@ import {
   Megaphone,
   Settings,
   LogOut,
+  BookOpen,
   X,
 } from "lucide-react";
 
@@ -69,6 +70,13 @@ const items = [
     label: "Announcements",
     icon: Megaphone,
   },
+  {
+    label: "Resources",
+    title: "Resources",
+    path: "/admin/resources",
+    icon: BookOpen,
+  },
+
   {
     path: "/admin/settings",
     label: "System Settings",

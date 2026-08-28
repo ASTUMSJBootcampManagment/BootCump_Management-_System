@@ -24,6 +24,7 @@ import Attendance from "./pages/admin/Attendance";
 import Progress from "./pages/admin/Progress";
 import Assignments from "./pages/admin/Assignments";
 import Announcements from "./pages/admin/Announcements";
+import Resources from "./pages/admin/Resources";
 import Settings from "./pages/admin/Settings";
 
 // Student
@@ -171,7 +172,10 @@ export default function App() {
               path="/admin/announcements"
               element={<Announcements />}
             />
-
+            <Route
+              path="/admin/resources"
+              element={<Resources />}
+            />
             <Route
               path="/admin/settings"
               element={<Settings />}
