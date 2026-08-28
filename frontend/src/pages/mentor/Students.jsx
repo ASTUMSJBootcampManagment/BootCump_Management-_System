@@ -21,27 +21,18 @@ export default function Students() {
     setLoading(true);
 
     try {
-      const response = await API.get(
-        "/progress/get/students-progress"
-      );
+      // Fetch directly from your user/attendance route for students
+      const response = await API.get("/attendance/students");
 
-      const map = new Map();
+      // Extract array based on API response structure
+      const studentData =
+        response.data?.data || response.data?.users || response.data || [];
 
-      (response.data.data || []).forEach((row) => {
-        if (row.student?._id) {
-          map.set(row.student._id, {
-            ...row.student,
-            batch: row.batch,
-          });
-        }
-      });
-
-      setRecords(Array.from(map.values()));
+      setRecords(Array.isArray(studentData) ? studentData : []);
     } catch (error) {
       setToast({
         message:
-          error.response?.data?.message ||
-          "Unable to load your students.",
+          error.response?.data?.message || "Unable to load your students.",
         type: "error",
       });
     } finally {
@@ -62,22 +53,17 @@ export default function Students() {
       (student) =>
         student.fullname?.toLowerCase().includes(value) ||
         student.email?.toLowerCase().includes(value) ||
-        student.universityId?.toLowerCase().includes(value)
+        student.universityId?.toLowerCase().includes(value),
     );
   }, [records, search]);
 
   return (
     <MentorLayout title="My Students">
-      <Toast
-        {...toast}
-        onClose={() => setToast(null)}
-      />
+      <Toast {...toast} onClose={() => setToast(null)} />
 
       <div className="mb-6 flex flex-wrap justify-between items-end gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#062a5c]">
-            My Students
-          </h2>
+          <h2 className="text-3xl font-black text-[#062a5c]">My Students</h2>
 
           <p className="text-slate-500 mt-2">
             Only students authorized under your mentor assignment are shown.
@@ -86,12 +72,9 @@ export default function Students() {
 
         <button
           onClick={load}
-          className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl font-bold flex gap-2 items-center"
+          className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl font-bold flex gap-2 items-center hover:bg-slate-50 transition-colors"
         >
-          <RefreshCw
-            size={16}
-            className={loading ? "animate-spin" : ""}
-          />
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           Refresh
         </button>
       </div>
@@ -125,9 +108,7 @@ export default function Students() {
             >
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-full bg-[#062a5c] text-white grid place-items-center text-lg font-black">
-                  {(student.fullname || "S")
-                    .charAt(0)
-                    .toUpperCase()}
+                  {(student.fullname || "S").charAt(0).toUpperCase()}
                 </div>
 
                 <div className="min-w-0">
@@ -143,9 +124,7 @@ export default function Students() {
 
               <div className="mt-5 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">
-                    University ID
-                  </span>
+                  <span className="text-slate-400">University ID</span>
 
                   <span className="font-bold">
                     {student.universityId || "—"}
@@ -153,12 +132,12 @@ export default function Students() {
                 </div>
 
                 <div className="flex justify-between">
-                  <span className="text-slate-400">
-                    Batch
-                  </span>
+                  <span className="text-slate-400">Batch</span>
 
                   <span className="font-bold">
-                    {student.batch?.name || "Assigned batch"}
+                    {student.assignedBatch?.name ||
+                      student.batch?.name ||
+                      "Assigned batch"}
                   </span>
                 </div>
               </div>
@@ -169,7 +148,7 @@ export default function Students() {
                     href={student.githubAccount}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs font-bold px-3 py-2 rounded-lg bg-slate-100 flex items-center gap-1"
+                    className="text-xs font-bold px-3 py-2 rounded-lg bg-slate-100 flex items-center gap-1 hover:bg-slate-200 transition-colors"
                   >
                     <FolderGit2 size={13} />
                     GitHub
@@ -181,7 +160,7 @@ export default function Students() {
                     href={student.leetcodeAccount}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs font-bold px-3 py-2 rounded-lg bg-slate-100 flex items-center gap-1"
+                    className="text-xs font-bold px-3 py-2 rounded-lg bg-slate-100 flex items-center gap-1 hover:bg-slate-200 transition-colors"
                   >
                     <Code2 size={13} />
                     LeetCode
@@ -190,7 +169,7 @@ export default function Students() {
 
                 <a
                   href={`mailto:${student.email}`}
-                  className="text-xs font-bold px-3 py-2 rounded-lg bg-[#e8faf5] text-[#08ad81] flex items-center gap-1"
+                  className="text-xs font-bold px-3 py-2 rounded-lg bg-[#e8faf5] text-[#08ad81] flex items-center gap-1 hover:bg-[#d1f5eb] transition-colors"
                 >
                   <Mail size={13} />
                   Email
@@ -203,9 +182,7 @@ export default function Students() {
             <div className="md:col-span-2 xl:col-span-3 bg-white rounded-2xl border p-12 text-center">
               <Users className="mx-auto text-slate-300" size={40} />
 
-              <h3 className="font-black mt-3">
-                No students found
-              </h3>
+              <h3 className="font-black mt-3">No students found</h3>
 
               <p className="text-sm text-slate-400 mt-1">
                 Students assigned to you will appear here.

@@ -398,10 +398,42 @@ const deleteUser = async (
   }
 };
 
+// =====================================================
+// GET MENTOR STUDENTS
+// GET /api/users/my-students (or /api/attendance/students)
+// Mentor / Admin
+// =====================================================
+
+const getMentorStudents = async (req, res, next) => {
+  try {
+    const mentorId = req.user._id || req.user.id;
+
+    // Fetch students assigned to this mentor via `assignedMentor`
+    const students = await User.find({
+      role: "Student",
+      assignedMentor: mentorId,
+    })
+      .select("-password")
+      .populate("assignedBatch", "name year status track")
+      .populate("assignedMentor", "fullname email")
+      .sort({ fullname: 1 });
+
+    return res.status(200).json({
+      success: true,
+      count: students.length,
+      users: students, 
+      data: students,  
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getUsers,
   searchUsers,
   createUser,
   updateUserRole,
   deleteUser,
+  getMentorStudents, 
 };
