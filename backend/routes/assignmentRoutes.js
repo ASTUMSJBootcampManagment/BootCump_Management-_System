@@ -16,6 +16,7 @@ const {
 } = require("../controllers/submissionController");
 
 const { verifyToken, restrictTo } = require("../middlewares/authMiddleware");
+const uploadPdf = require("../middlewares/uploadMiddleware");
 
 // Protect all routes
 router.use(verifyToken);
@@ -28,7 +29,7 @@ router.post("/submit", restrictTo("Student"), submitAssignment);
 router
   .route("/")
   .get(getAssignments)
-  .post(restrictTo("Admin", "Mentor"), createAssignment);
+  .post(restrictTo("Admin", "Mentor"), uploadPdf.single("pdfFile"), createAssignment);
 
 // --- SPECIFIC ASSIGNMENT SUB-ROUTES ---
 router.get("/:id/submissions", restrictTo("Mentor"), getAssignmentSubmissions);
@@ -37,7 +38,7 @@ router.patch("/submissions/:id/grade", restrictTo("Mentor"), gradeSubmission);
 // --- PARAMETERIZED ID ROUTES (Must come LAST) ---
 router
   .route("/:id")
-  .put(restrictTo("Admin", "Mentor"), updateAssignment)
+  .put(restrictTo("Admin", "Mentor"), uploadPdf.single("pdfFile"), updateAssignment)
   .delete(restrictTo("Admin", "Mentor"), deleteAssignment);
 
 module.exports = router;

@@ -4,6 +4,26 @@ const Announcement = require("../models/announcement");
 const User = require("../models/userModel");
 const Batches = require("../models/Batches");
 const AppError = require("../utils/AppError");
+const cloudinary = require("../config/cloudinary");
+
+const uploadToCloudinary = async (fileBuffer, originalName, mimetype) => {
+  const sanitizedName = (originalName || "assignment")
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[^a-zA-Z0-9_-]/g, "_");
+  const extension = originalName && originalName.includes(".") ? originalName.slice(originalName.lastIndexOf(".")) : ".pdf";
+  const publicId = `${Date.now()}_${sanitizedName}${extension}`;
+  
+  const b64 = fileBuffer.toString("base64");
+  const dataUri = `data:${mimetype || "application/pdf"};base64,${b64}`;
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder: "bootcamp/assignments",
+    resource_type: "raw",
+    public_id: publicId,
+  });
+
+  return result;
+};
 
 // Create Assignment (Admin or Mentor)
 const createAssignment = async (req, res, next) => {
@@ -12,7 +32,20 @@ const createAssignment = async (req, res, next) => {
 
     // Default to active batch if not provided
     const activeBatch = await Batches.findOne({ status: "Active" });
-    const targetBatch = activeBatch ? activeBatch._id : null;
+    const targetBatch = req.body.batch || (activeBatch ? activeBatch._id : null);
+
+    let pdfUrl = req.body.pdfUrl || "";
+    let pdfOriginalName = req.body.pdfOriginalName || "";
+
+    if (req.file) {
+      const uploadResult = await uploadToCloudinary(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype
+      );
+      pdfUrl = uploadResult.secure_url || uploadResult.url;
+      pdfOriginalName = req.file.originalname;
+    }
 
     const assignment = new Assignment({
       title,
@@ -23,6 +56,8 @@ const createAssignment = async (req, res, next) => {
       group: group || null,
       maxScore: maxScore || 100,
       createdBy: req.user._id || req.user.id,
+      pdfUrl,
+      pdfOriginalName,
     });
 
     await assignment.save();
@@ -91,7 +126,20 @@ const updateAssignment = async (req, res, next) => {
     if (dueDate) updates.dueDate = dueDate;
     if (maxScore) updates.maxScore = maxScore;
     if (group !== undefined) updates.group = group;
-    if (instructions !== undefined) updates.instructions = instructions;
+    if (req.file) {
+      const uploadResult = await uploadToCloudinary(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype
+      );
+      updates.pdfUrl = uploadResult.secure_url || uploadResult.url;
+      updates.pdfOriginalName = req.file.originalname;
+    } else if (req.body.pdfUrl !== undefined) {
+      updates.pdfUrl = req.body.pdfUrl;
+      if (req.body.pdfOriginalName !== undefined) {
+        updates.pdfOriginalName = req.body.pdfOriginalName;
+      }
+    }
 
     const assignment = await Assignment.findByIdAndUpdate(
       req.params.id,
