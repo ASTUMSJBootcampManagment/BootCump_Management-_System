@@ -22,13 +22,9 @@ function StatCard({ icon: Icon, label, value, description }) {
             {label}
           </div>
 
-          <div className="text-3xl font-black text-[#062a5c] mt-2">
-            {value}
-          </div>
+          <div className="text-3xl font-black text-[#062a5c] mt-2">{value}</div>
 
-          <div className="text-xs text-slate-400 mt-1">
-            {description}
-          </div>
+          <div className="text-xs text-slate-400 mt-1">{description}</div>
         </div>
 
         <div className="w-11 h-11 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center">
@@ -78,15 +74,19 @@ export default function Dashboard() {
     }
 
     try {
-      const r = await API.get("/announcement");
-      results.announcements = r.data.data || [];
+      const r = await API.get("/announcements");
+      results.announcements = r.data.data || r.data || [];
     } catch (e) {
-      setToast({
-        message: "Unable to load announcements.",
-        type: "error",
-      });
+      try {
+        const fallback = await API.get("/announcement");
+        results.announcements = fallback.data.data || fallback.data || [];
+      } catch (err) {
+        setToast({
+          message: "Unable to load announcements.",
+          type: "error",
+        });
+      }
     }
-
     const uniqueStudents = new Map();
 
     results.progress.forEach((row) => {
@@ -109,9 +109,7 @@ export default function Dashboard() {
   }, []);
 
   const stats = useMemo(() => {
-    const completed = progress.filter(
-      (x) => x.status === "Completed"
-    ).length;
+    const completed = progress.filter((x) => x.status === "Completed").length;
 
     const progressPercentage = progress.length
       ? Math.round((completed / progress.length) * 100)
@@ -127,23 +125,19 @@ export default function Dashboard() {
 
   return (
     <MentorLayout title="Dashboard">
-      <Toast
-        {...toast}
-        onClose={() => setToast(null)}
-      />
+      <Toast {...toast} onClose={() => setToast(null)} />
 
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-sm font-bold text-[#08ad81]">
-            Welcome back
-          </div>
+          <div className="text-sm font-bold text-[#08ad81]">Welcome back</div>
 
           <h2 className="text-3xl font-black text-[#062a5c] mt-1">
             Mentor overview
           </h2>
 
           <p className="text-slate-500 mt-2">
-            Manage your assigned students and keep their bootcamp progress moving.
+            Manage your assigned students and keep their bootcamp progress
+            moving.
           </p>
         </div>
 
@@ -151,10 +145,7 @@ export default function Dashboard() {
           onClick={load}
           className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 font-bold text-sm flex items-center gap-2 hover:bg-slate-50"
         >
-          <RefreshCw
-            size={16}
-            className={loading ? "animate-spin" : ""}
-          />
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           Refresh
         </button>
       </div>
@@ -193,9 +184,7 @@ export default function Dashboard() {
         <section className="bg-white border border-slate-200 rounded-2xl p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-black text-lg text-[#062a5c]">
-                Students
-              </h3>
+              <h3 className="font-black text-lg text-[#062a5c]">Students</h3>
 
               <p className="text-sm text-slate-400">
                 Students currently assigned to you
@@ -262,19 +251,14 @@ export default function Dashboard() {
 
           <div className="mt-5 space-y-4">
             {announcements.slice(0, 4).map((item) => (
-              <div
-                key={item._id}
-                className="border-b border-slate-100 pb-3"
-              >
+              <div key={item._id} className="border-b border-slate-100 pb-3">
                 <div className="flex gap-3">
                   <div className="w-9 h-9 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center shrink-0">
                     <Megaphone size={16} />
                   </div>
 
                   <div className="min-w-0">
-                    <div className="font-bold text-sm">
-                      {item.title}
-                    </div>
+                    <div className="font-bold text-sm">{item.title}</div>
 
                     <div className="text-xs text-slate-500 mt-1 line-clamp-2">
                       {item.content}

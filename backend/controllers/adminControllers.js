@@ -1,16 +1,11 @@
 const User = require("../models/userModel");
 const Batch = require("../models/Batches");
 
-const generateTemporaryPassword =
-  require("../utils/generateTemporaryPassword");
+const generateTemporaryPassword = require("../utils/generateTemporaryPassword");
 
-const sendEmail =
-  require("../utils/sendEmail");
+const sendEmail = require("../utils/sendEmail");
 
-const createProgressForStudent = async (
-  studentId,
-  batchId
-) => {
+const createProgressForStudent = async (studentId, batchId) => {
   const Progress = require("../models/progress");
 
   const topics = await Progress.find({
@@ -26,43 +21,23 @@ const createProgressForStudent = async (
       batch: batchId,
       student: studentId,
       status: "NotStarted",
-    }))
+    })),
   );
 };
 
-/*
-|--------------------------------------------------------------------------
-| GET WAITLIST
-|--------------------------------------------------------------------------
-*/
-
-exports.getApplications = async (
-  req,
-  res
-) => {
+exports.getApplications = async (req, res) => {
   try {
-    const applications =
-      await User.find({
-        role: "Student",
-        applicationStatus: {
-          $in: [
-            "waiting",
-            "approved",
-            "rejected",
-          ],
-        },
-      })
-        .populate(
-          "appliedBatch",
-          "name year track startDate endDate status"
-        )
-        .populate(
-          "assignedMentor",
-          "fullname email"
-        )
-        .select("-password")
-        .sort({ createdAt: -1 })
-        .lean();
+    const applications = await User.find({
+      role: "Student",
+      applicationStatus: {
+        $in: ["waiting", "approved", "rejected"],
+      },
+    })
+      .populate("appliedBatch", "name year track startDate endDate status")
+      .populate("assignedMentor", "fullname email")
+      .select("-password")
+      .sort({ createdAt: -1 })
+      .lean();
 
     return res.json({
       success: true,
@@ -74,25 +49,14 @@ exports.getApplications = async (
 
     return res.status(500).json({
       success: false,
-      message:
-        "Unable to load student applications.",
+      message: "Unable to load student applications.",
     });
   }
 };
 
-/*
-|--------------------------------------------------------------------------
-| APPROVE STUDENT
-|--------------------------------------------------------------------------
-*/
-
-exports.approveStudent = async (
-  req,
-  res
-) => {
+exports.approveStudent = async (req, res) => {
   try {
-    const student =
-      await User.findById(req.params.id);
+    const student = await User.findById(req.params.id);
 
     if (!student) {
       return res.status(404).json({
@@ -104,36 +68,27 @@ exports.approveStudent = async (
     if (student.role !== "Student") {
       return res.status(400).json({
         success: false,
-        message:
-          "Only student applications can be approved.",
+        message: "Only student applications can be approved.",
       });
     }
 
-    if (
-      student.applicationStatus ===
-      "approved"
-    ) {
+    if (student.applicationStatus === "approved") {
       return res.status(400).json({
         success: false,
-        message:
-          "This student is already approved.",
+        message: "This student is already approved.",
       });
     }
 
-    const batchId =
-      req.body.batchId ||
-      student.appliedBatch;
+    const batchId = req.body.batchId || student.appliedBatch;
 
     if (!batchId) {
       return res.status(400).json({
         success: false,
-        message:
-          "A batch must be selected before approving the student.",
+        message: "A batch must be selected before approving the student.",
       });
     }
 
-    const batch =
-      await Batch.findById(batchId);
+    const batch = await Batch.findById(batchId);
 
     if (!batch) {
       return res.status(404).json({
@@ -145,60 +100,46 @@ exports.approveStudent = async (
     if (batch.status === "Completed") {
       return res.status(400).json({
         success: false,
-        message:
-          "Students cannot be approved into a completed batch.",
+        message: "Students cannot be approved into a completed batch.",
       });
     }
 
-    const temporaryPassword =
-      generateTemporaryPassword();
+    const temporaryPassword = generateTemporaryPassword();
 
-    student.password =
-      temporaryPassword;
+    student.password = temporaryPassword;
 
     student.status = "approved";
-    student.applicationStatus =
-      "approved";
+    student.applicationStatus = "approved";
     student.verified = true;
 
     student.appliedBatch = batch._id;
     student.assignedBatch = batch._id;
 
     student.approvedAt = new Date();
-    student.approvedBy =
-      req.user._id;
+    student.approvedBy = req.user._id;
 
     student.rejectionReason = "";
 
     student.mustChangePassword = true;
 
-    student.temporaryPasswordExpiresAt =
-      new Date(
-        Date.now() +
-          1000 * 60 * 60 * 24 * 7
-      );
+    student.temporaryPasswordExpiresAt = new Date(
+      Date.now() + 1000 * 60 * 60 * 24 * 7,
+    );
 
     await student.save();
 
-    await Batch.findByIdAndUpdate(
-      batch._id,
-      {
-        $addToSet: {
-          students: student._id,
-        },
-      }
-    );
+    await Batch.findByIdAndUpdate(batch._id, {
+      $addToSet: {
+        students: student._id,
+      },
+    });
 
-    await createProgressForStudent(
-      student._id,
-      batch._id
-    );
+    await createProgressForStudent(student._id, batch._id);
 
     await sendEmail({
       to: student.email,
 
-      subject:
-        "ASTU MSJ Bootcamp - Your Application Has Been Accepted",
+      subject: "ASTU MSJ Bootcamp - Your Application Has Been Accepted",
 
       text: `
 Hello ${student.fullname || "Student"},
@@ -324,33 +265,18 @@ padding:30px;
       },
     });
   } catch (error) {
-    console.error(
-      "Approve student error:",
-      error
-    );
+    console.error("Approve student error:", error);
 
     return res.status(500).json({
       success: false,
-      message:
-        error.message ||
-        "Unable to approve student.",
+      message: error.message || "Unable to approve student.",
     });
   }
 };
 
-/*
-|--------------------------------------------------------------------------
-| REJECT STUDENT
-|--------------------------------------------------------------------------
-*/
-
-exports.rejectStudent = async (
-  req,
-  res
-) => {
+exports.rejectStudent = async (req, res) => {
   try {
-    const student =
-      await User.findById(req.params.id);
+    const student = await User.findById(req.params.id);
 
     if (!student) {
       return res.status(404).json({
@@ -359,18 +285,12 @@ exports.rejectStudent = async (
       });
     }
 
-    const reason =
-      String(
-        req.body.reason || ""
-      ).trim();
+    const reason = String(req.body.reason || "").trim();
 
     student.status = "rejected";
-    student.applicationStatus =
-      "rejected";
+    student.applicationStatus = "rejected";
     student.rejectedAt = new Date();
-    student.rejectionReason =
-      reason ||
-      "Your application was not selected.";
+    student.rejectionReason = reason || "Your application was not selected.";
 
     await student.save();
 
@@ -378,8 +298,7 @@ exports.rejectStudent = async (
       await sendEmail({
         to: student.email,
 
-        subject:
-          "ASTU MSJ Bootcamp - Application Update",
+        subject: "ASTU MSJ Bootcamp - Application Update",
 
         text: `
 Hello ${student.fullname || "Student"},
@@ -407,45 +326,30 @@ ${student.rejectionReason}
         `,
       });
     } catch (emailError) {
-      console.error(
-        "Rejection email failed:",
-        emailError.message
-      );
+      console.error("Rejection email failed:", emailError.message);
     }
 
     return res.json({
       success: true,
-      message:
-        "Student application rejected.",
+      message: "Student application rejected.",
     });
   } catch (error) {
     console.error(error);
 
     return res.status(500).json({
       success: false,
-      message:
-        "Unable to reject student.",
+      message: "Unable to reject student.",
     });
   }
 };
 
-/*
-|--------------------------------------------------------------------------
-| GET MENTORS
-|--------------------------------------------------------------------------
-*/
-
-exports.getMentors = async (
-  req,
-  res
-) => {
+exports.getMentors = async (req, res) => {
   try {
-    const mentors =
-      await User.find({
-        role: "Mentor",
-      })
-        .select("-password")
-        .sort({ fullname: 1 });
+    const mentors = await User.find({
+      role: "Mentor",
+    })
+      .select("-password")
+      .sort({ fullname: 1 });
 
     return res.json({
       success: true,
@@ -454,76 +358,54 @@ exports.getMentors = async (
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message:
-        "Unable to load mentors.",
+      message: "Unable to load mentors.",
     });
   }
 };
 
-/*
-|--------------------------------------------------------------------------
-| CREATE MENTOR
-|--------------------------------------------------------------------------
-*/
-
-exports.createMentor = async (
-  req,
-  res
-) => {
+exports.createMentor = async (req, res) => {
   try {
-    const {
-      fullname,
-      email,
-    } = req.body;
+    const { fullname, email } = req.body;
 
     if (!fullname || !email) {
       return res.status(400).json({
         success: false,
-        message:
-          "Full name and email are required.",
+        message: "Full name and email are required.",
       });
     }
 
-    const normalizedEmail =
-      email.trim().toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
 
-    const exists =
-      await User.findOne({
-        email: normalizedEmail,
-      });
+    const exists = await User.findOne({
+      email: normalizedEmail,
+    });
 
     if (exists) {
       return res.status(409).json({
         success: false,
-        message:
-          "An account already exists with this email.",
+        message: "An account already exists with this email.",
       });
     }
 
-    const temporaryPassword =
-      generateTemporaryPassword();
+    const temporaryPassword = generateTemporaryPassword();
 
-    const mentor =
-      await User.create({
-        fullname: fullname.trim(),
-        email: normalizedEmail,
-        password: temporaryPassword,
-        role: "Mentor",
-        status: "approved",
-        verified: true,
-        mustChangePassword: true,
-        temporaryPasswordExpiresAt:
-          new Date(
-            Date.now() +
-              1000 * 60 * 60 * 24 * 7
-          ),
-      });
+    const mentor = await User.create({
+      fullname: fullname.trim(),
+      email: normalizedEmail,
+      password: temporaryPassword,
+      role: "Mentor",
+      status: "approved",
+      verified: true,
+      mustChangePassword: true,
+      temporaryPasswordExpiresAt: new Date(
+        Date.now() + 1000 * 60 * 60 * 24 * 7,
+      ),
+    });
 
     await sendEmail({
       to: mentor.email,
 
-      subject:
-        "ASTU MSJ Bootcamp - Mentor Account",
+      subject: "ASTU MSJ Bootcamp - Mentor Account",
 
       text: `
 Your mentor account has been created.
@@ -563,8 +445,7 @@ Please change your password after login.
 
     return res.status(201).json({
       success: true,
-      message:
-        "Mentor created and login details sent by email.",
+      message: "Mentor created and login details sent by email.",
       data: {
         id: mentor._id,
         fullname: mentor.fullname,
@@ -576,34 +457,18 @@ Please change your password after login.
 
     return res.status(500).json({
       success: false,
-      message:
-        error.message ||
-        "Unable to create mentor.",
+      message: error.message || "Unable to create mentor.",
     });
   }
 };
 
-/*
-|--------------------------------------------------------------------------
-| ASSIGN MENTOR TO STUDENT
-|--------------------------------------------------------------------------
-*/
-
-exports.assignMentorToStudent = async (
-  req,
-  res
-) => {
+exports.assignMentorToStudent = async (req, res) => {
   try {
-    const {
-      studentId,
-      mentorId,
-    } = req.body;
+    const { studentId, mentorId } = req.body;
 
-    const student =
-      await User.findById(studentId);
+    const student = await User.findById(studentId);
 
-    const mentor =
-      await User.findById(mentorId);
+    const mentor = await User.findById(mentorId);
 
     if (!student || student.role !== "Student") {
       return res.status(404).json({
@@ -622,47 +487,33 @@ exports.assignMentorToStudent = async (
     if (!student.assignedBatch) {
       return res.status(400).json({
         success: false,
-        message:
-          "Student is not enrolled in a batch.",
+        message: "Student is not enrolled in a batch.",
       });
     }
 
-    const batch =
-      await Batch.findById(
-        student.assignedBatch
-      );
+    const batch = await Batch.findById(student.assignedBatch);
 
     if (!batch) {
       return res.status(404).json({
         success: false,
-        message:
-          "Student batch not found.",
+        message: "Student batch not found.",
       });
     }
 
-    if (
-      !batch.mentors.some(
-        (id) =>
-          String(id) ===
-          String(mentor._id)
-      )
-    ) {
+    if (!batch.mentors.some((id) => String(id) === String(mentor._id))) {
       return res.status(400).json({
         success: false,
-        message:
-          "This mentor is not assigned to the student's batch.",
+        message: "This mentor is not assigned to the student's batch.",
       });
     }
 
-    student.assignedMentor =
-      mentor._id;
+    student.assignedMentor = mentor._id;
 
     await student.save();
 
     return res.json({
       success: true,
-      message:
-        "Mentor assigned successfully.",
+      message: "Mentor assigned successfully.",
       data: {
         studentId: student._id,
         mentorId: mentor._id,
@@ -673,8 +524,7 @@ exports.assignMentorToStudent = async (
 
     return res.status(500).json({
       success: false,
-      message:
-        "Unable to assign mentor.",
+      message: "Unable to assign mentor.",
     });
   }
 };
@@ -702,11 +552,6 @@ exports.getUsers = async (req, res, next) => {
     next(error);
   }
 };
-/*
-|--------------------------------------------------------------------------
-| GET SINGLE APPLICATION
-|--------------------------------------------------------------------------
-*/
 exports.getApplication = async (req, res) => {
   try {
     const student = await User.findById(req.params.id)
@@ -715,7 +560,9 @@ exports.getApplication = async (req, res) => {
       .select("-password");
 
     if (!student) {
-      return res.status(404).json({ success: false, message: "Application not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Application not found." });
     }
 
     return res.json({ success: true, data: student });
@@ -724,22 +571,11 @@ exports.getApplication = async (req, res) => {
   }
 };
 
-/*
-|--------------------------------------------------------------------------
-| ASSIGN MENTOR TO BATCH
-|--------------------------------------------------------------------------
-*/
 exports.assignMentorToBatch = async (req, res) => {
-  // TODO: Implement batch mentor assignment logic
+  
   res.json({ success: true, message: "Assign mentor to batch endpoint" });
 };
 
-/*
-|--------------------------------------------------------------------------
-| COMPLETE BATCH
-|--------------------------------------------------------------------------
-*/
 exports.completeBatch = async (req, res) => {
-  // TODO: Implement batch completion logic
   res.json({ success: true, message: "Complete batch endpoint" });
 };

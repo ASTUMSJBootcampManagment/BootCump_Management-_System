@@ -398,11 +398,6 @@ const deleteUser = async (
   }
 };
 
-// =====================================================
-// GET MENTOR STUDENTS
-// GET /api/users/my-students (or /api/attendance/students)
-// Mentor / Admin
-// =====================================================
 
 const getMentorStudents = async (req, res, next) => {
   try {

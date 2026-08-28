@@ -137,5 +137,5 @@ module.exports = {
   submitAssignment,
   getMySubmissions,
   getAssignmentSubmissions,
-  gradeSubmission, // <-- EXPORT THIS FUNCTION
+  gradeSubmission, 
 };

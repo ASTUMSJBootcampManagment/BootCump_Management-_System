@@ -102,7 +102,7 @@ export default function History() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-sm">
+            <table className="w-full min-w-175 text-sm">
               <thead className="bg-[#062a5c] text-white">
                 <tr>
                   <th className="text-left px-5 py-4">

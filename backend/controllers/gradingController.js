@@ -2,7 +2,6 @@ const Submission = require("../models/submissionModel");
 const User = require("../models/userModel");
 const AppError = require("../utils/AppError");
 
-// Grade Submission (Admin / Mentor)
 const gradeSubmission = async (req, res, next) => {
   try {
     const { id: submissionId } = req.params;

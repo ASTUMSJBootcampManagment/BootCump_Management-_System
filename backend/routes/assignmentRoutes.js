@@ -30,11 +30,9 @@ router
   .get(getAssignments)
   .post(restrictTo("Admin", "Mentor"), createAssignment);
 
-// --- SPECIFIC ASSIGNMENT SUB-ROUTES ---
 router.get("/:id/submissions", restrictTo("Mentor"), getAssignmentSubmissions);
 router.patch("/submissions/:id/grade", restrictTo("Mentor"), gradeSubmission);
 
-// --- PARAMETERIZED ID ROUTES (Must come LAST) ---
 router
   .route("/:id")
   .put(restrictTo("Admin", "Mentor"), updateAssignment)

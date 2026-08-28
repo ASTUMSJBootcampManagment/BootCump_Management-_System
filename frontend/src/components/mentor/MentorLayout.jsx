@@ -78,13 +78,9 @@ export default function MentorLayout({ children, title = "Mentor Portal" }) {
           ASTU MSJ
         </div>
 
-        <div className="text-lg font-black mt-1">
-          Bootcamp
-        </div>
+        <div className="text-lg font-black mt-1">Bootcamp</div>
 
-        <div className="text-xs text-white/50 mt-1">
-          Mentor Portal
-        </div>
+        <div className="text-xs text-white/50 mt-1">Mentor Portal</div>
       </div>
 
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -201,9 +197,7 @@ export default function MentorLayout({ children, title = "Mentor Portal" }) {
           </div>
         </header>
 
-        <main className="p-4 sm:p-6 lg:p-8 max-w-[1500px]">
-          {children}
-        </main>
+        <main className="p-4 sm:p-6 lg:p-8 max-w-[1500px]">{children}</main>
       </div>
     </div>
   );
