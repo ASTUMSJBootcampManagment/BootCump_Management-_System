@@ -11,6 +11,8 @@ const {
   assignMentorToBatch,
   enrollStudentInBatch,
   completeBatch,
+  setBatchGroups,
+  getMyGroups,
 } = require("../controllers/BatchController");
 
 const {
@@ -19,6 +21,8 @@ const {
 } = require("../middlewares/authMiddleware");
 
 router.use(verifyToken);
+
+router.get("/my-groups", restrictTo("Mentor"), getMyGroups);
 
 router
   .route("/")
@@ -70,5 +74,7 @@ router.post(
   restrictTo("Admin"),
   completeBatch
 );
+
+router.put("/:id/groups", restrictTo("Admin"), setBatchGroups);
 
 module.exports = router;

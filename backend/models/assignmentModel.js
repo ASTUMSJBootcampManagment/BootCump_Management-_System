@@ -37,6 +37,11 @@ const assignmentSchema =
         default: null,
       },
 
+      group: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: null,
+      },
+
       createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "user",

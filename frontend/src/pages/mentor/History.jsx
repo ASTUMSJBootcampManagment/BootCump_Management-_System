@@ -19,7 +19,7 @@ export default function History() {
     setLoading(true);
 
     try {
-      const response = await API.get("/attendance");
+      const response = await API.get("/attendance/history");
       setRecords(response.data.data || []);
     } catch (error) {
       setToast({

@@ -80,14 +80,14 @@ export default function Progress() {
     );
   }, [records, search]);
 
-  const update = async (row, status) => {
+  const update = async (row, status, notes = row.notes || "") => {
     setSaving(row._id);
 
     try {
-      const response = await API.post("/progress/update", {
-        studentId: row.student?._id || row.student,
+      const response = await API.patch(`/progress/update-progress/${row.student?._id || row.student}`, {
         topic: row.topic,
         status,
+        notes,
       });
 
       const updated = response.data.data;
@@ -95,7 +95,7 @@ export default function Progress() {
       setRecords((previous) =>
         previous.map((item) =>
           item._id === row._id
-            ? { ...item, ...updated, status }
+            ? { ...item, ...updated, status, notes }
             : item
         )
       );
@@ -223,7 +223,7 @@ export default function Progress() {
                       </td>
 
                       <td className="px-5 py-4">
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <select
                             value={current}
                             disabled={saving === row._id}
@@ -249,6 +249,18 @@ export default function Progress() {
                             />
                           )}
                         </div>
+
+                        <textarea
+                          defaultValue={row.notes || ""}
+                          onBlur={(e) => {
+                            if (e.target.value !== (row.notes || "")) {
+                              update(row, current, e.target.value);
+                            }
+                          }}
+                          placeholder="Add a progress note..."
+                          rows="2"
+                          className="mt-2 w-full border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#08c98b]"
+                        />
                       </td>
                     </tr>
                   );

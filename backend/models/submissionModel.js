@@ -20,6 +20,12 @@ const submissionSchema = new mongoose.Schema(
       trim: true,
     },
 
+    githubUrl: { type: String, default: "", trim: true },
+    liveUrl: { type: String, default: "", trim: true },
+    notes: { type: String, default: "", trim: true },
+    status: { type: String, enum: ["Submitted", "Graded", "ResubmissionRequested"], default: "Submitted" },
+    resubmissionRequested: { type: Boolean, default: false },
+
     submittedAt: {
       type: Date,
       default: Date.now,

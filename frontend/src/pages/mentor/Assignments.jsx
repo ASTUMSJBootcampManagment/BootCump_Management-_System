@@ -18,12 +18,12 @@ const emptyForm = {
   instructions: "",
   dueDate: "",
   maxScore: 100,
-  batch: "",
+  group: "",
 };
 
 export default function Assignments() {
   const [assignments, setAssignments] = useState([]);
-  const [batches, setBatches] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editing, setEditing] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -55,9 +55,12 @@ export default function Assignments() {
     }
 
     try {
-      const batchesResponse = await API.get("/batches");
+      const groupsResponse = await API.get("/batches/my-groups");
 
-      setBatches(batchesResponse.data.data || []);
+      setGroups(groupsResponse.data.data || []);
+      if (!(groupsResponse.data.data || []).length) {
+        setToast({ type: "error", message: "No group is assigned to you in the active batch. Ask an admin to create a group and add you to it." });
+      }
     } catch {
       // Assignments can still be displayed if batches fail.
     }
@@ -76,11 +79,11 @@ export default function Assignments() {
       !form.title.trim() ||
       !form.description.trim() ||
       !form.dueDate ||
-      !form.batch
+      !form.group
     ) {
       setToast({
         message:
-          "Title, description, due date and batch are required.",
+          "Title, description, due date and group are required.",
         type: "error",
       });
 
@@ -138,9 +141,7 @@ export default function Assignments() {
             .slice(0, 16)
         : "",
       maxScore: assignment.maxScore || 100,
-      batch:
-        assignment.batch?._id ||
-        assignment.batch ||
+      group: assignment.group ||
         "",
     });
 
@@ -195,14 +196,14 @@ export default function Assignments() {
     }
   };
 
-  const gradeSubmission = async (submission) => {
+  const gradeSubmission = async (submission, requestResubmission = false) => {
     const value = Number(grade[submission._id]);
 
-    if (
+    if (!requestResubmission && (
       !Number.isFinite(value) ||
       value < 0 ||
       value > Number(selected?.maxScore || 100)
-    ) {
+    )) {
       setToast({
         message: "Enter a valid grade.",
         type: "error",
@@ -217,6 +218,7 @@ export default function Assignments() {
         {
           grade: value,
           feedback: feedback[submission._id] || "",
+          requestResubmission,
         }
       );
 
@@ -320,29 +322,29 @@ export default function Assignments() {
             </label>
 
             <label className="font-bold text-sm">
-              Batch
+              Group
 
               <select
-                value={form.batch}
+                value={form.group}
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    batch: e.target.value,
+                    group: e.target.value,
                   })
                 }
                 className="w-full mt-2 border rounded-xl px-3 py-3 font-normal"
                 required
               >
                 <option value="">
-                  Select batch
+                  Select group
                 </option>
 
-                {batches.map((batch) => (
+                {groups.map((group) => (
                   <option
-                    key={batch._id}
-                    value={batch._id}
+                    key={group._id}
+                    value={group._id}
                   >
-                    {batch.name}
+                    {group.name}
                   </option>
                 ))}
               </select>
@@ -464,9 +466,9 @@ export default function Assignments() {
             </p>
 
             <div className="mt-4 text-xs text-slate-400">
-              Batch:{" "}
+              Group:{" "}
               <span className="font-bold text-slate-600">
-                {assignment.batch?.name || "—"}
+                {groups.find((group) => String(group._id) === String(assignment.group))?.name || "—"}
               </span>
             </div>
 
@@ -634,6 +636,15 @@ export default function Assignments() {
                       className="px-4 py-3 bg-[#08c98b] text-white rounded-xl font-black"
                     >
                       Save grade
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        gradeSubmission(submission, true)
+                      }
+                      className="px-4 py-3 bg-amber-50 text-amber-800 rounded-xl font-black text-sm"
+                    >
+                      Request resubmission
                     </button>
                   </div>
                 </article>

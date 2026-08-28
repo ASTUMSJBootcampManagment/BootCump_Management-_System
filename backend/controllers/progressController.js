@@ -6,6 +6,7 @@ const Batch =
 
 const User =
   require("../models/userModel");
+const { getMentorGroups, mentorCanAccessStudent } = require("../utils/groupAccess");
 
 exports.createTopic = async (
   req,
@@ -59,6 +60,7 @@ exports.createTopic = async (
           await Progress.create({
             topic,
             batch: batch._id,
+            group: batch.groups.find((group) => group.students.some((id) => String(id) === String(student._id)))?._id || null,
             student:
               student._id,
             status: "NotStarted",
@@ -158,7 +160,18 @@ exports.updateProgress = async (
       notes,
     } = req.body;
 
-    if (!studentId || !status) {
+    const statusMap = {
+      "not started": "NotStarted",
+      notstarted: "NotStarted",
+      "in progress": "InProgress",
+      inprogress: "InProgress",
+      completed: "Completed",
+      "needs improvement": "NeedsImprovement",
+      needsimprovement: "NeedsImprovement",
+    };
+    const normalizedStatus = statusMap[String(status || "").toLowerCase()];
+
+    if (!studentId || !normalizedStatus) {
       return res.status(400).json({
         success: false,
         message:
@@ -179,20 +192,10 @@ exports.updateProgress = async (
       });
     }
 
-    const batch =
-      await Batch.findOne({
-        students: studentId,
-        mentors:
-          req.user.role ===
-          "Mentor"
-            ? req.user._id
-            : { $exists: true },
-      });
-
     if (
       req.user.role ===
-        "Mentor" &&
-      !batch
+      "Mentor" &&
+      !(await mentorCanAccessStudent(req.user._id, studentId))
     ) {
       return res.status(403).json({
         success: false,
@@ -212,7 +215,7 @@ exports.updateProgress = async (
             topic,
           },
           {
-            status,
+            status: normalizedStatus,
             notes:
               notes || "",
             updatedBy:
@@ -231,7 +234,7 @@ exports.updateProgress = async (
               studentId,
           },
           {
-            status,
+            status: normalizedStatus,
             notes:
               notes || "",
             updatedBy:
@@ -271,12 +274,10 @@ exports.updateProgress = async (
 exports.getMentorStudentsProgress =
   async (req, res) => {
     try {
-      const batch =
-        await Batch.findOne({
-          mentors: req.user._id,
-        });
+      const { batch, groups } = await getMentorGroups(req.user._id);
+      const groupIds = groups.map((group) => group._id).filter(Boolean);
 
-      if (!batch) {
+      if (!batch || !groupIds.length) {
         return res.json({
           success: true,
           data: [],
@@ -286,6 +287,7 @@ exports.getMentorStudentsProgress =
       const records =
         await Progress.find({
           batch: batch._id,
+          group: { $in: groupIds },
           student: {
             $ne: null,
           },
@@ -294,6 +296,7 @@ exports.getMentorStudentsProgress =
             "student",
             "fullname email"
           )
+          .populate("batch", "name")
           .sort({
             student: 1,
             createdAt: 1,

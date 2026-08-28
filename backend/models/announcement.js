@@ -12,6 +12,10 @@ const AnnouncementSchema= new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'Batch',
     },
+    group: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: null,
+    },
     announcedTo:{
         type: String,
         enum:["All","Student","Admin","Mentor"],

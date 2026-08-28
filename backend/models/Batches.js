@@ -1,5 +1,14 @@
 const mongoose = require("mongoose");
 
+const groupSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    mentors: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
+    students: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
+  },
+  { _id: true }
+);
+
 const batchSchema = new mongoose.Schema(
   {
     name: {
@@ -72,6 +81,11 @@ const batchSchema = new mongoose.Schema(
         ref: "user",
       },
     ],
+
+    groups: {
+      type: [groupSchema],
+      default: [],
+    },
   },
 
   {

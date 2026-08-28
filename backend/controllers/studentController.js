@@ -85,10 +85,8 @@ exports.getStudentOverview = async (req, res, next) => {
         .lean(),
     ]);
 
-    const attended = attendance.filter((item) =>
-      ["present", "late"].includes(
-        String(item.status).toLowerCase()
-      )
+    const attended = attendance.filter(
+      (item) => String(item.status).toLowerCase() === "present"
     ).length;
 
     const attendancePercentage = attendance.length
@@ -217,7 +215,7 @@ exports.getMyAttendance = async (
 
     const percentage = records.length
       ? Math.round(
-          ((present + late) / records.length) * 100
+          (present / records.length) * 100
         )
       : 0;
 

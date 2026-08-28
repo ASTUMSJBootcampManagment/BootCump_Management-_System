@@ -309,7 +309,7 @@ export default function Attendance() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[850px]">
+              <table className="w-full min-w-212.5">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="text-left px-5 py-4 text-xs font-black text-slate-500">
