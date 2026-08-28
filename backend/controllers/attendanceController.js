@@ -2,16 +2,41 @@ const mongoose = require("mongoose");
 const Attendance = require("../models/attendance");
 const User = require("../models/userModel");
 
-exports.markAttendance = async (req, res) => {
+exports.markAttendance = async (req, res, next) => {
   try {
-    const { student, status, date } = req.body;
-    const newAttendance = await Attendance.create({
+    const { student, status, date, batch } = req.body;
+
+    if (!student || !status) {
+      return res.status(400).json({
+        success: false,
+        message: "Student ID and status are required.",
+      });
+    }
+
+    // Normalize date to start of day to prevent duplicate records for the same day
+    const targetDate = date ? new Date(date) : new Date();
+    targetDate.setHours(0, 0, 0, 0);
+
+    const filter = {
+      student,
+      date: targetDate,
+    };
+
+    const update = {
       student,
       status,
-      date: date || Date.now(),
+      date: targetDate,
+      ...(batch && { batch }),
+    };
+
+    // Upsert updates existing attendance or creates a new one
+    const newAttendance = await Attendance.findOneAndUpdate(filter, update, {
+      new: true,
+      upsert: true,
+      runValidators: true,
     });
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
       message: "Attendance marked successfully",
       data: newAttendance,
@@ -21,11 +46,11 @@ exports.markAttendance = async (req, res) => {
   }
 };
 
-exports.getAttendance = async (req, res) => {
+exports.getAttendance = async (req, res, next) => {
   try {
     const attendance = await Attendance.find()
       .populate("student", "name email")
-      .populate("batch", "batchName");
+      .populate("batch", "batchName name");
 
     res.status(200).json({
       success: true,
@@ -33,11 +58,11 @@ exports.getAttendance = async (req, res) => {
       data: attendance,
     });
   } catch (error) {
-   next(error);
+    next(error);
   }
 };
 
-exports.getStudentAttendanceStats = async (req, res) => {
+exports.getStudentAttendanceStats = async (req, res, next) => {
   try {
     const { studentId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
@@ -118,6 +143,18 @@ exports.getStudentAttendanceStats = async (req, res) => {
         totalLate: 0,
         percentage: 0,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.deleteAllAttendance = async (req, res, next) => {
+  try {
+    await Attendance.deleteMany({});
+    res.status(200).json({
+      success: true,
+      message: "All attendance records deleted successfully",
     });
   } catch (error) {
     next(error);
