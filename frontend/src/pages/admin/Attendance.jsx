@@ -41,7 +41,7 @@ export default function Attendance() {
         await Promise.all([
           API.get("/admin/users?role=Student"),
           API.get("/batches"),
-          API.get("/attendance"),
+          API.get(`/attendance?date=${selectedDate}`),
         ]);
 
       const studentData = studentsResponse.data?.data || [];
@@ -73,7 +73,6 @@ export default function Attendance() {
       setAttendance(initialAttendance);
     } catch (error) {
       console.error(error);
-
       setMessage(
         error.response?.data?.message ||
           "Unable to load attendance data."
@@ -99,10 +98,11 @@ export default function Attendance() {
         fullname.toLowerCase().includes(query) ||
         email.toLowerCase().includes(query);
 
+      const studentBatchId =
+        student.assignedBatch?._id || student.appliedBatch?._id || student.assignedBatch || student.appliedBatch;
+
       const matchesBatch =
-        !selectedBatch ||
-        student.assignedBatch?._id === selectedBatch ||
-        student.appliedBatch?._id === selectedBatch;
+        !selectedBatch || studentBatchId === selectedBatch;
 
       return matchesSearch && matchesBatch;
     });
@@ -117,11 +117,9 @@ export default function Attendance() {
 
   const markAll = (status) => {
     const updated = { ...attendance };
-
     filteredStudents.forEach((student) => {
       updated[student._id] = status;
     });
-
     setAttendance(updated);
   };
 
@@ -154,18 +152,16 @@ export default function Attendance() {
         return;
       }
 
-      for (const record of records) {
-        await API.post("/attendance/attender", record);
-      }
+      // Batch bulk upsert endpoint
+      await API.post("/attendance/bulk", { records });
 
       setMessage("Attendance saved successfully.");
       await loadData();
     } catch (error) {
       console.error(error);
-
       setMessage(
         error.response?.data?.message ||
-          "Unable to save attendance. Check for duplicate records."
+          "Unable to save attendance. Check server logs."
       );
     } finally {
       setSaving(false);
@@ -177,15 +173,17 @@ export default function Attendance() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          
+          <h1 className="text-xl font-black text-slate-800">
+            Attendance Tracker
+          </h1>
           <p className="text-sm text-slate-500 mt-1">
-            student attendance.
+            Manage daily student attendance records.
           </p>
         </div>
 
         <button
           onClick={loadData}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-sm hover:bg-slate-50"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-sm hover:bg-slate-50 transition"
         >
           <RefreshCw size={17} />
           Refresh
@@ -194,7 +192,7 @@ export default function Attendance() {
 
       {/* Message */}
       {message && (
-        <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700">
+        <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
           {message}
         </div>
       )}
@@ -206,13 +204,11 @@ export default function Attendance() {
             <label className="text-xs font-black text-slate-600">
               Date
             </label>
-
             <div className="relative mt-1">
               <CalendarDays
                 size={17}
                 className="absolute left-3 top-3 text-slate-400"
               />
-
               <input
                 type="date"
                 value={selectedDate}
@@ -226,14 +222,12 @@ export default function Attendance() {
             <label className="text-xs font-black text-slate-600">
               Batch
             </label>
-
             <select
               value={selectedBatch}
               onChange={(e) => setSelectedBatch(e.target.value)}
-              className="w-full mt-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none"
+              className="w-full mt-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#08c98b]/20"
             >
               <option value="">All Batches</option>
-
               {batches.map((batch) => (
                 <option key={batch._id} value={batch._id}>
                   {batch.name}
@@ -246,19 +240,17 @@ export default function Attendance() {
             <label className="text-xs font-black text-slate-600">
               Search Student
             </label>
-
             <div className="relative mt-1">
               <Search
                 size={17}
                 className="absolute left-3 top-3 text-slate-400"
               />
-
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Name or email..."
-                className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none"
+                className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#08c98b]/20"
               />
             </div>
           </div>
@@ -269,21 +261,21 @@ export default function Attendance() {
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => markAll("present")}
-          className="px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-sm"
+          className="px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-sm hover:bg-emerald-100 transition"
         >
           Mark All Present
         </button>
 
         <button
           onClick={() => markAll("absent")}
-          className="px-4 py-2 rounded-xl bg-rose-50 text-rose-700 font-bold text-sm"
+          className="px-4 py-2 rounded-xl bg-rose-50 text-rose-700 font-bold text-sm hover:bg-rose-100 transition"
         >
           Mark All Absent
         </button>
 
         <button
           onClick={() => markAll("late")}
-          className="px-4 py-2 rounded-xl bg-amber-50 text-amber-700 font-bold text-sm"
+          className="px-4 py-2 rounded-xl bg-amber-50 text-amber-700 font-bold text-sm hover:bg-amber-100 transition"
         >
           Mark All Late
         </button>
@@ -302,17 +294,15 @@ export default function Attendance() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-212.5">
+              <table className="w-full min-w-[700px]">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="text-left px-5 py-4 text-xs font-black text-slate-500">
                       Student
                     </th>
-
                     <th className="text-left px-5 py-4 text-xs font-black text-slate-500">
                       Batch
                     </th>
-
                     <th className="text-left px-5 py-4 text-xs font-black text-slate-500">
                       Attendance
                     </th>
@@ -333,16 +323,12 @@ export default function Attendance() {
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-[#e8faf5] text-[#08ad81] grid place-items-center font-black">
-                              {studentName
-                                .charAt(0)
-                                .toUpperCase()}
+                              {studentName.charAt(0).toUpperCase()}
                             </div>
-
                             <div>
                               <p className="font-bold text-slate-800">
                                 {studentName}
                               </p>
-
                               <p className="text-xs text-slate-400">
                                 {student.email}
                               </p>
@@ -359,8 +345,7 @@ export default function Attendance() {
                         <td className="px-5 py-4">
                           <div className="flex flex-wrap gap-2">
                             {STATUS_OPTIONS.map((option) => {
-                              const active =
-                                status === option.value;
+                              const active = status === option.value;
 
                               return (
                                 <button
@@ -373,42 +358,34 @@ export default function Attendance() {
                                   }
                                   className={`px-3 py-2 rounded-lg text-xs font-black border transition ${
                                     active
-                                      ? option.value ===
-                                        "present"
+                                      ? option.value === "present"
                                         ? "bg-emerald-500 text-white border-emerald-500"
-                                        : option.value ===
-                                          "absent"
+                                        : option.value === "absent"
                                         ? "bg-rose-500 text-white border-rose-500"
-                                        : option.value ===
-                                          "late"
+                                        : option.value === "late"
                                         ? "bg-amber-500 text-white border-amber-500"
                                         : "bg-blue-500 text-white border-blue-500"
                                       : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
                                   }`}
                                 >
-                                  {option.value ===
-                                    "present" && (
+                                  {option.value === "present" && (
                                     <Check
                                       size={13}
                                       className="inline mr-1"
                                     />
                                   )}
-
-                                  {option.value ===
-                                    "absent" && (
+                                  {option.value === "absent" && (
                                     <XCircle
                                       size={13}
                                       className="inline mr-1"
                                     />
                                   )}
-
                                   {option.value === "late" && (
                                     <Clock3
                                       size={13}
                                       className="inline mr-1"
                                     />
                                   )}
-
                                   {option.label}
                                 </button>
                               );
@@ -426,10 +403,9 @@ export default function Attendance() {
               <button
                 onClick={saveAttendance}
                 disabled={saving}
-                className="px-5 py-3 rounded-xl bg-[#08c98b] hover:bg-emerald-600 disabled:opacity-50 text-white font-black text-sm flex items-center gap-2"
+                className="px-5 py-3 rounded-xl bg-[#08c98b] hover:bg-emerald-600 disabled:opacity-50 text-white font-black text-sm flex items-center gap-2 transition"
               >
                 <UserCheck size={17} />
-
                 {saving ? "Saving..." : "Save Attendance"}
               </button>
             </div>

@@ -10,20 +10,12 @@ const {
 const admin = require("../controllers/adminControllers");
 const system = require("../controllers/systemController");
 
-/*
-|--------------------------------------------------------------------------
-| ADMIN PROTECTION
-|--------------------------------------------------------------------------
-*/
+
 
 router.use(verifyToken);
 router.use(restrictTo("Admin"));
 
-/*
-|--------------------------------------------------------------------------
-| APPLICATIONS
-|--------------------------------------------------------------------------
-*/
+
 
 router.get(
   "/applications",
@@ -35,11 +27,6 @@ router.get(
   admin.getApplication
 );
 
-/*
-|--------------------------------------------------------------------------
-| STUDENT APPLICATION DECISIONS
-|--------------------------------------------------------------------------
-*/
 
 router.patch(
   "/students/:id/approve",
@@ -51,11 +38,6 @@ router.patch(
   admin.rejectStudent
 );
 
-/*
-|--------------------------------------------------------------------------
-| MENTOR MANAGEMENT
-|--------------------------------------------------------------------------
-*/
 
 router.post(
   "/mentors",
@@ -67,33 +49,17 @@ router.patch(
   admin.assignMentorToStudent
 );
 
-/*
-|--------------------------------------------------------------------------
-| BATCH / MENTOR RELATIONSHIPS
-|--------------------------------------------------------------------------
-*/
 
 router.patch(
   "/batches/:id/mentor",
   admin.assignMentorToBatch
 );
 
-/*
-|--------------------------------------------------------------------------
-| BATCH COMPLETION
-|--------------------------------------------------------------------------
-*/
 
 router.post(
   "/batches/:id/complete",
   admin.completeBatch
 );
-
-/*
-|--------------------------------------------------------------------------
-| REGISTRATION CONTROL
-|--------------------------------------------------------------------------
-*/
 
 router.post(
   "/registration/open",
@@ -105,17 +71,7 @@ router.post(
   system.closeRegistration
 );
 
-/*
-|--------------------------------------------------------------------------
-| ADMIN USERS
-|--------------------------------------------------------------------------
-|
-| The frontend uses:
-|
-| /admin/users?role=Mentor
-| /admin/users?role=Student
-|
-*/
+
 
 router.get(
   "/users",
