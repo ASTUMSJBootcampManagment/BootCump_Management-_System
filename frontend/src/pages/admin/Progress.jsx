@@ -134,13 +134,7 @@ export default function Progress() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] font-black text-[#08ad81]">
-            Learning Management
-          </p>
-
-          <h1 className="text-2xl sm:text-3xl font-black text-[#062a5c]">
-            Progress
-          </h1>
+          
 
           <p className="text-sm text-slate-500 mt-1">
             Create learning topics and monitor student progress.

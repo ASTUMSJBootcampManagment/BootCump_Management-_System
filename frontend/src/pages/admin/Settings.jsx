@@ -143,13 +143,7 @@ export default function Settings() {
     <div className="max-w-5xl space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] font-black text-[#08ad81]">
-            Administration
-          </p>
-
-          <h1 className="text-2xl sm:text-3xl font-black text-[#062a5c]">
-            System Settings
-          </h1>
+          
 
           <p className="text-sm text-slate-500 mt-1">
             Control registration and batch lifecycle.
@@ -172,24 +166,11 @@ export default function Settings() {
 
       {/* Registration */}
       <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        <div className="p-6 border-b border-slate-100">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center">
-              <Power size={21} />
-            </div>
+       
 
-            <div>
-              <h2 className="font-black text-[#062a5c]">
-                Registration Control
-              </h2>
-
-              <p className="text-sm text-slate-400">
-                Control whether new students can register.
-              </p>
-            </div>
+        <div className="text-xs text-slate-400 font-bold uppercase">
+            <p>.       registration controller</p>
           </div>
-        </div>
-
         <div className="p-6 space-y-5">
           <div
             className={`rounded-xl p-4 flex items-center gap-3 ${

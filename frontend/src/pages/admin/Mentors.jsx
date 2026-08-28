@@ -247,10 +247,7 @@ export default function Mentors() {
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-black text-[#062a5c]">
-              Mentors
-            </h2>
-
+            
             <p className="text-sm text-slate-500 mt-1">
               Create mentors and assign them to bootcamp batches.
             </p>

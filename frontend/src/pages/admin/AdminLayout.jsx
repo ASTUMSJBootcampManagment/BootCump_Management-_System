@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   TrendingUp,
   ClipboardList,
+  BookOpen,
   Megaphone,
   Settings,
   Menu,
@@ -56,6 +57,11 @@ const links = [
     to: "/admin/assignments",
     label: "Assignments",
     icon: ClipboardList,
+  },
+  {
+    to: "/admin/resources",
+    label: "Resources",
+    icon: BookOpen,
   },
   {
     to: "/admin/announcements",

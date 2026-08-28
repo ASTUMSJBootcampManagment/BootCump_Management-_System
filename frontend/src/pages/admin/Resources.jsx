@@ -5,12 +5,17 @@ import {
   X,
   Send,
   RefreshCw,
-  Megaphone,
+  BookOpen,
+  Link as LinkIcon,
+  Video,
+  FileText,
+  Folder,
+  ExternalLink,
 } from "lucide-react";
 import API from "../../api/axios";
 
-export default function Announcements() {
-  const [announcements, setAnnouncements] = useState([]);
+export default function Resources() {
+  const [resources, setResources] = useState([]);
   const [batches, setBatches] = useState([]);
 
   const [showModal, setShowModal] = useState(false);
@@ -19,8 +24,9 @@ export default function Announcements() {
 
   const [formData, setFormData] = useState({
     title: "",
-    content: "",
-    announcedTo: "All",
+    description: "",
+    type: "Link",
+    url: "",
     batch: "",
   });
 
@@ -28,20 +34,16 @@ export default function Announcements() {
     setLoading(true);
 
     try {
-      const [announcementResponse, batchResponse] =
-        await Promise.all([
-          API.get("/announcement/get"),
-          API.get("/batches"),
-        ]);
+      const [resourcesResponse, batchResponse] = await Promise.all([
+        API.get("/resources"),
+        API.get("/batches"),
+      ]);
 
-      setAnnouncements(
-        announcementResponse.data?.data ||
-          announcementResponse.data ||
-          []
+      setResources(
+        resourcesResponse.data?.data || resourcesResponse.data || []
       );
-
       setBatches(
-        batchResponse.data?.data || []
+        batchResponse.data?.data || batchResponse.data || []
       );
     } catch (error) {
       console.error(error);
@@ -54,80 +56,81 @@ export default function Announcements() {
     loadData();
   }, []);
 
-  const createAnnouncement = async (e) => {
+  const createResource = async (e) => {
     e.preventDefault();
-
     setSaving(true);
 
     try {
-      await API.post("/announcement/create", {
+      await API.post("/resources", {
         title: formData.title,
-        content: formData.content,
-        announcedTo: formData.announcedTo,
+        description: formData.description,
+        type: formData.type,
+        url: formData.url,
         batch: formData.batch || null,
       });
 
       setFormData({
         title: "",
-        content: "",
-        announcedTo: "All",
+        description: "",
+        type: "Link",
+        url: "",
         batch: "",
       });
 
       setShowModal(false);
-
       await loadData();
     } catch (error) {
       alert(
-        error.response?.data?.message ||
-          "Unable to publish announcement."
+        error.response?.data?.message || "Unable to publish resource."
       );
     } finally {
       setSaving(false);
     }
   };
 
-  const deleteAnnouncement = async (id) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this announcement?"
-      )
-    ) {
+  const deleteResource = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this resource?")) {
       return;
     }
 
     try {
-      await API.delete(
-        `/announcement/${id}`
-      );
-
+      await API.delete(`/resources/${id}`);
       await loadData();
     } catch (error) {
       alert(
-        error.response?.data?.message ||
-          "Unable to delete announcement."
+        error.response?.data?.message || "Unable to delete resource."
       );
+    }
+  };
+
+  const getTypeIcon = (type) => {
+    switch (type) {
+      case "Video":
+        return <Video size={20} />;
+      case "Document":
+        return <FileText size={20} />;
+      case "Other":
+        return <Folder size={20} />;
+      case "Link":
+      default:
+        return <LinkIcon size={20} />;
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-         
-
-          <p className="text-sm text-slate-500 mt-1">
-            Publish updates and important information.
-          </p>
-        </div>
+      {/* Page Actions Toolbar */}
+      <div className="flex justify-between items-center gap-4">
+        <p className="text-sm text-slate-500">
+          Manage and publish learning materials for bootcamp participants.
+        </p>
 
         <div className="flex gap-2">
           <button
             onClick={loadData}
-            className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-sm flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-sm flex items-center gap-2 hover:bg-slate-50"
           >
-            <RefreshCw size={17} />
+            <RefreshCw size={17} className={loading ? "animate-spin" : ""} />
             Refresh
           </button>
 
@@ -136,34 +139,29 @@ export default function Announcements() {
             className="px-4 py-2.5 rounded-xl bg-[#08c98b] hover:bg-emerald-600 text-white font-black text-sm flex items-center gap-2"
           >
             <Plus size={18} />
-            New Announcement
+            New Resource
           </button>
         </div>
       </div>
 
-      {/* List */}
+      {/* Resource List */}
       <section className="space-y-4">
         {loading ? (
-          <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center text-slate-400">
-            Loading announcements...
+          <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center text-slate-400 font-medium">
+            Loading resources...
           </div>
-        ) : announcements.length === 0 ? (
+        ) : resources.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
-            <Megaphone
-              size={40}
-              className="mx-auto text-slate-300"
-            />
-
+            <BookOpen size={40} className="mx-auto text-slate-300" />
             <h3 className="font-black text-slate-700 mt-4">
-              No announcements
+              No resources available
             </h3>
-
             <p className="text-sm text-slate-400 mt-1">
-              Create an announcement to communicate with bootcamp members.
+              Add links, documents, or videos to share with students.
             </p>
           </div>
         ) : (
-          announcements.map((item) => (
+          resources.map((item) => (
             <article
               key={item._id}
               className="bg-white border border-slate-200 rounded-2xl p-5"
@@ -171,23 +169,21 @@ export default function Announcements() {
               <div className="flex justify-between items-start gap-4">
                 <div className="flex gap-4">
                   <div className="w-11 h-11 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center shrink-0">
-                    <Megaphone size={20} />
+                    {getTypeIcon(item.type)}
                   </div>
 
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-black">
-                        {item.announcedTo ||
-                          item.targetAudience ||
-                          "All"}
+                        {item.type || "Link"}
+                      </span>
+
+                      <span className="text-xs text-slate-400 font-medium">
+                        {item.batch?.name || "All Batches"}
                       </span>
 
                       <span className="text-xs text-slate-400">
-                        {new Date(
-                          item.createdAt ||
-                            item.publishDate ||
-                            Date.now()
-                        ).toLocaleDateString()}
+                        • {new Date(item.createdAt || Date.now()).toLocaleDateString()}
                       </span>
                     </div>
 
@@ -195,18 +191,28 @@ export default function Announcements() {
                       {item.title}
                     </h2>
 
-                    <p className="text-sm text-slate-600 mt-1 leading-6">
-                      {item.content}
-                    </p>
+                    {item.description && (
+                      <p className="text-sm text-slate-600 mt-1 leading-6">
+                        {item.description}
+                      </p>
+                    )}
+
+                    <div className="mt-3">
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-black text-[#08ad81] hover:underline"
+                      >
+                        Open Resource
+                        <ExternalLink size={13} />
+                      </a>
+                    </div>
                   </div>
                 </div>
 
                 <button
-                  onClick={() =>
-                    deleteAnnouncement(
-                      item._id
-                    )
-                  }
+                  onClick={() => deleteResource(item._id)}
                   className="p-2 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500"
                 >
                   <Trash2 size={18} />
@@ -223,7 +229,7 @@ export default function Announcements() {
           <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <h2 className="font-black text-lg text-[#062a5c]">
-                Post Announcement
+                Add Resource
               </h2>
 
               <button
@@ -234,25 +240,18 @@ export default function Announcements() {
               </button>
             </div>
 
-            <form
-              onSubmit={createAnnouncement}
-              className="p-5 space-y-4"
-            >
+            <form onSubmit={createResource} className="p-5 space-y-4">
               <div>
                 <label className="text-xs font-black text-slate-600">
                   Title
                 </label>
-
                 <input
                   required
                   value={formData.title}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      title: e.target.value,
-                    })
+                    setFormData({ ...formData, title: e.target.value })
                   }
-                  placeholder="Announcement title"
+                  placeholder="Resource title"
                   className="w-full mt-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm"
                 />
               </div>
@@ -260,31 +259,19 @@ export default function Announcements() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-black text-slate-600">
-                    Audience
+                    Type
                   </label>
-
                   <select
-                    value={formData.announcedTo}
+                    value={formData.type}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        announcedTo:
-                          e.target.value,
-                      })
+                      setFormData({ ...formData, type: e.target.value })
                     }
                     className="w-full mt-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white"
                   >
-                    <option value="All">
-                      Everyone
-                    </option>
-
-                    <option value="Student">
-                      Students
-                    </option>
-
-                    <option value="Mentor">
-                      Mentors
-                    </option>
+                    <option value="Link">Link</option>
+                    <option value="Video">Video</option>
+                    <option value="Document">Document</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
 
@@ -292,26 +279,16 @@ export default function Announcements() {
                   <label className="text-xs font-black text-slate-600">
                     Batch
                   </label>
-
                   <select
                     value={formData.batch}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        batch: e.target.value,
-                      })
+                      setFormData({ ...formData, batch: e.target.value })
                     }
                     className="w-full mt-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white"
                   >
-                    <option value="">
-                      All Batches
-                    </option>
-
+                    <option value="">All Batches</option>
                     {batches.map((batch) => (
-                      <option
-                        key={batch._id}
-                        value={batch._id}
-                      >
+                      <option key={batch._id} value={batch._id}>
                         {batch.name}
                       </option>
                     ))}
@@ -321,20 +298,31 @@ export default function Announcements() {
 
               <div>
                 <label className="text-xs font-black text-slate-600">
-                  Message
+                  Resource URL
                 </label>
-
-                <textarea
+                <input
                   required
-                  rows={5}
-                  value={formData.content}
+                  type="url"
+                  value={formData.url}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      content: e.target.value,
-                    })
+                    setFormData({ ...formData, url: e.target.value })
                   }
-                  placeholder="Write your announcement..."
+                  placeholder="https://..."
+                  className="w-full mt-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-black text-slate-600">
+                  Description
+                </label>
+                <textarea
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  placeholder="Write a brief description..."
                   className="w-full mt-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm resize-none"
                 />
               </div>
@@ -342,9 +330,7 @@ export default function Announcements() {
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowModal(false)
-                  }
+                  onClick={() => setShowModal(false)}
                   className="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100"
                 >
                   Cancel
@@ -355,10 +341,7 @@ export default function Announcements() {
                   className="px-5 py-2.5 rounded-xl bg-[#08c98b] text-white font-black text-sm flex items-center gap-2 disabled:opacity-50"
                 >
                   <Send size={16} />
-
-                  {saving
-                    ? "Publishing..."
-                    : "Publish"}
+                  {saving ? "Publishing..." : "Publish"}
                 </button>
               </div>
             </form>

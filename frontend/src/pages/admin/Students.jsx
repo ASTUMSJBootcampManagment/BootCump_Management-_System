@@ -213,10 +213,7 @@ export default function Students() {
       <div className="space-y-6">
 
         <div>
-          <h2 className="text-2xl font-black text-[#062a5c]">
-            Students
-          </h2>
-
+          
           <p className="text-sm text-slate-500 mt-1">
             View approved students and assign their mentors.
           </p>

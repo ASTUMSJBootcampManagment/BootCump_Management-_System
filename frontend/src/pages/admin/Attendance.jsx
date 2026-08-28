@@ -177,16 +177,9 @@ export default function Attendance() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] font-black text-[#08ad81]">
-            Student Management
-          </p>
-
-          <h1 className="text-2xl sm:text-3xl font-black text-[#062a5c]">
-            Attendance
-          </h1>
-
+          
           <p className="text-sm text-slate-500 mt-1">
-            Mark and manage daily student attendance.
+            student attendance.
           </p>
         </div>
 

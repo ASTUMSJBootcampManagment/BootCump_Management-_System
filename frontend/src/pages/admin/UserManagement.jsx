@@ -261,9 +261,7 @@ export default function UserManagement() {
       <div className="space-y-6">
 
         <div>
-          <h2 className="text-2xl font-black text-[#062a5c]">
-            User Management
-          </h2>
+        
 
           <p className="text-sm text-slate-500 mt-1">
             Search users, manage roles and remove accounts.
