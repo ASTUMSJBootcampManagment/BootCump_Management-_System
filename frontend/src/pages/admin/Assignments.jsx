@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Plus,
   Trash2,
@@ -6,8 +6,12 @@ import {
   ClipboardList,
   CalendarDays,
   RefreshCw,
+  FileText,
+  Download,
+  Paperclip,
 } from "lucide-react";
 import API from "../../api/axios";
+import { downloadPdfFile } from "../../utils/downloadFile";
 
 export default function Assignments() {
   const [assignments, setAssignments] = useState([]);
@@ -16,6 +20,8 @@ export default function Assignments() {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pdfFile, setPdfFile] = useState(null);
+  const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -66,7 +72,27 @@ export default function Assignments() {
       dueDate: "",
       batch: "",
     });
+    setPdfFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setShowModal(true);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (
+        file.type !== "application/pdf" &&
+        !file.name.toLowerCase().endsWith(".pdf")
+      ) {
+        alert("Please select a valid PDF file.");
+        e.target.value = "";
+        setPdfFile(null);
+        return;
+      }
+      setPdfFile(file);
+    } else {
+      setPdfFile(null);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -74,16 +100,24 @@ export default function Assignments() {
     setSaving(true);
 
     try {
-      const payload = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        dueDate: formData.dueDate
-          ? new Date(formData.dueDate).toISOString()
-          : null,
-        batch: formData.batch || null,
-      };
+      const submitData = new FormData();
+      submitData.append("title", formData.title.trim());
+      submitData.append("description", formData.description.trim());
+      if (formData.dueDate) {
+        submitData.append("dueDate", new Date(formData.dueDate).toISOString());
+      }
+      if (formData.batch) {
+        submitData.append("batch", formData.batch);
+      }
+      if (pdfFile) {
+        submitData.append("pdfFile", pdfFile);
+      }
 
-      await API.post("/assignments", payload);
+      await API.post("/assignments", submitData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       setShowModal(false);
       setFormData({
@@ -92,6 +126,7 @@ export default function Assignments() {
         dueDate: "",
         batch: "",
       });
+      setPdfFile(null);
 
       await loadData();
     } catch (error) {
@@ -118,8 +153,8 @@ export default function Assignments() {
     } catch (error) {
       alert(
         error.response?.data?.message ||
-          error.message ||
-          "Unable to delete assignment.",
+        error.message ||
+        "Unable to delete assignment.",
       );
     }
   };
@@ -216,6 +251,24 @@ export default function Assignments() {
                             ? assignment.batch
                             : "All Students"}
                       </span>
+
+                      {(assignment.pdfUrl || assignment.pdfOriginalName) && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            downloadPdfFile(
+                              assignment._id,
+                              assignment.pdfOriginalName || `${assignment.title}.pdf`
+                            )
+                          }
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 text-[#08ad81] hover:bg-emerald-100 font-bold transition cursor-pointer"
+                          title="Download Assignment PDF"
+                        >
+                          <FileText size={13} />
+                          <span>{assignment.pdfOriginalName || "Download PDF"}</span>
+                          <Download size={13} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -335,6 +388,51 @@ export default function Assignments() {
                 </div>
               </div>
 
+              <div>
+                <label className="text-xs font-black text-slate-600 block mb-1">
+                  Upload PDF Material (Cloudinary)
+                </label>
+                <div className="border border-dashed border-slate-300 hover:border-[#08c98b] rounded-xl p-3 bg-slate-50/50 transition">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="assignment-pdf-upload"
+                  />
+                  <label
+                    htmlFor="assignment-pdf-upload"
+                    className="cursor-pointer flex items-center justify-between gap-2"
+                  >
+                    <div className="flex items-center gap-2 text-sm text-slate-600 truncate">
+                      <Paperclip size={16} className="text-[#08c98b] shrink-0" />
+                      <span className="truncate">
+                        {pdfFile ? pdfFile.name : "Choose a PDF file to attach..."}
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold text-[#08ad81] px-2.5 py-1 bg-[#e8faf5] rounded-lg shrink-0">
+                      {pdfFile ? "Change" : "Browse"}
+                    </span>
+                  </label>
+                  {pdfFile && (
+                    <div className="mt-2 flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-200">
+                      <span>{(pdfFile.size / 1024).toFixed(1)} KB</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPdfFile(null);
+                          if (fileInputRef.current) fileInputRef.current.value = "";
+                        }}
+                        className="text-rose-500 hover:text-rose-700 font-bold"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
@@ -349,7 +447,7 @@ export default function Assignments() {
                   disabled={saving}
                   className="px-5 py-2.5 rounded-xl bg-[#08c98b] hover:bg-emerald-600 text-white font-black text-sm disabled:opacity-50 transition"
                 >
-                  {saving ? "Creating..." : "Create Assignment"}
+                  {saving ? "Uploading & Creating..." : "Create Assignment"}
                 </button>
               </div>
             </form>

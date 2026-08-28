@@ -59,6 +59,11 @@ const assignmentSchema =
         default: "",
         trim: true,
       },
+
+      pdfData: {
+        type: String,
+        default: "",
+      },
     },
 
     {

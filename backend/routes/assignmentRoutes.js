@@ -6,6 +6,7 @@ const {
   getAssignments,
   updateAssignment,
   deleteAssignment,
+  downloadAssignmentPdf,
 } = require("../controllers/assignmentController");
 
 const {
@@ -32,6 +33,7 @@ router
   .post(restrictTo("Admin", "Mentor"), uploadPdf.single("pdfFile"), createAssignment);
 
 // --- SPECIFIC ASSIGNMENT SUB-ROUTES ---
+router.get("/:id/download", downloadAssignmentPdf);
 router.get("/:id/submissions", restrictTo("Mentor"), getAssignmentSubmissions);
 router.patch("/submissions/:id/grade", restrictTo("Mentor"), gradeSubmission);
 
