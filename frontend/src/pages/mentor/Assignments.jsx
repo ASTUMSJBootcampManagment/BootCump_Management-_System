@@ -268,7 +268,6 @@ export default function Assignments() {
 
       <div className="mb-6 flex flex-wrap justify-between items-end gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#062a5c]">Assignments</h2>
 
           <p className="text-slate-500 mt-2">
             Create assignments and review student submissions.

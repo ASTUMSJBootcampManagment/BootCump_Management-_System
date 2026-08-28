@@ -45,10 +45,7 @@ export default function StudentAttendance() {
       const response = await API.get("/student/attendance");
       setData(response.data.data);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Unable to load attendance."
-      );
+      setError(err.response?.data?.message || "Unable to load attendance.");
     } finally {
       setLoading(false);
     }
@@ -63,17 +60,13 @@ export default function StudentAttendance() {
 
     if (filter === "all") return data.records;
 
-    return data.records.filter(
-      (record) => record.status === filter
-    );
+    return data.records.filter((record) => record.status === filter);
   }, [data, filter]);
 
   if (loading) {
     return (
       <StudentLayout title="Attendance">
-        <div className="student-card student-empty">
-          Loading attendance...
-        </div>
+        <div className="student-card student-empty">Loading attendance...</div>
       </StudentLayout>
     );
   }
@@ -81,45 +74,32 @@ export default function StudentAttendance() {
   const all = data?.records || [];
 
   const present = all.filter(
-    (x) => x.status === "present"
+    (x) => String(x.status).toLowerCase() === "present",
   ).length;
 
   const late = all.filter(
-    (x) => x.status === "late"
+    (x) => String(x.status).toLowerCase() === "late",
   ).length;
 
   const absent = all.filter(
-    (x) => x.status === "absent"
+    (x) => String(x.status).toLowerCase() === "absent",
   ).length;
 
   const excused = all.filter(
-    (x) => x.status === "excused"
+    (x) => String(x.status).toLowerCase() === "excused",
   ).length;
 
-  // Derive percentage directly or fallback to stats object
+  // Calculate percentage including present + late
   const calculatedPercentage = all.length
     ? Math.round(((present + late) / all.length) * 100)
     : 0;
 
-  const attendancePercentage =
-    data?.percentage ??
-    data?.stats?.percentage ??
-    calculatedPercentage;
+  // Prioritize calculatedPercentage to ensure Present + Late (83%) is displayed
+  const attendancePercentage = calculatedPercentage;
 
   return (
     <StudentLayout title="Attendance">
-      {/* <div className="student-page-head">
-        <h2>Attendance</h2>
-        <p>
-          Track your attendance throughout the bootcamp.
-        </p>
-      </div> */}
-
-      {error && (
-        <div className="student-banner">
-          {error}
-        </div>
-      )}
+      {error && <div className="student-banner">{error}</div>}
 
       {data && (
         <>
@@ -184,10 +164,7 @@ export default function StudentAttendance() {
                 </span>
               </div>
 
-              <button
-                className="student-filter"
-                onClick={load}
-              >
+              <button className="student-filter" onClick={load}>
                 <RefreshCw size={13} />
                 Refresh
               </button>
@@ -205,9 +182,7 @@ export default function StudentAttendance() {
               </div>
 
               <div className="rounded-xl bg-red-50 p-4">
-                <div className="text-xs text-red-700 font-bold">
-                  Absent
-                </div>
+                <div className="text-xs text-red-700 font-bold">Absent</div>
 
                 <div className="text-2xl font-black text-red-800 mt-1">
                   {absent}
@@ -215,9 +190,7 @@ export default function StudentAttendance() {
               </div>
 
               <div className="rounded-xl bg-blue-50 p-4">
-                <div className="text-xs text-blue-700 font-bold">
-                  Excused
-                </div>
+                <div className="text-xs text-blue-700 font-bold">Excused</div>
 
                 <div className="text-2xl font-black text-blue-800 mt-1">
                   {excused}
@@ -237,9 +210,7 @@ export default function StudentAttendance() {
             ].map(([value, label]) => (
               <button
                 key={value}
-                className={`student-filter ${
-                  filter === value ? "active" : ""
-                }`}
+                className={`student-filter ${filter === value ? "active" : ""}`}
                 onClick={() => setFilter(value)}
               >
                 {label}
@@ -268,28 +239,21 @@ export default function StudentAttendance() {
 
                 <tbody>
                   {records.map((record) => {
-                    const config =
-                      STATUS[record.status] ||
-                      STATUS.absent;
+                    const config = STATUS[record.status] || STATUS.absent;
 
                     const Icon = config.icon;
 
                     return (
-                      <tr
-                        key={record._id}
-                        className="border-b last:border-0"
-                      >
+                      <tr key={record._id} className="border-b last:border-0">
                         <td className="py-4 pr-4 font-semibold text-slate-700">
                           {record.date
-                            ? new Date(
-                                record.date
-                              ).toLocaleDateString(
+                            ? new Date(record.date).toLocaleDateString(
                                 undefined,
                                 {
                                   year: "numeric",
                                   month: "short",
                                   day: "numeric",
-                                }
+                                },
                               )
                             : "—"}
                         </td>

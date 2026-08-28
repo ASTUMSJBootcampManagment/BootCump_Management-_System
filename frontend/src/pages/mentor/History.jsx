@@ -58,9 +58,7 @@ export default function History() {
 
       <div className="mb-6 flex flex-wrap justify-between items-end gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#062a5c]">
-            Attendance History
-          </h2>
+          
 
           <p className="text-slate-500 mt-2">
             Review previously recorded attendance.
@@ -102,7 +100,7 @@ export default function History() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-sm">
+            <table className="w-full min-w-175 text-sm">
               <thead className="bg-[#062a5c] text-white">
                 <tr>
                   <th className="text-left px-5 py-4">

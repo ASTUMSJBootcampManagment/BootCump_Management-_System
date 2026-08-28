@@ -81,7 +81,7 @@ app.use("/api/system", systemRoute);
 app.use("/api/users", userRoutes);
 
 app.use("/api/batches", batchRoutes);
-
+app.use("/api/announcements", announcementRoute);
 app.use("/api/announcement", announcementRoute);
 
 app.use("/api/attendance", attendanceRoute);

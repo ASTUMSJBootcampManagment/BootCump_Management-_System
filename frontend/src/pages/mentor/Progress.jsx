@@ -1,10 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  RefreshCw,
-  Save,
-  TrendingUp,
-  Search,
-} from "lucide-react";
+import { RefreshCw, Save, TrendingUp, Search } from "lucide-react";
 import MentorLayout from "../../components/mentor/MentorLayout";
 import Toast from "../../components/common/Toast";
 import API from "../../api/axios";
@@ -47,16 +42,13 @@ export default function Progress() {
     setLoading(true);
 
     try {
-      const response = await API.get(
-        "/progress/get/students-progress"
-      );
+      const response = await API.get("/progress/get/students-progress");
 
       setRecords(response.data.data || []);
     } catch (error) {
       setToast({
         message:
-          error.response?.data?.message ||
-          "Unable to load progress records.",
+          error.response?.data?.message || "Unable to load progress records.",
         type: "error",
       });
     } finally {
@@ -76,7 +68,7 @@ export default function Progress() {
     return records.filter(
       (row) =>
         row.student?.fullname?.toLowerCase().includes(value) ||
-        row.topic?.toLowerCase().includes(value)
+        row.topic?.toLowerCase().includes(value),
     );
   }, [records, search]);
 
@@ -84,33 +76,30 @@ export default function Progress() {
     setSaving(row._id);
 
     try {
-      const response = await API.patch(`/progress/update-progress/${row.student?._id || row.student}`, {
-        topic: row.topic,
-        status,
-        notes,
-      });
+      const response = await API.patch(
+        `/progress/update-progress/${row.student?._id || row.student}`,
+        {
+          topic: row.topic,
+          status,
+          notes,
+        },
+      );
 
       const updated = response.data.data;
 
       setRecords((previous) =>
         previous.map((item) =>
-          item._id === row._id
-            ? { ...item, ...updated, status, notes }
-            : item
-        )
+          item._id === row._id ? { ...item, ...updated, status, notes } : item,
+        ),
       );
 
       setToast({
         message: `${row.student?.fullname || "Student"} progress updated.`,
         type: "success",
       });
-
-      await load();
     } catch (error) {
       setToast({
-        message:
-          error.response?.data?.message ||
-          "Unable to update progress.",
+        message: error.response?.data?.message || "Unable to update progress.",
         type: "error",
       });
     } finally {
@@ -120,16 +109,11 @@ export default function Progress() {
 
   return (
     <MentorLayout title="Progress">
-      <Toast
-        {...toast}
-        onClose={() => setToast(null)}
-      />
+      <Toast {...toast} onClose={() => setToast(null)} />
 
       <div className="mb-6 flex flex-wrap justify-between gap-4 items-end">
         <div>
-          <h2 className="text-3xl font-black text-[#062a5c]">
-            Student Progress
-          </h2>
+         
 
           <p className="text-slate-500 mt-2">
             Update curriculum status for students assigned to you.
@@ -140,10 +124,7 @@ export default function Progress() {
           onClick={load}
           className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 font-bold flex items-center gap-2"
         >
-          <RefreshCw
-            size={16}
-            className={loading ? "animate-spin" : ""}
-          />
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           Refresh
         </button>
       </div>
@@ -171,24 +152,16 @@ export default function Progress() {
       ) : (
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[800px]">
+            <table className="w-full text-sm min-w-200">
               <thead className="bg-[#062a5c] text-white">
                 <tr>
-                  <th className="text-left px-5 py-4">
-                    Student
-                  </th>
+                  <th className="text-left px-5 py-4">Student</th>
 
-                  <th className="text-left px-5 py-4">
-                    Topic
-                  </th>
+                  <th className="text-left px-5 py-4">Topic</th>
 
-                  <th className="text-left px-5 py-4">
-                    Current status
-                  </th>
+                  <th className="text-left px-5 py-4">Current status</th>
 
-                  <th className="text-left px-5 py-4">
-                    Update
-                  </th>
+                  <th className="text-left px-5 py-4">Update</th>
                 </tr>
               </thead>
 
@@ -197,10 +170,7 @@ export default function Progress() {
                   const current = normalizeStatus(row.status);
 
                   return (
-                    <tr
-                      key={row._id}
-                      className="border-t border-slate-100"
-                    >
+                    <tr key={row._id} className="border-t border-slate-100">
                       <td className="px-5 py-4">
                         <div className="font-black">
                           {row.student?.fullname || "Unknown"}
@@ -227,16 +197,11 @@ export default function Progress() {
                           <select
                             value={current}
                             disabled={saving === row._id}
-                            onChange={(e) =>
-                              update(row, e.target.value)
-                            }
+                            onChange={(e) => update(row, e.target.value)}
                             className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-[#08c98b]"
                           >
                             {STATUSES.map((status) => (
-                              <option
-                                key={status}
-                                value={status}
-                              >
+                              <option key={status} value={status}>
                                 {status}
                               </option>
                             ))}

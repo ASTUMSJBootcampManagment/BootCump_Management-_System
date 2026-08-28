@@ -1,7 +1,10 @@
 const mongoose = require("mongoose");
 const Attendance = require("../models/attendance");
 const User = require("../models/userModel");
-const { getMentorGroups, mentorCanAccessStudent } = require("../utils/groupAccess");
+const {
+  getMentorGroups,
+  mentorCanAccessStudent,
+} = require("../utils/groupAccess");
 
 const STATUSES = ["present", "absent", "late", "excused"];
 
@@ -10,7 +13,6 @@ exports.getMentorStudents = async (req, res, next) => {
     const { batch, groups } = await getMentorGroups(req.user._id);
     if (!batch || !groups.length) return res.json({ success: true, data: [] });
 
-    // Map all student IDs across assigned groups
     const groupMap = new Map();
     const allStudentIds = [];
 
@@ -65,12 +67,10 @@ exports.getAttendanceHistory = async (req, res, next) => {
         req.query.group &&
         !groupIds.some((id) => String(id) === String(req.query.group))
       ) {
-        return res
-          .status(403)
-          .json({
-            success: false,
-            message: "You can only view your assigned groups.",
-          });
+        return res.status(403).json({
+          success: false,
+          message: "You can only view your assigned groups.",
+        });
       }
 
       query.batch = batch._id;
@@ -115,14 +115,15 @@ exports.markAttendance = async (req, res, next) => {
     }
 
     const studentIds = new Set((targetGroup.students || []).map(String));
-    const sessionDate = new Date(
-      `${String(date).slice(0, 10)}T12:00:00.000Z`
-    );
+    const sessionDate = new Date(`${String(date).slice(0, 10)}T12:00:00.000Z`);
 
     const operations = records
       .map(({ student, status }) => {
         const normalized = String(status || "").toLowerCase();
-        if (!studentIds.has(String(student)) || !STATUSES.includes(normalized)) {
+        if (
+          !studentIds.has(String(student)) ||
+          !STATUSES.includes(normalized)
+        ) {
           return null;
         }
         return {
@@ -207,9 +208,7 @@ exports.getStudentAttendanceStats = async (req, res, next) => {
         absent: records.filter((item) => item.status === "absent").length,
         late: records.filter((item) => item.status === "late").length,
         excused: records.filter((item) => item.status === "excused").length,
-        percentage: total
-          ? Math.round((present / total) * 10000) / 100
-          : 0,
+        percentage: total ? Math.round((present / total) * 10000) / 100 : 0,
       },
     });
   } catch (error) {
@@ -223,6 +222,36 @@ exports.deleteAllAttendance = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "All attendance records deleted successfully.",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getMyAttendance = async (req, res, next) => {
+  try {
+    const studentId = req.user._id;
+
+    // Fetch all records for the logged-in student
+    const records = await Attendance.find({ student: studentId })
+      .sort({ date: -1 })
+      .lean();
+
+    const total = records.length;
+    const attended = records.filter(
+      (r) => r.status === "present" || r.status === "late",
+    ).length;
+
+    const percentage = total ? Math.round((attended / total) * 100) : 0;
+
+    res.json({
+      success: true,
+      data: records, 
+      stats: {
+        total,
+        attended,
+        percentage,
+      },
     });
   } catch (error) {
     next(error);

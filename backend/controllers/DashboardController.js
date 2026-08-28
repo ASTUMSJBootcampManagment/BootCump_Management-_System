@@ -185,45 +185,56 @@ exports.getAdminDashboard = async (req, res) => {
 
 exports.getMentorDashboard = async (req, res) => {
   try {
-    const mentorId = req.user.id;
+    const mentorId = req.user.id || req.user._id;
 
-    const mentorBatch = await Batch.findOne({
+    let mentorBatch = await Batch.findOne({
       mentors: mentorId,
-    }).populate("students", "name email");
+    }).populate("students", "name fullname email");
 
-    if (!mentorBatch) {
-      return res.status(404).json({
-        success: false,
-        message: "You are not assigned to any batch.",
+    let studentIds = [];
+
+    if (mentorBatch && mentorBatch.students.length > 0) {
+      studentIds = mentorBatch.students.map((student) => student._id);
+    } else {
+      const assignedStudents = await User.find({
+        role: "Student",
+        assignedMentor: mentorId,
+      }).select("_id name fullname email");
+
+      studentIds = assignedStudents.map((s) => s._id);
+    }
+
+    // Return empty dashboard metrics if no students found
+    if (studentIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          summary: {
+            students: 0,
+            attendance: 0,
+            atRisk: 0,
+            pendingReviews: 0,
+          },
+          studentProgress: [],
+          atRiskStudents: [],
+          recentSubmissions: [],
+          upcomingAssignments: [],
+          batch: mentorBatch
+            ? { id: mentorBatch._id, name: mentorBatch.name }
+            : null,
+        },
       });
     }
 
-    const studentIds = mentorBatch.students.map((student) => student._id);
-    const studentCount = studentIds.length;
     const attendanceStats = await Attendance.aggregate([
-      {
-        $match: {
-          batch: mentorBatch._id,
-        },
-      },
-
+      { $match: { student: { $in: studentIds } } },
       {
         $group: {
           _id: null,
-
-          total: {
-            $sum: 1,
-          },
-
+          total: { $sum: 1 },
           attended: {
             $sum: {
-              $cond: [
-                {
-                  $in: ["$status", ["present", "late"]],
-                },
-                1,
-                0,
-              ],
+              $cond: [{ $in: ["$status", ["present", "late"]] }, 1, 0],
             },
           },
         },
@@ -231,180 +242,41 @@ exports.getMentorDashboard = async (req, res) => {
     ]);
 
     let attendancePercentage = 0;
-
-    if (attendanceStats.length > 0) {
-      const total = attendanceStats[0].total;
-
-      if (total > 0) {
-        attendancePercentage = Math.round(
-          (attendanceStats[0].attended / total) * 100,
-        );
-      }
+    if (attendanceStats.length > 0 && attendanceStats[0].total > 0) {
+      attendancePercentage = Math.round(
+        (attendanceStats[0].attended / attendanceStats[0].total) * 100,
+      );
     }
 
-    const progressStats = await Progress.aggregate([
-      {
-        $match: {
-          batch: mentorBatch._id,
-        },
-      },
-
-      {
-        $group: {
-          _id: "$topic",
-
-          completed: {
-            $sum: {
-              $cond: [
-                {
-                  $eq: ["$status", "Completed"],
-                },
-                1,
-                0,
-              ],
-            },
-          },
-
-          total: {
-            $sum: 1,
-          },
-        },
-      },
-
-      {
-        $project: {
-          _id: 0,
-          topic: "$_id",
-
-          percentage: {
-            $cond: [
-              {
-                $gt: ["$total", 0],
-              },
-
-              {
-                $multiply: [
-                  {
-                    $divide: ["$completed", "$total"],
-                  },
-                  100,
-                ],
-              },
-
-              0,
-            ],
-          },
-        },
-      },
-    ]);
-
-    const studentAttendance = await Attendance.aggregate([
-      {
-        $match: {
-          batch: mentorBatch._id,
-        },
-      },
-
-      {
-        $group: {
-          _id: "$student",
-
-          total: {
-            $sum: 1,
-          },
-
-          attended: {
-            $sum: {
-              $cond: [
-                {
-                  $in: ["$status", ["present", "late"]],
-                },
-                1,
-                0,
-              ],
-            },
-          },
-        },
-      },
-
-      {
-        $project: {
-          student: "$_id",
-
-          percentage: {
-            $multiply: [
-              {
-                $divide: ["$attended", "$total"],
-              },
-              100,
-            ],
-          },
-        },
-      },
-      {
-        $match: {
-          percentage: {
-            $lt: 75,
-          },
-        },
-      },
-    ]);
-
-    const atRiskIds = studentAttendance.map((student) => student.student);
-    const atRiskStudents = await User.find({
-      _id: { $in: atRiskIds },
-    }).select("name email");
-
+    // 4. Aggregate Pending Reviews
     const pendingReviews = await Submission.countDocuments({
       student: { $in: studentIds },
-
       $or: [{ grade: { $exists: false } }, { grade: null }, { grade: "" }],
     });
 
-    const recentSubmissions = await Submission.find({
-      student: { $in: studentIds },
-    })
-      .populate("student", "name email")
-      .populate("assignment", "title dueDate")
+    const announcements = await Announcement.find()
       .sort({ createdAt: -1 })
       .limit(5)
       .lean();
 
-    const upcomingAssignments = await Assignment.find({
-      dueDate: {
-        $gte: new Date(),
-      },
-    })
-      .sort({ dueDate: 1 })
-      .limit(5)
-      .select("title dueDate")
-      .lean();
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-
       data: {
         summary: {
-          students: studentCount,
+          students: studentIds.length,
           attendance: attendancePercentage,
-          atRisk: atRiskStudents.length,
+          atRisk: 0,
           pendingReviews,
         },
-
-        studentProgress: progressStats,
-        atRiskStudents,
-        recentSubmissions,
-        upcomingAssignments,
-        batch: {
-          id: mentorBatch._id,
-          name: mentorBatch.batchName || mentorBatch.name,
-        },
+        announcements,
+        batch: mentorBatch
+          ? { id: mentorBatch._id, name: mentorBatch.name }
+          : null,
       },
     });
   } catch (error) {
     console.error("Mentor dashboard error:", error);
-
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });

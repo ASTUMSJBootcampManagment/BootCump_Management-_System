@@ -7,7 +7,7 @@ exports.register = async (req, res) => {
   try {
     const {
       fullname,
-      name, // Accept either 'fullname' or 'name' from request payload
+      name,  
       email,
       universityId,
       codeforcesAccount,
@@ -21,12 +21,9 @@ exports.register = async (req, res) => {
       hasPersonalLaptop,
     } = req.body;
 
-    // Use fullname if provided, otherwise fall back to name
     const applicantName = fullname || name;
 
-    // ------------------------------------------
-    // CHECK REGISTRATION STATUS
-    // ------------------------------------------
+    
 
     const settings = await SystemSettings.findOne();
 
@@ -63,9 +60,7 @@ exports.register = async (req, res) => {
       });
     }
 
-    // ------------------------------------------
-    // VALIDATION
-    // ------------------------------------------
+  
 
     if (
       !applicantName ||
@@ -102,9 +97,6 @@ exports.register = async (req, res) => {
       });
     }
 
-    // ------------------------------------------
-    // DUPLICATE CHECK
-    // ------------------------------------------
 
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -119,15 +111,8 @@ exports.register = async (req, res) => {
       });
     }
 
-    // ------------------------------------------
-    // PLACEHOLDER PASSWORD
-    // ------------------------------------------
 
     const placeholderPassword = generateTemporaryPassword();
-
-    // ------------------------------------------
-    // CREATE WAITLIST APPLICATION
-    // ------------------------------------------
 
     const student = await User.create({
       fullname: applicantName.trim(),

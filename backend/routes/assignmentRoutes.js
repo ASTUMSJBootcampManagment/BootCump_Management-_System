@@ -37,7 +37,6 @@ router.get("/:id/download", downloadAssignmentPdf);
 router.get("/:id/submissions", restrictTo("Mentor"), getAssignmentSubmissions);
 router.patch("/submissions/:id/grade", restrictTo("Mentor"), gradeSubmission);
 
-// --- PARAMETERIZED ID ROUTES (Must come LAST) ---
 router
   .route("/:id")
   .put(restrictTo("Admin", "Mentor"), uploadPdf.single("pdfFile"), updateAssignment)

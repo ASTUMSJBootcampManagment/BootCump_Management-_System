@@ -3,6 +3,38 @@ import { LockKeyhole, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 
+// Helper component declared OUTSIDE main component to prevent input focus loss
+const PasswordInput = ({
+  value,
+  setValue,
+  visible,
+  setVisible,
+  placeholder,
+}) => (
+  <div className="relative">
+    <LockKeyhole
+      size={16}
+      className="absolute left-3 top-3.5 text-slate-400"
+    />
+
+    <input
+      type={visible ? "text" : "password"}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      placeholder={placeholder}
+      className="w-full border border-slate-200 rounded-xl py-3 pl-10 pr-11 outline-none focus:border-[#08c98b]"
+    />
+
+    <button
+      type="button"
+      onClick={() => setVisible(!visible)}
+      className="absolute right-3 top-3 text-slate-400"
+    >
+      {visible ? <EyeOff size={17} /> : <Eye size={17} />}
+    </button>
+  </div>
+);
+
 export default function ChangePassword() {
   const navigate = useNavigate();
 
@@ -25,9 +57,7 @@ export default function ChangePassword() {
     setMessage("");
 
     if (newPassword.length < 8) {
-      setError(
-        "Your new password must contain at least 8 characters."
-      );
+      setError("Your new password must contain at least 8 characters.");
       return;
     }
 
@@ -39,25 +69,33 @@ export default function ChangePassword() {
     setLoading(true);
 
     try {
-      await API.patch("/auth/change-password", {
-        currentPassword,
-        newPassword,
-      });
+      const payload = { currentPassword, newPassword };
+      
+      // Try primary POST endpoint; fallback to PATCH auth endpoint if 404
+      try {
+        await API.post("/password/change", payload);
+      } catch (err) {
+        if (err.response?.status === 404) {
+          await API.patch("/auth/change-password", payload);
+        } else {
+          throw err;
+        }
+      }
 
       localStorage.removeItem("requiresPasswordChange");
 
-      setMessage(
-        "Password changed successfully. Redirecting..."
-      );
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      storedUser.mustChangePassword = false;
+      localStorage.setItem("user", JSON.stringify(storedUser));
+
+      setMessage("Password changed successfully. Redirecting...");
 
       setTimeout(() => {
-        const user = JSON.parse(
-          localStorage.getItem("user") || "{}"
-        );
+        const role = (storedUser.role || "").toLowerCase();
 
-        if (user.role === "Admin") {
+        if (role === "admin") {
           navigate("/admin/dashboard");
-        } else if (user.role === "Mentor") {
+        } else if (role === "mentor") {
           navigate("/mentor/dashboard");
         } else {
           navigate("/student/dashboard");
@@ -65,48 +103,12 @@ export default function ChangePassword() {
       }, 1000);
     } catch (err) {
       setError(
-        err.response?.data?.message ||
-          "Unable to change password."
+        err.response?.data?.message || "Unable to change password."
       );
     } finally {
       setLoading(false);
     }
   };
-
-  const PasswordInput = ({
-    value,
-    setValue,
-    visible,
-    setVisible,
-    placeholder,
-  }) => (
-    <div className="relative">
-      <LockKeyhole
-        size={16}
-        className="absolute left-3 top-3.5 text-slate-400"
-      />
-
-      <input
-        type={visible ? "text" : "password"}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder={placeholder}
-        className="w-full border border-slate-200 rounded-xl py-3 pl-10 pr-11 outline-none focus:border-[#08c98b]"
-      />
-
-      <button
-        type="button"
-        onClick={() => setVisible(!visible)}
-        className="absolute right-3 top-3 text-slate-400"
-      >
-        {visible ? (
-          <EyeOff size={17} />
-        ) : (
-          <Eye size={17} />
-        )}
-      </button>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#f5f7fa] flex items-center justify-center p-5">
@@ -116,20 +118,15 @@ export default function ChangePassword() {
             <LockKeyhole size={22} />
           </div>
 
-          <h1 className="text-2xl font-black">
-            Change your password
-          </h1>
+          <h1 className="text-2xl font-black">Change your password</h1>
 
           <p className="text-sm text-white/60 mt-2 leading-6">
-            Your account is using a temporary password.
-            Create a new password before continuing.
+            Your account is using a temporary password. Create a new password
+            before continuing.
           </p>
         </div>
 
-        <form
-          onSubmit={submit}
-          className="p-7 space-y-5"
-        >
+        <form onSubmit={submit} className="p-7 space-y-5">
           {error && (
             <div className="rounded-xl bg-red-50 border border-red-200 text-red-700 p-3 text-sm font-semibold">
               {error}
@@ -187,11 +184,9 @@ export default function ChangePassword() {
 
           <button
             disabled={loading}
-            className="w-full bg-[#08c98b] hover:bg-[#07b67d] text-white rounded-xl py-3 font-black"
+            className="w-full bg-[#08c98b] hover:bg-[#07b67d] text-white rounded-xl py-3 font-black transition-colors disabled:opacity-50"
           >
-            {loading
-              ? "Changing password..."
-              : "Change password"}
+            {loading ? "Changing password..." : "Change password"}
           </button>
         </form>
       </div>
