@@ -11,9 +11,9 @@ import {
   LogOut,
   Menu,
   X,
-  GraduationCap,
-  ChevronRight,
 } from "lucide-react";
+
+import astumsjLogo from "../../assets/astumsj-logo.png";
 
 const links = [
   {
@@ -77,22 +77,26 @@ export default function StudentLayout({ title, children }) {
     <aside className="h-full flex flex-col bg-[#062a5c] text-white">
       <div className="px-6 py-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-[#08c98b] grid place-items-center">
-            <GraduationCap size={23} />
+          <div className="w-11 h-11 rounded-xl bg-white p-1 grid place-items-center overflow-hidden shrink-0">
+            <img
+              src={astumsjLogo}
+              alt="ASTU MSJ Logo"
+              className="w-full h-full object-contain"
+            />
           </div>
 
-          <div>
+          <div className="min-w-0">
             <div className="font-black tracking-wider text-[#08c98b]">
               ASTUMSJ
             </div>
-            <div className="text-xs text-white/60">
+            <div className="text-xs text-white/60 truncate">
               Bootcamp Portal
             </div>
           </div>
         </div>
       </div>
 
-      <div className="px-4 py-5">
+      <div className="px-4 py-5 flex-1 overflow-y-auto">
         <div className="px-3 mb-3 text-[10px] uppercase tracking-widest text-white/40 font-black">
           Student Menu
         </div>
@@ -118,14 +122,18 @@ export default function StudentLayout({ title, children }) {
         </nav>
       </div>
 
-      <div className="mt-auto p-4">
+      <div className="mt-auto p-4 border-t border-white/10">
         <div className="rounded-2xl bg-white/5 border border-white/10 p-4 flex items-center justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="text-xs text-white/40 uppercase tracking-wider">
-              Signed in as
-            </div>
+          <div className="w-9 h-9 rounded-full bg-white p-1 grid place-items-center overflow-hidden shrink-0">
+            <img
+              src={astumsjLogo}
+              alt="ASTU MSJ Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
 
-            <div className="font-bold mt-1 truncate text-sm">
+          <div className="min-w-0 flex-1">
+            <div className="font-bold truncate text-sm">
               {user.fullname || "Student"}
             </div>
 
@@ -149,7 +157,7 @@ export default function StudentLayout({ title, children }) {
   return (
     <div className="min-h-screen bg-[#f5f7fa] text-slate-800">
       {/* Desktop sidebar */}
-      <div className="hidden lg:block fixed inset-y-0 left-0 w-[255px]">
+      <div className="hidden lg:block fixed inset-y-0 left-0 w-63.75">
         {sidebar}
       </div>
 
@@ -161,12 +169,12 @@ export default function StudentLayout({ title, children }) {
             onClick={() => setMobileOpen(false)}
           />
 
-          <div className="relative w-[270px] h-full">
+          <div className="relative w-67.5 h-full">
             {sidebar}
 
             <button
               onClick={() => setMobileOpen(false)}
-              className="absolute top-5 right-[-45px] w-9 h-9 rounded-lg bg-white text-slate-700 grid place-items-center shadow"
+              className="absolute top-5 -right-11.25 w-9 h-9 rounded-lg bg-white text-slate-700 grid place-items-center shadow"
             >
               <X size={18} />
             </button>
@@ -175,8 +183,8 @@ export default function StudentLayout({ title, children }) {
       )}
 
       {/* Main */}
-      <div className="lg:ml-[255px] min-h-screen">
-        <header className="sticky top-0 z-30 h-[72px] bg-white border-b border-slate-200 flex items-center justify-between px-5 sm:px-8">
+      <div className="lg:ml-63.75 min-h-screen">
+        <header className="sticky top-0 z-30 h-18 bg-white border-b border-slate-200 flex items-center justify-between px-5 sm:px-8">
           <div className="flex items-center gap-3">
             <button
               className="lg:hidden w-10 h-10 rounded-xl border border-slate-200 grid place-items-center"
@@ -194,29 +202,9 @@ export default function StudentLayout({ title, children }) {
               </h1>
             </div>
           </div>
-
-          <NavLink
-            to="/student/profile"
-            className="flex items-center gap-3"
-          >
-            <div className="hidden sm:block text-right">
-              <div className="text-sm font-bold text-slate-700">
-                {user.fullname || "Student"}
-              </div>
-              <div className="text-xs text-slate-400">
-                Student
-              </div>
-            </div>
-
-            <div className="w-10 h-10 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center font-black">
-              {(user.fullname || "S").charAt(0).toUpperCase()}
-            </div>
-
-            <ChevronRight size={15} className="text-slate-400" />
-          </NavLink>
         </header>
 
-        <main className="p-5 sm:p-8 max-w-[1500px] mx-auto">
+        <main className="p-5 sm:p-8 max-w-375 mx-auto">
           {children}
         </main>
       </div>

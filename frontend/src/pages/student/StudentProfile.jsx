@@ -134,20 +134,16 @@ export default function StudentProfile() {
       {message && <div className="student-banner">{message}</div>}
       {error && <div className="student-banner">{error}</div>}
 
-      <div className="grid xl:grid-cols-[.7fr_1.3fr] gap-5">
+      <div className="grid grid-cols-1 gap-5">
         <section className="student-card student-panel">
-          <div className="flex flex-col items-center text-center py-5">
-            <div className="w-24 h-24 rounded-3xl bg-[#e8faf5] text-[#08ad81] grid place-items-center text-4xl font-black">
-              {(user.fullname || "S").charAt(0).toUpperCase()}
-            </div>
-
-            <h3 className="text-xl font-black text-[#062a5c] mt-4">
+          <div className="flex flex-col py-2">
+            <h3 className="text-xl font-black text-[#062a5c]">
               {user.fullname || "Student"}
             </h3>
 
-            <div className="text-sm text-slate-400 mt-1">Student</div>
+            <div className="text-sm text-slate-400 mt-0.5">Student</div>
 
-            <div className="w-full mt-6 space-y-3 text-left">
+            <div className="grid sm:grid-cols-2 gap-3 mt-4 text-left">
               <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
                 <Mail size={16} className="text-[#08ad81]" />
                 <div className="min-w-0">
