@@ -30,23 +30,35 @@ export default function StudentAssignments() {
     setError("");
 
     try {
-      const [assignmentResponse, submissionResponse] =
-        await Promise.all([
-          API.get("/assignments"),
-          API.get("/assignments/my-submissions"),
-        ]);
+      // Execute requests independently so one failure won't block the other
+      const [assignmentRes, submissionRes] = await Promise.allSettled([
+        API.get("/assignments"),
+        API.get("/assignments/my-submissions"),
+      ]);
 
-      setAssignments(
-        assignmentResponse.data.data || []
-      );
+      if (assignmentRes.status === "fulfilled") {
+        const rawData = assignmentRes.value.data;
+        const fetchedAssignments = Array.isArray(rawData)
+          ? rawData
+          : rawData?.data || rawData?.assignments || [];
+        setAssignments(fetchedAssignments);
+      } else {
+        console.error("Assignments fetch failed:", assignmentRes.reason);
+        setError("Failed to fetch assignments list.");
+      }
 
-      setSubmissions(
-        submissionResponse.data.data || []
-      );
+      if (submissionRes.status === "fulfilled") {
+        const rawSubData = submissionRes.value.data;
+        const fetchedSubmissions = Array.isArray(rawSubData)
+          ? rawSubData
+          : rawSubData?.data || rawSubData?.submissions || [];
+        setSubmissions(fetchedSubmissions);
+      } else {
+        console.error("Submissions fetch failed:", submissionRes.reason);
+      }
     } catch (err) {
       setError(
-        err.response?.data?.message ||
-          "Unable to load assignments."
+        err.response?.data?.message || "Unable to load assignment details."
       );
     } finally {
       setLoading(false);
@@ -58,13 +70,13 @@ export default function StudentAssignments() {
   }, []);
 
   const getSubmission = (assignmentId) => {
-    return submissions.find(
-      (submission) =>
-        String(
-          submission.assignment?._id ||
-            submission.assignment
-        ) === String(assignmentId)
-    );
+    return submissions.find((submission) => {
+      const subAssignmentId =
+        submission.assignment?._id ||
+        submission.assignmentId ||
+        submission.assignment;
+      return String(subAssignmentId) === String(assignmentId);
+    });
   };
 
   const getStatus = (assignment) => {
@@ -96,8 +108,7 @@ export default function StudentAssignments() {
     if (filter === "all") return assignments;
 
     return assignments.filter(
-      (assignment) =>
-        getStatus(assignment) === filter
+      (assignment) => getStatus(assignment) === filter
     );
   }, [assignments, submissions, filter]);
 
@@ -125,8 +136,7 @@ export default function StudentAssignments() {
       await load();
     } catch (err) {
       setMessage(
-        err.response?.data?.message ||
-          "Unable to submit assignment."
+        err.response?.data?.message || "Unable to submit assignment."
       );
     } finally {
       setSaving(false);
@@ -145,32 +155,22 @@ export default function StudentAssignments() {
 
   return (
     <StudentLayout title="Assignments">
-      <div className="student-page-head">
+      {/* <div className="student-page-head">
         <h2>Assignments & Projects</h2>
         <p>
-          View your assignments, submit your work and
-          review mentor feedback.
+          View your assignments, submit your work and review mentor feedback.
         </p>
-      </div>
+      </div> */}
 
-      {error && (
-        <div className="student-banner">
-          {error}
-        </div>
-      )}
+      {error && <div className="student-banner">{error}</div>}
 
-      {message && !selected && (
-        <div className="student-banner">
-          {message}
-        </div>
-      )}
+      {message && !selected && <div className="student-banner">{message}</div>}
 
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
         <div className="student-card p-5">
           <div className="text-xs text-slate-400 font-bold uppercase">
             Total
           </div>
-
           <div className="text-3xl font-black text-[#062a5c] mt-2">
             {assignments.length}
           </div>
@@ -180,13 +180,8 @@ export default function StudentAssignments() {
           <div className="text-xs text-slate-400 font-bold uppercase">
             Pending
           </div>
-
           <div className="text-3xl font-black text-[#062a5c] mt-2">
-            {
-              assignments.filter(
-                (x) => getStatus(x) === "pending"
-              ).length
-            }
+            {assignments.filter((x) => getStatus(x) === "pending").length}
           </div>
         </div>
 
@@ -194,13 +189,8 @@ export default function StudentAssignments() {
           <div className="text-xs text-slate-400 font-bold uppercase">
             Submitted
           </div>
-
           <div className="text-3xl font-black text-[#062a5c] mt-2">
-            {
-              assignments.filter(
-                (x) => getStatus(x) === "submitted"
-              ).length
-            }
+            {assignments.filter((x) => getStatus(x) === "submitted").length}
           </div>
         </div>
 
@@ -208,13 +198,8 @@ export default function StudentAssignments() {
           <div className="text-xs text-slate-400 font-bold uppercase">
             Graded
           </div>
-
           <div className="text-3xl font-black text-[#062a5c] mt-2">
-            {
-              assignments.filter(
-                (x) => getStatus(x) === "graded"
-              ).length
-            }
+            {assignments.filter((x) => getStatus(x) === "graded").length}
           </div>
         </div>
       </div>
@@ -238,10 +223,7 @@ export default function StudentAssignments() {
           </button>
         ))}
 
-        <button
-          className="student-filter"
-          onClick={load}
-        >
+        <button className="student-filter" onClick={load}>
           <RefreshCw size={13} />
           Refresh
         </button>
@@ -249,10 +231,7 @@ export default function StudentAssignments() {
 
       <div className="space-y-4">
         {filtered.map((assignment) => {
-          const submission = getSubmission(
-            assignment._id
-          );
-
+          const submission = getSubmission(assignment._id);
           const status = getStatus(assignment);
 
           return (
@@ -267,16 +246,12 @@ export default function StudentAssignments() {
                   <span>
                     Due{" "}
                     {assignment.dueDate
-                      ? new Date(
-                          assignment.dueDate
-                        ).toLocaleString()
+                      ? new Date(assignment.dueDate).toLocaleString()
                       : "No deadline"}
                   </span>
                 </div>
 
-                <span className="student-status">
-                  {status}
-                </span>
+                <span className="student-status">{status}</span>
               </div>
 
               <p className="text-sm text-slate-600 mt-4 leading-6">
@@ -299,11 +274,7 @@ export default function StudentAssignments() {
                 <div className="mt-4 p-4 rounded-xl bg-[#f8fafc] border border-slate-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <CheckCircle2
-                        size={16}
-                        className="text-[#08ad81]"
-                      />
-
+                      <CheckCircle2 size={16} className="text-[#08ad81]" />
                       <span className="font-bold text-sm">
                         Your submission
                       </span>
@@ -407,15 +378,11 @@ export default function StudentAssignments() {
             </div>
 
             <div className="p-5">
-              <label className="student-label">
-                Your submission
-              </label>
+              <label className="student-label">Your submission</label>
 
               <textarea
                 value={content}
-                onChange={(e) =>
-                  setContent(e.target.value)
-                }
+                onChange={(e) => setContent(e.target.value)}
                 rows={10}
                 placeholder="Paste your solution, explanation, GitHub link, or other required work here..."
                 className="student-input resize-none"
@@ -446,9 +413,7 @@ export default function StudentAssignments() {
                 onClick={submit}
               >
                 <Send size={14} />
-                {saving
-                  ? "Submitting..."
-                  : "Submit work"}
+                {saving ? "Submitting..." : "Submit work"}
               </button>
             </div>
           </div>

@@ -15,7 +15,7 @@ const createAssignment = async (req, res) => {
     await assignment.save();
     const formattedDueDate = dueDate ? new Date(dueDate).toLocaleDateString() : "N/A";
     await Announcement.create({
-      title: `📢 New Assignment: ${title}`,
+      title: `New Assignment: ${title}`,
       content: `A new assignment "${title}" has been posted. Due Date: ${formattedDueDate}.`,
       announcedTo: "Student",
       batch: batch || null,

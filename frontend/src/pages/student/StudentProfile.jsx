@@ -36,17 +36,23 @@ export default function StudentProfile() {
 
     try {
       const response = await API.get("/student/overview");
-      const student = response.data.data.student || {};
+      
+      const student =
+        response.data?.data?.student ||
+        response.data?.student ||
+        response.data?.data ||
+        response.data ||
+        {};
 
       setUser(student);
 
       setForm({
-        fullname: student.fullname || "",
-        phoneNumber: student.phoneNumber || "",
-        githubAccount: student.githubAccount || "",
-        leetcodeAccount: student.leetcodeAccount || "",
-        codeforcesAccount: student.codeforcesAccount || "",
-        telegramUsername: student.telegramUsername || "",
+        fullname: student.fullname || student.name || "",
+        phoneNumber: student.phoneNumber || student.phone || "",
+        githubAccount: student.githubAccount || student.github || "",
+        leetcodeAccount: student.leetcodeAccount || student.leetcode || "",
+        codeforcesAccount: student.codeforcesAccount || student.codeforces || "",
+        telegramUsername: student.telegramUsername || student.telegram || "",
       });
     } catch (err) {
       setError(
@@ -77,9 +83,16 @@ export default function StudentProfile() {
 
     try {
       const response = await API.patch("/student/profile", form);
-      const updated = response.data.data;
 
-      setUser(updated);
+      const updated =
+        response.data?.data?.student ||
+        response.data?.student ||
+        response.data?.data ||
+        response.data ||
+        form;
+
+      const mergedUser = { ...user, ...updated, ...form };
+      setUser(mergedUser);
 
       const stored = JSON.parse(
         localStorage.getItem("user") || "{}"
@@ -89,12 +102,14 @@ export default function StudentProfile() {
         "user",
         JSON.stringify({
           ...stored,
-          fullname: updated.fullname,
-          email: updated.email,
+          fullname: mergedUser.fullname || stored.fullname,
+          email: mergedUser.email || stored.email,
         })
       );
 
       setMessage("Profile updated successfully.");
+      
+      await load();
     } catch (err) {
       setError(
         err.response?.data?.message || "Unable to update your profile."
@@ -116,13 +131,6 @@ export default function StudentProfile() {
 
   return (
     <StudentLayout title="My Profile">
-      <div className="student-page-head">
-        <h2>My Profile</h2>
-        <p>
-          Keep your student information and coding accounts up to date.
-        </p>
-      </div>
-
       {message && <div className="student-banner">{message}</div>}
       {error && <div className="student-banner">{error}</div>}
 
@@ -187,13 +195,14 @@ export default function StudentProfile() {
 
             <div>
               <label className="student-label">Phone number</label>
-              <div className="relative">
+              <div className="relative flex items-center">
                 <Phone
-                  size={15}
-                  className="absolute left-3 top-3.5 text-slate-400"
+                  size={16}
+                  className="absolute left-3.5 text-slate-400 pointer-events-none z-10"
                 />
                 <input
-                  className="student-input pl-9"
+                  className="student-input"
+                  style={{ paddingLeft: "2.5rem" }}
                   value={form.phoneNumber}
                   onChange={(e) =>
                     change("phoneNumber", e.target.value)
@@ -204,13 +213,14 @@ export default function StudentProfile() {
 
             <div>
               <label className="student-label">GitHub</label>
-              <div className="relative">
+              <div className="relative flex items-center">
                 <GitBranch
-                  size={15}
-                  className="absolute left-3 top-3.5 text-slate-400"
+                  size={16}
+                  className="absolute left-3.5 text-slate-400 pointer-events-none z-10"
                 />
                 <input
-                  className="student-input pl-9"
+                  className="student-input"
+                  style={{ paddingLeft: "2.5rem" }}
                   placeholder="GitHub username or URL"
                   value={form.githubAccount}
                   onChange={(e) =>
@@ -222,13 +232,14 @@ export default function StudentProfile() {
 
             <div>
               <label className="student-label">LeetCode</label>
-              <div className="relative">
+              <div className="relative flex items-center">
                 <Code2
-                  size={15}
-                  className="absolute left-3 top-3.5 text-slate-400"
+                  size={16}
+                  className="absolute left-3.5 text-slate-400 pointer-events-none z-10"
                 />
                 <input
-                  className="student-input pl-9"
+                  className="student-input"
+                  style={{ paddingLeft: "2.5rem" }}
                   placeholder="LeetCode username or URL"
                   value={form.leetcodeAccount}
                   onChange={(e) =>
@@ -240,13 +251,14 @@ export default function StudentProfile() {
 
             <div>
               <label className="student-label">Codeforces</label>
-              <div className="relative">
+              <div className="relative flex items-center">
                 <Code2
-                  size={15}
-                  className="absolute left-3 top-3.5 text-slate-400"
+                  size={16}
+                  className="absolute left-3.5 text-slate-400 pointer-events-none z-10"
                 />
                 <input
-                  className="student-input pl-9"
+                  className="student-input"
+                  style={{ paddingLeft: "2.5rem" }}
                   placeholder="Codeforces username or URL"
                   value={form.codeforcesAccount}
                   onChange={(e) =>
@@ -258,13 +270,14 @@ export default function StudentProfile() {
 
             <div>
               <label className="student-label">Telegram username</label>
-              <div className="relative">
+              <div className="relative flex items-center">
                 <MessageCircle
-                  size={15}
-                  className="absolute left-3 top-3.5 text-slate-400"
+                  size={16}
+                  className="absolute left-3.5 text-slate-400 pointer-events-none z-10"
                 />
                 <input
-                  className="student-input pl-9"
+                  className="student-input"
+                  style={{ paddingLeft: "2.5rem" }}
                   placeholder="@username"
                   value={form.telegramUsername}
                   onChange={(e) =>

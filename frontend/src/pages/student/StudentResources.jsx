@@ -84,9 +84,9 @@ export default function StudentResources() {
         student-page-head
       ">
         <div>
-          <h2>
+          {/* <h2>
             Learning Resources
-          </h2>
+          </h2> */}
 
           <p>
             Resources shared by your

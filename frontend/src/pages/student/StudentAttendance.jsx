@@ -96,14 +96,24 @@ export default function StudentAttendance() {
     (x) => x.status === "excused"
   ).length;
 
+  // Derive percentage directly or fallback to stats object
+  const calculatedPercentage = all.length
+    ? Math.round(((present + late) / all.length) * 100)
+    : 0;
+
+  const attendancePercentage =
+    data?.percentage ??
+    data?.stats?.percentage ??
+    calculatedPercentage;
+
   return (
     <StudentLayout title="Attendance">
-      <div className="student-page-head">
+      {/* <div className="student-page-head">
         <h2>Attendance</h2>
         <p>
           Track your attendance throughout the bootcamp.
         </p>
-      </div>
+      </div> */}
 
       {error && (
         <div className="student-banner">
@@ -122,7 +132,7 @@ export default function StudentAttendance() {
                   </div>
 
                   <div className="text-3xl font-black text-[#062a5c] mt-2">
-                    {data.percentage}%
+                    {attendancePercentage}%
                   </div>
                 </div>
 

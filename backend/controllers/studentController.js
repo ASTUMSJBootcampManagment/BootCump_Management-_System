@@ -16,7 +16,7 @@ const getStudentBatch = async (studentId) => {
 
 /*
 |--------------------------------------------------------------------------
-| Student Dashboard
+| Student Dashboard & Profile Overview
 |--------------------------------------------------------------------------
 */
 
@@ -24,7 +24,13 @@ exports.getStudentOverview = async (req, res, next) => {
   try {
     const studentId = req.user._id;
 
-    const batch = await getStudentBatch(studentId);
+    const [
+      studentUser,
+      batch,
+    ] = await Promise.all([
+      User.findById(studentId).select("-password").lean(),
+      getStudentBatch(studentId),
+    ]);
 
     const [
       attendance,
@@ -138,12 +144,9 @@ exports.getStudentOverview = async (req, res, next) => {
       success: true,
 
       data: {
-        student: {
-          id: req.user._id,
-          name:
-            req.user.fullname ||
-            req.user.name ||
-            "Student",
+        student: studentUser || {
+          _id: req.user._id,
+          fullname: req.user.fullname || req.user.name || "Student",
           email: req.user.email,
           role: req.user.role,
         },
@@ -537,7 +540,7 @@ exports.getMyAnnouncements = async (
 
 /*
 |--------------------------------------------------------------------------
-| Student Profile
+| Student Profile Update
 |--------------------------------------------------------------------------
 */
 
@@ -575,7 +578,7 @@ exports.updateMyProfile = async (
     const student =
       await User.findByIdAndUpdate(
         req.user._id,
-        updates,
+        { $set: updates },
         {
           new: true,
           runValidators: true,

@@ -119,27 +119,29 @@ export default function StudentLayout({ title, children }) {
       </div>
 
       <div className="mt-auto p-4">
-        <div className="rounded-2xl bg-white/5 border border-white/10 p-4 mb-3">
-          <div className="text-xs text-white/40 uppercase tracking-wider">
-            Signed in as
+        <div className="rounded-2xl bg-white/5 border border-white/10 p-4 flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="text-xs text-white/40 uppercase tracking-wider">
+              Signed in as
+            </div>
+
+            <div className="font-bold mt-1 truncate text-sm">
+              {user.fullname || "Student"}
+            </div>
+
+            <div className="text-xs text-white/50 truncate mt-0.5">
+              {user.email || ""}
+            </div>
           </div>
 
-          <div className="font-bold mt-1 truncate">
-            {user.fullname || "Student"}
-          </div>
-
-          <div className="text-xs text-white/50 truncate mt-1">
-            {user.email || ""}
-          </div>
+          <button
+            onClick={logout}
+            title="Sign out"
+            className="p-2.5 rounded-xl text-white/70 hover:bg-red-500/20 hover:text-red-200 transition shrink-0"
+          >
+            <LogOut size={18} />
+          </button>
         </div>
-
-        <button
-          onClick={logout}
-          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-white/70 hover:bg-red-500/20 hover:text-red-200"
-        >
-          <LogOut size={18} />
-          Sign out
-        </button>
       </div>
     </aside>
   );

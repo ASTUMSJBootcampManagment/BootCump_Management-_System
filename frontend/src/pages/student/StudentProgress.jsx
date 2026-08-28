@@ -84,13 +84,13 @@ export default function StudentProgress() {
 
   return (
     <StudentLayout title="My Progress">
-      <div className="student-page-head">
+      {/* <div className="student-page-head">
         <h2>Learning Progress</h2>
         <p>
           Follow your progress through the bootcamp curriculum.
           Your mentor updates these statuses.
         </p>
-      </div>
+      </div> */}
 
       {error && (
         <div className="student-banner">

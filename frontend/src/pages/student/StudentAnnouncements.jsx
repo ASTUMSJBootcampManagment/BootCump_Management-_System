@@ -51,13 +51,13 @@ export default function StudentAnnouncements() {
 
   return (
     <StudentLayout title="Announcements">
-      <div className="student-page-head">
+      {/* <div className="student-page-head">
         <h2>Announcements</h2>
         <p>
           Important updates from the bootcamp administration
           and mentors.
         </p>
-      </div>
+      </div> */}
 
       {error && (
         <div className="student-banner">
