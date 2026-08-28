@@ -67,6 +67,8 @@ exports.getAllBatches = async (
           "students",
           "fullname email role status applicationStatus assignedMentor"
         )
+        .populate("groups.mentors", "fullname email role")
+        .populate("groups.students", "fullname email role")
         .sort({ createdAt: -1 });
 
     res.json({
@@ -95,7 +97,9 @@ exports.getBatchById = async (
         .populate(
           "students",
           "fullname email role status assignedMentor"
-        );
+        )
+        .populate("groups.mentors", "fullname email role")
+        .populate("groups.students", "fullname email role");
 
     if (!batch) {
       return res.status(404).json({
@@ -140,15 +144,12 @@ exports.updateBatch = async (
       }
     });
 
-    const batch =
-      await Batch.findByIdAndUpdate(
-        req.params.id,
-        updates,
-        {
-          new: true,
-          runValidators: true,
-        }
-      );
+    if (updates.status === "Active") {
+      const activeBatch = await Batch.findOne({ status: "Active", _id: { $ne: req.params.id } });
+      if (activeBatch) return res.status(400).json({ success: false, message: `Only one batch can be active. Complete or change "${activeBatch.name}" first.` });
+    }
+
+    const batch = await Batch.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
 
     if (!batch) {
       return res.status(404).json({
@@ -354,6 +355,46 @@ exports.enrollStudentInBatch =
       next(error);
     }
   };
+
+exports.setBatchGroups = async (req, res, next) => {
+  try {
+    const { groups } = req.body;
+    if (!Array.isArray(groups) || groups.some((group) => !group.name?.trim())) {
+      return res.status(400).json({ success: false, message: "Each group needs a name." });
+    }
+    const batch = await Batch.findById(req.params.id);
+    if (!batch) return res.status(404).json({ success: false, message: "Batch not found." });
+    const studentIds = new Set();
+    const mentorIds = new Set();
+    for (const group of groups) {
+      for (const id of group.students || []) {
+        const key = String(id);
+        if (studentIds.has(key)) return res.status(400).json({ success: false, message: "A student can belong to only one group in a batch." });
+        studentIds.add(key);
+      }
+      for (const id of group.mentors || []) mentorIds.add(String(id));
+    }
+    const users = await User.find({ _id: { $in: [...studentIds, ...mentorIds] } }).select("role");
+    if (users.length !== studentIds.size + mentorIds.size || users.some((user) => studentIds.has(String(user._id)) && user.role !== "Student") || users.some((user) => mentorIds.has(String(user._id)) && user.role !== "Mentor")) {
+      return res.status(400).json({ success: false, message: "Groups must contain valid students and mentors." });
+    }
+    batch.groups = groups.map((group) => ({ name: group.name.trim(), mentors: group.mentors || [], students: group.students || [] }));
+    batch.students = [...studentIds];
+    batch.mentors = [...mentorIds];
+    await batch.save();
+    await User.updateMany({ _id: { $in: [...studentIds] } }, { assignedBatch: batch._id });
+    res.json({ success: true, message: "Groups saved successfully.", data: batch });
+  } catch (error) { next(error); }
+};
+
+exports.getMyGroups = async (req, res, next) => {
+  try {
+    const batch = await Batch.findOne({ status: "Active", "groups.mentors": req.user._id }).select("name groups");
+    if (!batch) return res.json({ success: true, data: [] });
+    const groups = batch.groups.filter((group) => group.mentors.some((id) => String(id) === String(req.user._id))).map((group) => ({ _id: group._id, name: group.name, batch: { _id: batch._id, name: batch.name } }));
+    res.json({ success: true, data: groups });
+  } catch (error) { next(error); }
+};
 
 exports.completeBatch = async (
   req,

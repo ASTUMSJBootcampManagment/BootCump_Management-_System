@@ -18,12 +18,12 @@ const emptyForm = {
   instructions: "",
   dueDate: "",
   maxScore: 100,
-  batch: "",
+  group: "",
 };
 
 export default function Assignments() {
   const [assignments, setAssignments] = useState([]);
-  const [batches, setBatches] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editing, setEditing] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -39,25 +39,27 @@ export default function Assignments() {
     setLoading(true);
 
     try {
-      const assignmentsResponse =
-        await API.get("/assignments");
+      const assignmentsResponse = await API.get("/assignments");
 
-      setAssignments(
-        assignmentsResponse.data.data || []
-      );
+      setAssignments(assignmentsResponse.data.data || []);
     } catch (error) {
       setToast({
-        message:
-          error.response?.data?.message ||
-          "Unable to load assignments.",
+        message: error.response?.data?.message || "Unable to load assignments.",
         type: "error",
       });
     }
 
     try {
-      const batchesResponse = await API.get("/batches");
+      const groupsResponse = await API.get("/batches/my-groups");
 
-      setBatches(batchesResponse.data.data || []);
+      setGroups(groupsResponse.data.data || []);
+      if (!(groupsResponse.data.data || []).length) {
+        setToast({
+          type: "error",
+          message:
+            "No group is assigned to you in the active batch. Ask an admin to create a group and add you to it.",
+        });
+      }
     } catch {
       // Assignments can still be displayed if batches fail.
     }
@@ -76,11 +78,10 @@ export default function Assignments() {
       !form.title.trim() ||
       !form.description.trim() ||
       !form.dueDate ||
-      !form.batch
+      !form.group
     ) {
       setToast({
-        message:
-          "Title, description, due date and batch are required.",
+        message: "Title, description, due date and group are required.",
         type: "error",
       });
 
@@ -91,10 +92,7 @@ export default function Assignments() {
 
     try {
       if (editing) {
-        await API.put(
-          `/assignments/${editing._id}`,
-          form
-        );
+        await API.put(`/assignments/${editing._id}`, form);
 
         setToast({
           message: "Assignment updated successfully.",
@@ -115,9 +113,7 @@ export default function Assignments() {
       await load();
     } catch (error) {
       setToast({
-        message:
-          error.response?.data?.message ||
-          "Unable to save assignment.",
+        message: error.response?.data?.message || "Unable to save assignment.",
         type: "error",
       });
     } finally {
@@ -133,15 +129,10 @@ export default function Assignments() {
       description: assignment.description || "",
       instructions: assignment.instructions || "",
       dueDate: assignment.dueDate
-        ? new Date(assignment.dueDate)
-            .toISOString()
-            .slice(0, 16)
+        ? new Date(assignment.dueDate).toISOString().slice(0, 16)
         : "",
       maxScore: assignment.maxScore || 100,
-      batch:
-        assignment.batch?._id ||
-        assignment.batch ||
-        "",
+      group: assignment.group || "",
     });
 
     setShowForm(true);
@@ -149,9 +140,7 @@ export default function Assignments() {
 
   const remove = async (id) => {
     if (
-      !window.confirm(
-        "Delete this assignment? This action cannot be undone."
-      )
+      !window.confirm("Delete this assignment? This action cannot be undone.")
     ) {
       return;
     }
@@ -168,8 +157,7 @@ export default function Assignments() {
     } catch (error) {
       setToast({
         message:
-          error.response?.data?.message ||
-          "Unable to delete assignment.",
+          error.response?.data?.message || "Unable to delete assignment.",
         type: "error",
       });
     }
@@ -181,27 +169,26 @@ export default function Assignments() {
 
     try {
       const response = await API.get(
-        `/assignments/${assignment._id}/submissions`
+        `/assignments/${assignment._id}/submissions`,
       );
 
       setSubmissions(response.data.data || []);
     } catch (error) {
       setToast({
-        message:
-          error.response?.data?.message ||
-          "Unable to load submissions.",
+        message: error.response?.data?.message || "Unable to load submissions.",
         type: "error",
       });
     }
   };
 
-  const gradeSubmission = async (submission) => {
+  const gradeSubmission = async (submission, requestResubmission = false) => {
     const value = Number(grade[submission._id]);
 
     if (
-      !Number.isFinite(value) ||
-      value < 0 ||
-      value > Number(selected?.maxScore || 100)
+      !requestResubmission &&
+      (!Number.isFinite(value) ||
+        value < 0 ||
+        value > Number(selected?.maxScore || 100))
     ) {
       setToast({
         message: "Enter a valid grade.",
@@ -212,13 +199,11 @@ export default function Assignments() {
     }
 
     try {
-      await API.patch(
-        `/assignments/submissions/${submission._id}/grade`,
-        {
-          grade: value,
-          feedback: feedback[submission._id] || "",
-        }
-      );
+      await API.patch(`/assignments/submissions/${submission._id}/grade`, {
+        grade: value,
+        feedback: feedback[submission._id] || "",
+        requestResubmission,
+      });
 
       setToast({
         message: "Submission graded successfully.",
@@ -228,9 +213,7 @@ export default function Assignments() {
       await viewSubmissions(selected);
     } catch (error) {
       setToast({
-        message:
-          error.response?.data?.message ||
-          "Unable to grade submission.",
+        message: error.response?.data?.message || "Unable to grade submission.",
         type: "error",
       });
     }
@@ -238,16 +221,11 @@ export default function Assignments() {
 
   return (
     <MentorLayout title="Assignments">
-      <Toast
-        {...toast}
-        onClose={() => setToast(null)}
-      />
+      <Toast {...toast} onClose={() => setToast(null)} />
 
       <div className="mb-6 flex flex-wrap justify-between items-end gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#062a5c]">
-            Assignments
-          </h2>
+          <h2 className="text-3xl font-black text-[#062a5c]">Assignments</h2>
 
           <p className="text-slate-500 mt-2">
             Create assignments and review student submissions.
@@ -259,10 +237,7 @@ export default function Assignments() {
             onClick={load}
             className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl font-bold flex items-center gap-2"
           >
-            <RefreshCw
-              size={16}
-              className={loading ? "animate-spin" : ""}
-            />
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             Refresh
           </button>
 
@@ -285,9 +260,7 @@ export default function Assignments() {
           <div className="flex justify-between items-center mb-5">
             <div>
               <h3 className="text-xl font-black text-[#062a5c]">
-                {editing
-                  ? "Edit assignment"
-                  : "Create assignment"}
+                {editing ? "Edit assignment" : "Create assignment"}
               </h3>
             </div>
 
@@ -299,13 +272,9 @@ export default function Assignments() {
             </button>
           </div>
 
-          <form
-            onSubmit={submit}
-            className="grid md:grid-cols-2 gap-4"
-          >
+          <form onSubmit={submit} className="grid md:grid-cols-2 gap-4">
             <label className="font-bold text-sm">
               Title
-
               <input
                 value={form.title}
                 onChange={(e) =>
@@ -320,29 +289,23 @@ export default function Assignments() {
             </label>
 
             <label className="font-bold text-sm">
-              Batch
-
+              Group
               <select
-                value={form.batch}
+                value={form.group}
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    batch: e.target.value,
+                    group: e.target.value,
                   })
                 }
                 className="w-full mt-2 border rounded-xl px-3 py-3 font-normal"
                 required
               >
-                <option value="">
-                  Select batch
-                </option>
+                <option value="">Select group</option>
 
-                {batches.map((batch) => (
-                  <option
-                    key={batch._id}
-                    value={batch._id}
-                  >
-                    {batch.name}
+                {groups.map((group) => (
+                  <option key={group._id} value={group._id}>
+                    {group.name}
                   </option>
                 ))}
               </select>
@@ -350,7 +313,6 @@ export default function Assignments() {
 
             <label className="font-bold text-sm md:col-span-2">
               Description
-
               <textarea
                 rows="3"
                 value={form.description}
@@ -367,7 +329,6 @@ export default function Assignments() {
 
             <label className="font-bold text-sm md:col-span-2">
               Instructions
-
               <textarea
                 rows="3"
                 value={form.instructions}
@@ -383,7 +344,6 @@ export default function Assignments() {
 
             <label className="font-bold text-sm">
               Due date
-
               <input
                 type="datetime-local"
                 value={form.dueDate}
@@ -400,7 +360,6 @@ export default function Assignments() {
 
             <label className="font-bold text-sm">
               Maximum score
-
               <input
                 type="number"
                 min="1"
@@ -431,8 +390,8 @@ export default function Assignments() {
                 {saving
                   ? "Saving..."
                   : editing
-                  ? "Update assignment"
-                  : "Create assignment"}
+                    ? "Update assignment"
+                    : "Create assignment"}
               </button>
             </div>
           </form>
@@ -464,26 +423,24 @@ export default function Assignments() {
             </p>
 
             <div className="mt-4 text-xs text-slate-400">
-              Batch:{" "}
+              Group:{" "}
               <span className="font-bold text-slate-600">
-                {assignment.batch?.name || "—"}
+                {groups.find(
+                  (group) => String(group._id) === String(assignment.group),
+                )?.name || "—"}
               </span>
             </div>
 
             <div className="mt-1 text-xs text-slate-400">
               Due:{" "}
               {assignment.dueDate
-                ? new Date(
-                    assignment.dueDate
-                  ).toLocaleString()
+                ? new Date(assignment.dueDate).toLocaleString()
                 : "—"}
             </div>
 
             <div className="border-t border-slate-100 mt-5 pt-4 flex flex-wrap gap-2">
               <button
-                onClick={() =>
-                  viewSubmissions(assignment)
-                }
+                onClick={() => viewSubmissions(assignment)}
                 className="px-3 py-2 rounded-lg bg-[#062a5c] text-white text-xs font-black flex items-center gap-1"
               >
                 <Eye size={13} />
@@ -499,9 +456,7 @@ export default function Assignments() {
               </button>
 
               <button
-                onClick={() =>
-                  remove(assignment._id)
-                }
+                onClick={() => remove(assignment._id)}
                 className="px-3 py-2 rounded-lg bg-red-50 text-red-700 text-xs font-black flex items-center gap-1"
               >
                 <Trash2 size={13} />
@@ -514,14 +469,9 @@ export default function Assignments() {
 
       {!loading && !assignments.length && (
         <div className="bg-white border rounded-2xl p-12 text-center">
-          <ClipboardList
-            size={42}
-            className="mx-auto text-slate-300"
-          />
+          <ClipboardList size={42} className="mx-auto text-slate-300" />
 
-          <h3 className="font-black mt-3">
-            No assignments yet
-          </h3>
+          <h3 className="font-black mt-3">No assignments yet</h3>
 
           <p className="text-sm text-slate-400 mt-1">
             Create the first assignment for your students.
@@ -566,8 +516,7 @@ export default function Assignments() {
                   <div className="flex flex-wrap justify-between gap-3">
                     <div>
                       <div className="font-black">
-                        {submission.student?.fullname ||
-                          "Student"}
+                        {submission.student?.fullname || "Student"}
                       </div>
 
                       <div className="text-xs text-slate-400">
@@ -578,14 +527,12 @@ export default function Assignments() {
                     <div className="text-xs text-slate-400">
                       Submitted{" "}
                       {submission.submittedAt
-                        ? new Date(
-                            submission.submittedAt
-                          ).toLocaleString()
+                        ? new Date(submission.submittedAt).toLocaleString()
                         : ""}
                     </div>
                   </div>
 
-                  <div className="mt-4 bg-slate-50 rounded-xl p-4 text-sm whitespace-pre-wrap break-words">
+                  <div className="mt-4 bg-slate-50 rounded-xl p-4 text-sm whitespace-pre-wrap wap-break-word">
                     {submission.content}
                   </div>
 
@@ -595,16 +542,11 @@ export default function Assignments() {
                       min="0"
                       max={selected.maxScore || 100}
                       placeholder={`Grade / ${selected.maxScore || 100}`}
-                      value={
-                        grade[submission._id] ??
-                        submission.grade ??
-                        ""
-                      }
+                      value={grade[submission._id] ?? submission.grade ?? ""}
                       onChange={(e) =>
                         setGrade({
                           ...grade,
-                          [submission._id]:
-                            e.target.value,
+                          [submission._id]: e.target.value,
                         })
                       }
                       className="border rounded-xl px-3 py-3"
@@ -613,27 +555,29 @@ export default function Assignments() {
                     <input
                       placeholder="Feedback for student"
                       value={
-                        feedback[submission._id] ??
-                        submission.feedback ??
-                        ""
+                        feedback[submission._id] ?? submission.feedback ?? ""
                       }
                       onChange={(e) =>
                         setFeedback({
                           ...feedback,
-                          [submission._id]:
-                            e.target.value,
+                          [submission._id]: e.target.value,
                         })
                       }
                       className="border rounded-xl px-3 py-3"
                     />
 
                     <button
-                      onClick={() =>
-                        gradeSubmission(submission)
-                      }
+                      onClick={() => gradeSubmission(submission)}
                       className="px-4 py-3 bg-[#08c98b] text-white rounded-xl font-black"
                     >
                       Save grade
+                    </button>
+
+                    <button
+                      onClick={() => gradeSubmission(submission, true)}
+                      className="px-4 py-3 bg-amber-50 text-amber-800 rounded-xl font-black text-sm"
+                    >
+                      Request resubmission
                     </button>
                   </div>
                 </article>

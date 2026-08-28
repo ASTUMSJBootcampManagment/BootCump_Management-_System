@@ -1,33 +1,54 @@
 const Submission = require("../models/submissionModel");
-const Announcement = require("../models/announcement");
-const user=require("../models/userModel"); 
+const User = require("../models/userModel");
 const AppError = require("../utils/AppError");
-const gradeSubmission = async (req, res) => {
+
+// Grade Submission (Admin / Mentor)
+const gradeSubmission = async (req, res, next) => {
   try {
-    const { grade, feedback } = req.body;
-    const submission = await Submission.findByIdAndUpdate(
-      req.params.id,
-      { grade, feedback, status: "Graded" },
-      { new: true, runValidators: true }
-    )
-      .populate("student")
-      .populate("assignment", "title");
+    const { id: submissionId } = req.params;
+    const { grade, feedback, requestResubmission } = req.body;
 
+    const submission = await Submission.findById(submissionId);
     if (!submission) {
-      return res.status(404).json({ message: "Submission not found" });
+      return next(new AppError("Submission not found", 404));
     }
-    const assignmentTitle = submission.assignment ? submission.assignment.title : "your submission";
-    await Announcement.create({
-      title: `📝 Grade Released: ${assignmentTitle}`,
-      content: `Your work for "${assignmentTitle}" has been graded. Grade: ${grade}.`,
-      announcedTo: "Student",
-      batch: submission.student?.batch || null,
-      createdBy: req.user._id || req.user.id,
+
+    if (req.user.role === "Mentor") {
+      const student = await User.findById(submission.student);
+      const mentor = await User.findById(req.user._id);
+
+      const isAssignedDirectly =
+        student?.assignedMentor?.toString() === req.user._id.toString();
+      const isSameGroup = mentor?.group && student?.group === mentor.group;
+
+      if (!isAssignedDirectly && !isSameGroup) {
+        return next(
+          new AppError("Not authorized to grade this student's submission", 403)
+        );
+      }
+    }
+
+    if (requestResubmission) {
+      submission.status = "Resubmission Requested";
+    } else {
+      if (grade !== undefined) submission.grade = grade;
+      submission.status = "Graded";
+    }
+
+    if (feedback !== undefined) submission.feedback = feedback;
+
+    await submission.save();
+
+    res.status(200).json({
+      status: "success",
+      message: "Submission status updated successfully",
+      data: submission,
     });
-
-    res.status(200).json({ message: "Submission graded and notification sent", submission });
   } catch (err) {
-    next(error);
-}};
+    next(err);
+  }
+};
 
-module.exports = { gradeSubmission };
+module.exports = {
+  gradeSubmission,
+};

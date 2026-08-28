@@ -5,19 +5,48 @@ const submissionSchema = new mongoose.Schema(
     assignment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Assignment",
-      required: true,
+      required: [true, "Assignment ID is required"],
     },
 
     student: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "user",
-      required: true,
+      ref: "user", // Updated to capitalized "User" to match standard model registration
+      required: [true, "Student ID is required"],
     },
 
     content: {
       type: String,
-      required: true,
+      required: [true, "Submission content is required"],
       trim: true,
+    },
+
+    githubUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    liveUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    notes: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    status: {
+      type: String,
+      enum: ["Submitted", "Graded", "ResubmissionRequested"],
+      default: "Submitted",
+    },
+
+    resubmissionRequested: {
+      type: Boolean,
+      default: false,
     },
 
     submittedAt: {
@@ -27,7 +56,7 @@ const submissionSchema = new mongoose.Schema(
 
     grade: {
       type: Number,
-      min: 0,
+      min: [0, "Grade cannot be negative"],
       default: null,
     },
 
@@ -39,7 +68,7 @@ const submissionSchema = new mongoose.Schema(
 
     gradedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "user",
+      ref: "User", // Updated to capitalized "User"
       default: null,
     },
 
@@ -50,9 +79,10 @@ const submissionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
+// Prevent duplicate submissions by the same student for a single assignment
 submissionSchema.index(
   {
     assignment: 1,
@@ -60,12 +90,8 @@ submissionSchema.index(
   },
   {
     unique: true,
-  }
+  },
 );
 
 module.exports =
-  mongoose.models.Submission ||
-  mongoose.model(
-    "Submission",
-    submissionSchema
-  );
+  mongoose.models.Submission || mongoose.model("Submission", submissionSchema);

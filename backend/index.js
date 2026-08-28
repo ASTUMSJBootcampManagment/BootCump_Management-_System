@@ -2,59 +2,40 @@ require("dotenv").config();
 
 const dns = require("dns");
 
-dns.setServers([
-  "8.8.8.8",
-  "8.8.4.4",
-  "1.1.1.1",
-]);
+dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
 
 const express = require("express");
 const cors = require("cors");
 
-const dbConnect =
-  require("./config/dbConnect");
+const dbConnect = require("./config/dbConnect");
 
-const authRoutes =
-  require("./routes/authroute");
+const authRoutes = require("./routes/authroute");
 
-const userRoutes =
-  require("./routes/userRoute");
+const userRoutes = require("./routes/userRoute");
 
-const batchRoutes =
-  require("./routes/BatchRoute");
+const batchRoutes = require("./routes/BatchRoute");
 
-const announcementRoute =
-  require("./routes/announcementRoute");
+const announcementRoute = require("./routes/announcementRoute");
 
-const attendanceRoute =
-  require("./routes/attendanceRoute");
+const attendanceRoute = require("./routes/attendanceRoute");
 
-const progressRoute =
-  require("./routes/progressRoutes");
+const progressRoute = require("./routes/progressRoutes");
 
-const assignmentRoutes =
-  require("./routes/assignmentRoutes");
+const assignmentRoutes = require("./routes/assignmentRoutes");
 
-const gradingRoutes =
-  require("./routes/gradingRoutes");
+const gradingRoutes = require("./routes/gradingRoutes");
 
-const dashboardRoute =
-  require("./routes/dashboardRoute");
+const dashboardRoute = require("./routes/dashboardRoute");
 
-const studentRoutes =
-  require("./routes/studentRoutes");
+const studentRoutes = require("./routes/studentRoutes");
 
-const adminRoute =
-  require("./routes/adminRoute");
+const adminRoute = require("./routes/adminRoute");
 
-const systemRoute =
-  require("./routes/systemRoute");
+const systemRoute = require("./routes/systemRoute");
 
-const resourceRoutes =
-  require("./routes/resourceRoutes");
+const resourceRoutes = require("./routes/resourceRoutes");
 
-const notificationRoutes =
-  require("./routes/notificationRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 require("./models/userModel");
 require("./models/Batches");
@@ -73,134 +54,65 @@ app.use(
       "http://localhost:5176",
     ],
 
-    methods: [
-      "GET",
-      "POST",
-      "PUT",
-      "PATCH",
-      "DELETE",
-      "OPTIONS",
-    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-    ],
-  })
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
 );
 
 app.use(
   express.json({
     limit: "5mb",
-  })
+  }),
 );
+app.use(express.urlencoded({ extended: true }));
 
-app.get(
-  "/api/health",
-  (req, res) => {
-    res.json({
-      success: true,
-      message:
-        "ASTU MSJ Bootcamp API is running.",
-    });
-  }
-);
+app.get("/api/health", (req, res) => {
+  res.json({
+    success: true,
+    message: "ASTU MSJ Bootcamp API is running.",
+  });
+});
 
-app.use(
-  "/api/auth",
-  authRoutes
-);
+app.use("/api/auth", authRoutes);
 
-app.use(
-  "/api/admin",
-  adminRoute
-);
+app.use("/api/admin", adminRoute);
 
-app.use(
-  "/api/system",
-  systemRoute
-);
+app.use("/api/system", systemRoute);
 
-app.use(
-  "/api/users",
-  userRoutes
-);
+app.use("/api/users", userRoutes);
 
-app.use(
-  "/api/batches",
-  batchRoutes
-);
+app.use("/api/batches", batchRoutes);
 
-app.use(
-  "/api/announcement",
-  announcementRoute
-);
+app.use("/api/announcement", announcementRoute);
 
-app.use(
-  "/api/attendance",
-  attendanceRoute
-);
+app.use("/api/attendance", attendanceRoute);
 
-app.use(
-  "/api/progress",
-  progressRoute
-);
+app.use("/api/progress", progressRoute);
 
-app.use(
-  "/api/assignments",
-  assignmentRoutes
-);
+app.use("/api/assignments", assignmentRoutes);
 
-app.use(
-  "/api/grading",
-  gradingRoutes
-);
+app.use("/api/grading", gradingRoutes);
 
-app.use(
-  "/api/dashboard",
-  dashboardRoute
-);
+app.use("/api/dashboard", dashboardRoute);
 
-app.use(
-  "/api/student",
-  studentRoutes
-);
+app.use("/api/student", studentRoutes);
 
-app.use(
-  "/api/resources",
-  resourceRoutes
-);
+app.use("/api/resources", resourceRoutes);
 
-app.use(
-  "/api/notifications",
-  notificationRoutes
-);
+app.use("/api/notifications", notificationRoutes);
 
-app.use(
-  (err, req, res, next) => {
-    console.error(err);
+app.use((err, req, res, next) => {
+  console.error(err);
 
-    res.status(
-      err.statusCode || 500
-    ).json({
-      success: false,
-      message:
-        err.message ||
-        "Internal server error.",
-    });
-  }
-);
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || "Internal server error.",
+  });
+});
 
-const PORT =
-  process.env.PORT_API ||
-  process.env.PORT ||
-  3000;
+const PORT = process.env.PORT_API || process.env.PORT || 3000;
 
-app.listen(
-  PORT,
-  () => {
-    console.log(
-      `Server running on port ${PORT}`
-    );
-  }
-);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

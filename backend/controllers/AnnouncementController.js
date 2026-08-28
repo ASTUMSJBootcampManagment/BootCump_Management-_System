@@ -6,9 +6,7 @@ async function mentorCanAccessBatch(req, batchId) {
     return true;
   }
 
-  if (!batchId) {
-    return true;
-  }
+  if (!batchId) return false;
 
   return Boolean(
     await Batch.exists({
@@ -44,6 +42,14 @@ exports.createAnnouncement = async (req, res, next) => {
         message:
           "You are not assigned to this batch.",
       });
+    }
+
+    if (req.user.role === "Mentor" && !batch) {
+      return res.status(400).json({ success: false, message: "Mentors must select one of their assigned batches." });
+    }
+
+    if (req.user.role === "Mentor" && announcedTo !== "Student") {
+      return res.status(400).json({ success: false, message: "Mentor announcements can only target students in their batch." });
     }
 
     const announcement =
@@ -174,6 +180,13 @@ exports.updateAnnouncement = async (
 
     if (
       req.user.role === "Mentor" &&
+      String(announcement.createdBy) !== String(req.user._id)
+    ) {
+      return res.status(403).json({ success: false, message: "You can only edit announcements you created." });
+    }
+
+    if (
+      req.user.role === "Mentor" &&
       !(await mentorCanAccessBatch(
         req,
         announcement.batch
@@ -243,6 +256,17 @@ exports.deleteAnnouncement = async (
         message:
           "Announcement not found.",
       });
+    }
+
+    if (
+      req.user.role === "Mentor" &&
+      String(announcement.createdBy) !== String(req.user._id)
+    ) {
+      return res.status(403).json({ success: false, message: "You can only delete announcements you created." });
+    }
+
+    if (req.user.role === "Mentor" && req.body.announcedTo !== undefined && req.body.announcedTo !== "Student") {
+      return res.status(400).json({ success: false, message: "Mentor announcements can only target students in their batch." });
     }
 
     if (

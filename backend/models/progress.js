@@ -21,6 +21,11 @@ const progressSchema =
         required: true,
       },
 
+      group: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: null,
+      },
+
       status: {
         type: String,
         enum: [
@@ -51,6 +56,7 @@ const progressSchema =
 progressSchema.index({
   student: 1,
   batch: 1,
+  group: 1,
   topic: 1,
 });
 

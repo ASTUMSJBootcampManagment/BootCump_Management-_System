@@ -16,6 +16,7 @@ const initial = {
   content: "",
   batch: "",
   announcedTo: "Student",
+  announcementDate: new Date().toISOString().slice(0, 16),
 };
 
 export default function Announcements() {
@@ -32,7 +33,7 @@ export default function Announcements() {
     setLoading(true);
 
     try {
-      const response = await API.get("/announcement");
+      const response = await API.get("/announcement/get");
       setItems(response.data.data || []);
     } catch (error) {
       setToast({
@@ -82,7 +83,7 @@ export default function Announcements() {
           type: "success",
         });
       } else {
-        await API.post("/announcement", form);
+        await API.post("/announcement/create", form);
 
         setToast({
           message: "Announcement published.",
@@ -114,6 +115,7 @@ export default function Announcements() {
       content: item.content || "",
       batch: item.batch?._id || item.batch || "",
       announcedTo: item.announcedTo || "Student",
+      announcementDate: item.announcementDate ? new Date(item.announcementDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
     });
 
     setShow(true);
@@ -285,10 +287,18 @@ export default function Announcements() {
                 <option value="Student">
                   Students
                 </option>
-                <option value="All">
-                  Everyone
-                </option>
               </select>
+            </label>
+
+            <label className="font-bold text-sm">
+              Publish date
+
+              <input
+                type="datetime-local"
+                value={form.announcementDate}
+                onChange={(e) => setForm({ ...form, announcementDate: e.target.value })}
+                className="w-full mt-2 border rounded-xl px-3 py-3 font-normal"
+              />
             </label>
 
             <div className="md:col-span-2 flex justify-end gap-2">

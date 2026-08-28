@@ -30,7 +30,6 @@ export default function StudentAssignments() {
     setError("");
 
     try {
-      // Execute requests independently so one failure won't block the other
       const [assignmentRes, submissionRes] = await Promise.allSettled([
         API.get("/assignments"),
         API.get("/assignments/my-submissions"),
@@ -40,7 +39,10 @@ export default function StudentAssignments() {
         const rawData = assignmentRes.value.data;
         const fetchedAssignments = Array.isArray(rawData)
           ? rawData
-          : rawData?.data || rawData?.assignments || [];
+          : rawData?.data?.assignments ||
+            rawData?.data ||
+            rawData?.assignments ||
+            [];
         setAssignments(fetchedAssignments);
       } else {
         console.error("Assignments fetch failed:", assignmentRes.reason);
@@ -51,14 +53,17 @@ export default function StudentAssignments() {
         const rawSubData = submissionRes.value.data;
         const fetchedSubmissions = Array.isArray(rawSubData)
           ? rawSubData
-          : rawSubData?.data || rawSubData?.submissions || [];
+          : rawSubData?.data?.submissions ||
+            rawSubData?.data ||
+            rawSubData?.submissions ||
+            [];
         setSubmissions(fetchedSubmissions);
       } else {
         console.error("Submissions fetch failed:", submissionRes.reason);
       }
     } catch (err) {
       setError(
-        err.response?.data?.message || "Unable to load assignment details."
+        err.response?.data?.message || "Unable to load assignment details.",
       );
     } finally {
       setLoading(false);
@@ -82,6 +87,10 @@ export default function StudentAssignments() {
   const getStatus = (assignment) => {
     const submission = getSubmission(assignment._id);
 
+    if (submission?.status === "Resubmission Requested") {
+      return "resubmit";
+    }
+
     if (
       submission &&
       submission.grade !== null &&
@@ -94,10 +103,7 @@ export default function StudentAssignments() {
       return "submitted";
     }
 
-    if (
-      assignment.dueDate &&
-      new Date(assignment.dueDate) < new Date()
-    ) {
+    if (assignment.dueDate && new Date(assignment.dueDate) < new Date()) {
       return "overdue";
     }
 
@@ -106,17 +112,16 @@ export default function StudentAssignments() {
 
   const filtered = useMemo(() => {
     if (filter === "all") return assignments;
-
-    return assignments.filter(
-      (assignment) => getStatus(assignment) === filter
-    );
+    return assignments.filter((assignment) => getStatus(assignment) === filter);
   }, [assignments, submissions, filter]);
 
   const submit = async () => {
     if (!selected) return;
 
-    if (!content.trim()) {
-      setMessage("Please enter your submission.");
+    const trimmedContent = content.trim();
+
+    if (!trimmedContent) {
+      setMessage("Please enter your submission content.");
       return;
     }
 
@@ -126,18 +131,15 @@ export default function StudentAssignments() {
     try {
       await API.post("/assignments/submit", {
         assignmentId: selected._id,
-        content: content.trim(),
+        content: trimmedContent,
       });
 
       setMessage("Assignment submitted successfully.");
       setSelected(null);
       setContent("");
-
       await load();
     } catch (err) {
-      setMessage(
-        err.response?.data?.message || "Unable to submit assignment."
-      );
+      setMessage(err.response?.data?.message || "Unable to submit assignment.");
     } finally {
       setSaving(false);
     }
@@ -146,24 +148,14 @@ export default function StudentAssignments() {
   if (loading) {
     return (
       <StudentLayout title="Assignments">
-        <div className="student-card student-empty">
-          Loading assignments...
-        </div>
+        <div className="student-card student-empty">Loading assignments...</div>
       </StudentLayout>
     );
   }
 
   return (
     <StudentLayout title="Assignments">
-      {/* <div className="student-page-head">
-        <h2>Assignments & Projects</h2>
-        <p>
-          View your assignments, submit your work and review mentor feedback.
-        </p>
-      </div> */}
-
       {error && <div className="student-banner">{error}</div>}
-
       {message && !selected && <div className="student-banner">{message}</div>}
 
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
@@ -214,9 +206,7 @@ export default function StudentAssignments() {
         ].map(([value, label]) => (
           <button
             key={value}
-            className={`student-filter ${
-              filter === value ? "active" : ""
-            }`}
+            className={`student-filter ${filter === value ? "active" : ""}`}
             onClick={() => setFilter(value)}
           >
             {label}
@@ -242,7 +232,6 @@ export default function StudentAssignments() {
               <div className="student-panel-header">
                 <div>
                   <h3>{assignment.title}</h3>
-
                   <span>
                     Due{" "}
                     {assignment.dueDate
@@ -250,7 +239,6 @@ export default function StudentAssignments() {
                       : "No deadline"}
                   </span>
                 </div>
-
                 <span className="student-status">{status}</span>
               </div>
 
@@ -263,7 +251,6 @@ export default function StudentAssignments() {
                   <div className="text-xs uppercase font-black text-slate-400 mb-2">
                     Instructions
                   </div>
-
                   <div className="text-sm text-slate-600 whitespace-pre-wrap">
                     {assignment.instructions}
                   </div>
@@ -275,34 +262,33 @@ export default function StudentAssignments() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 size={16} className="text-[#08ad81]" />
-                      <span className="font-bold text-sm">
-                        Your submission
-                      </span>
+                      <span className="font-bold text-sm">Your submission</span>
                     </div>
 
+                    {/* Render Grade Badge if grade exists or status is Graded */}
                     {submission.grade !== null &&
                       submission.grade !== undefined && (
-                        <span className="inline-flex items-center gap-1 font-black text-[#062a5c]">
-                          <Award size={15} />
-                          {submission.grade}/
-                          {assignment.maxScore || 100}
+                        <span className="inline-flex items-center gap-1 font-black text-[#062a5c] text-lg">
+                          <Award size={18} className="text-[#08c98b]" />
+                          {submission.grade}/{assignment.maxScore || 100}
                         </span>
                       )}
                   </div>
 
+                  {/* Submission Text Content */}
                   {submission.content && (
                     <p className="text-sm text-slate-600 mt-3 whitespace-pre-wrap">
                       {submission.content}
                     </p>
                   )}
 
+                  {/* Mentor Feedback Container */}
                   {submission.feedback && (
-                    <div className="mt-4 rounded-xl bg-white border p-3">
-                      <div className="text-xs uppercase font-black text-slate-400">
-                        Mentor feedback
+                    <div className="mt-4 rounded-xl bg-white border p-4 shadow-sm">
+                      <div className="text-xs font-black uppercase tracking-wider text-slate-400 mb-1">
+                        Mentor Feedback
                       </div>
-
-                      <p className="text-sm text-slate-600 mt-1">
+                      <p className="text-sm text-slate-700 font-medium whitespace-pre-wrap">
                         {submission.feedback}
                       </p>
                     </div>
@@ -311,17 +297,19 @@ export default function StudentAssignments() {
               )}
 
               <div className="flex justify-end mt-5">
-                {status === "pending" && (
+                {(status === "pending" || status === "resubmit") && (
                   <button
                     className="student-btn"
                     onClick={() => {
                       setSelected(assignment);
-                      setContent("");
+                      setContent(submission ? submission.content : "");
                       setMessage("");
                     }}
                   >
                     <Send size={14} />
-                    Submit assignment
+                    {status === "resubmit"
+                      ? "Resubmit work"
+                      : "Submit assignment"}
                   </button>
                 )}
 
@@ -359,10 +347,7 @@ export default function StudentAssignments() {
                 <h2 className="text-xl font-black text-[#062a5c]">
                   Submit assignment
                 </h2>
-
-                <p className="text-sm text-slate-400 mt-1">
-                  {selected.title}
-                </p>
+                <p className="text-sm text-slate-400 mt-1">{selected.title}</p>
               </div>
 
               <button
@@ -379,13 +364,12 @@ export default function StudentAssignments() {
 
             <div className="p-5">
               <label className="student-label">Your submission</label>
-
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={10}
                 placeholder="Paste your solution, explanation, GitHub link, or other required work here..."
-                className="student-input resize-none"
+                className="student-input resize-none w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-[#08c98b]"
               />
 
               {message && (

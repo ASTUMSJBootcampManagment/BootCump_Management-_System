@@ -1,16 +1,10 @@
 const express = require("express");
 const router = express.Router();
-
-const {
-  markAttendance,
-  getAttendance,
-  getStudentAttendanceStats, deleteAllAttendance, 
-} = require("../controllers/attendanceController");
-
+const { markAttendance, getAttendanceHistory, getMentorStudents, getStudentAttendanceStats } = require("../controllers/attendanceController");
 const { verifyToken, restrictTo } = require("../middlewares/authMiddleware");
-
-router.post("/attender",verifyToken, restrictTo("Mentor", "Admin"), markAttendance);
-router.get("/", getAttendance);
-router.get("/stats/:studentId",verifyToken, restrictTo("Mentor", "Admin", "Student"), getStudentAttendanceStats);
-
+router.use(verifyToken);
+router.get("/students", restrictTo("Mentor", "Admin"), getMentorStudents);
+router.get("/history", restrictTo("Mentor", "Admin", "Student"), getAttendanceHistory);
+router.post("/attender", restrictTo("Mentor", "Admin"), markAttendance);
+router.get("/stats/:studentId", restrictTo("Mentor", "Admin", "Student"), getStudentAttendanceStats);
 module.exports = router;

@@ -1,72 +1,43 @@
 const express = require("express");
-const { verifyToken, restrictTo } = require("../middlewares/authMiddleware");
-const authorizeRoles = require("../middlewares/roleMiddleware");
+const router = express.Router();
+
 const {
   createAssignment,
   getAssignments,
   updateAssignment,
   deleteAssignment,
 } = require("../controllers/assignmentController");
+
 const {
   submitAssignment,
-  getSubmissionsForAssignment,
   getMySubmissions,
+  getAssignmentSubmissions,
+  gradeSubmission, // <-- Import here
 } = require("../controllers/submissionController");
 
-const router = express.Router();
+const { verifyToken, restrictTo } = require("../middlewares/authMiddleware");
 
-router.post("/", verifyToken, restrictTo("Admin", "Mentor"), createAssignment);
-router.get("/", verifyToken, getAssignments);
-router.put(
-  "/:id",
-  verifyToken,
-  restrictTo("Admin", "Mentor"),
-  updateAssignment,
-);
-router.delete(
-  "/:id",
-  verifyToken,
-  restrictTo("Admin", "Mentor"),
-  deleteAssignment,
-);
+// Protect all routes
+router.use(verifyToken);
 
-// Submissions
-router.post(
-  "/submit",
-  verifyToken,
-  authorizeRoles("Student"),
-  submitAssignment,
-);
-router.get(
-  "/:assignmentId/submissions",
-  verifyToken,
-  authorizeRoles("Admin", "Mentor"),
-  getSubmissionsForAssignment,
-);
-router.get(
-  "/my-submissions",
-  verifyToken,
-  authorizeRoles("Student"),
-  getMySubmissions,
-);
-router.post("/submit", verifyToken, restrictTo("Student"), submitAssignment);
-router.get(
-  "/:assignmentId/submissions",
-  verifyToken,
-  restrictTo("Admin", "Mentor"),
-  getSubmissionsForAssignment,
-);
-router.get(
-  "/my-submissions",
-  verifyToken,
-  restrictTo("Student"),
-  getMySubmissions,
-);
-//router.put(
-  //"/submissions/:id/grade",
-  //verifyToken,
-  //restrictTo("Admin", "Mentor"),
-  //gradeSubmission,
-//);
+// --- STATIC ROUTES (Must come BEFORE /:id routes) ---
+router.get("/my-submissions", restrictTo("Student"), getMySubmissions);
+router.post("/submit", restrictTo("Student"), submitAssignment);
+
+// --- BASE ASSIGNMENT ROUTES ---
+router
+  .route("/")
+  .get(getAssignments)
+  .post(restrictTo("Admin", "Mentor"), createAssignment);
+
+// --- SPECIFIC ASSIGNMENT SUB-ROUTES ---
+router.get("/:id/submissions", restrictTo("Mentor"), getAssignmentSubmissions);
+router.patch("/submissions/:id/grade", restrictTo("Mentor"), gradeSubmission);
+
+// --- PARAMETERIZED ID ROUTES (Must come LAST) ---
+router
+  .route("/:id")
+  .put(restrictTo("Admin", "Mentor"), updateAssignment)
+  .delete(restrictTo("Admin", "Mentor"), deleteAssignment);
 
 module.exports = router;
