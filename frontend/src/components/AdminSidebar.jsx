@@ -19,6 +19,8 @@ import {
   X,
 } from "lucide-react";
 
+import astumsjLogo from "../assets/astumsj-logo.png";
+
 const items = [
   {
     path: "/admin/dashboard",
@@ -76,7 +78,6 @@ const items = [
     path: "/admin/resources",
     icon: BookOpen,
   },
-
   {
     path: "/admin/settings",
     label: "System Settings",
@@ -94,30 +95,17 @@ export default function AdminSidebar({
 
   try {
     user = JSON.parse(
-      localStorage.getItem(
-        "user"
-      ) || "{}"
+      localStorage.getItem("user") || "{}"
     );
   } catch {
     user = {};
   }
 
   const logout = () => {
-    localStorage.removeItem(
-      "token"
-    );
-
-    localStorage.removeItem(
-      "user"
-    );
-
-    localStorage.removeItem(
-      "requiresPasswordChange"
-    );
-
-    localStorage.removeItem(
-      "rememberMe"
-    );
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("requiresPasswordChange");
+    localStorage.removeItem("rememberMe");
 
     navigate("/login", {
       replace: true,
@@ -144,7 +132,6 @@ export default function AdminSidebar({
           flex-col
         "
       >
-
         <div
           className="
             px-6
@@ -181,14 +168,19 @@ export default function AdminSidebar({
                 w-11
                 h-11
                 rounded-xl
-                bg-[#08c98b]
+                bg-white
+                p-1
                 grid
                 place-items-center
-                font-black
-                text-lg
+                overflow-hidden
+                shrink-0
               "
             >
-              A
+              <img
+                src={astumsjLogo}
+                alt="ASTU MSJ Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
 
             <div className="min-w-0">
@@ -307,18 +299,19 @@ export default function AdminSidebar({
                 w-10
                 h-10
                 rounded-full
-                bg-[#08c98b]
+                bg-white
+                p-1
                 grid
                 place-items-center
-                font-black
+                overflow-hidden
+                shrink-0
               "
             >
-              {(
-                user.fullname ||
-                "A"
-              )
-                .charAt(0)
-                .toUpperCase()}
+              <img
+                src={astumsjLogo}
+                alt="ASTU MSJ Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
 
             <div className="min-w-0">

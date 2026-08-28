@@ -134,13 +134,7 @@ export default function Dashboard() {
 
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-sm font-bold text-[#08ad81]">
-            Welcome back
-          </div>
-
-          <h2 className="text-3xl font-black text-[#062a5c] mt-1">
-            Mentor overview
-          </h2>
+          
 
           <p className="text-slate-500 mt-2">
             Manage your assigned students and keep their bootcamp progress moving.

@@ -63,7 +63,6 @@ export default function Students() {
 
       <div className="mb-6 flex flex-wrap justify-between items-end gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#062a5c]">My Students</h2>
 
           <p className="text-slate-500 mt-2">
             Only students authorized under your mentor assignment are shown.
