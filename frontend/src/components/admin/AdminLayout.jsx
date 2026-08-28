@@ -26,6 +26,7 @@ const titles = {
   "/admin/progress": "Progress",
   "/admin/assignments": "Assignments",
   "/admin/announcements": "Announcements",
+  "/admin/resources": "Resources",
   "/admin/settings": "System Settings",
 };
 
