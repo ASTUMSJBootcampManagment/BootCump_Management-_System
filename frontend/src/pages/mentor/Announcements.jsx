@@ -33,8 +33,9 @@ export default function Announcements() {
     setLoading(true);
 
     try {
-      const response = await API.get("/announcement/get");
-      setItems(response.data.data || []);
+      // Updated endpoint URL to /announcements
+      const response = await API.get("/announcements");
+      setItems(response.data?.data || response.data || []);
     } catch (error) {
       setToast({
         message:
@@ -46,7 +47,7 @@ export default function Announcements() {
 
     try {
       const response = await API.get("/batches");
-      setBatches(response.data.data || []);
+      setBatches(response.data?.data || response.data || []);
     } catch {
       // Keep announcements usable.
     }
@@ -73,8 +74,9 @@ export default function Announcements() {
 
     try {
       if (editing) {
+        // Updated endpoint URL to /announcements/:id
         await API.put(
-          `/announcement/${editing._id}`,
+          `/announcements/${editing._id}`,
           form
         );
 
@@ -83,7 +85,8 @@ export default function Announcements() {
           type: "success",
         });
       } else {
-        await API.post("/announcement/create", form);
+        // Updated endpoint URL to /announcements
+        await API.post("/announcements", form);
 
         setToast({
           message: "Announcement published.",
@@ -115,7 +118,9 @@ export default function Announcements() {
       content: item.content || "",
       batch: item.batch?._id || item.batch || "",
       announcedTo: item.announcedTo || "Student",
-      announcementDate: item.announcementDate ? new Date(item.announcementDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+      announcementDate: item.announcementDate
+        ? new Date(item.announcementDate).toISOString().slice(0, 16)
+        : new Date().toISOString().slice(0, 16),
     });
 
     setShow(true);
@@ -127,7 +132,8 @@ export default function Announcements() {
     }
 
     try {
-      await API.delete(`/announcement/${id}`);
+      // Updated endpoint URL to /announcements/:id
+      await API.delete(`/announcements/${id}`);
 
       setToast({
         message: "Announcement deleted.",
@@ -152,10 +158,9 @@ export default function Announcements() {
         onClose={() => setToast(null)}
       />
 
-      <div className="mb-6 flex flex-wrap justify-between items-end gap-4">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          
-          <p className="text-slate-500 mt-2">
+          <p className="mt-2 text-slate-500">
             Publish important updates for your students.
           </p>
         </div>
@@ -163,7 +168,7 @@ export default function Announcements() {
         <div className="flex gap-2">
           <button
             onClick={load}
-            className="px-4 py-2.5 rounded-xl bg-white border font-bold flex items-center gap-2"
+            className="flex items-center gap-2 rounded-xl border bg-white px-4 py-2.5 font-bold"
           >
             <RefreshCw
               size={16}
@@ -178,7 +183,7 @@ export default function Announcements() {
               setForm(initial);
               setShow(true);
             }}
-            className="px-4 py-2.5 rounded-xl bg-[#08c98b] text-white font-black flex items-center gap-2"
+            className="flex items-center gap-2 rounded-xl bg-[#08c98b] px-4 py-2.5 font-black text-white"
           >
             <Plus size={17} />
             New announcement
@@ -187,8 +192,8 @@ export default function Announcements() {
       </div>
 
       {show && (
-        <div className="bg-white border rounded-2xl p-6 mb-6">
-          <div className="flex justify-between items-center mb-5">
+        <div className="mb-6 rounded-2xl border bg-white p-6">
+          <div className="mb-5 flex items-center justify-between">
             <h3 className="text-xl font-black text-[#062a5c]">
               {editing
                 ? "Edit announcement"
@@ -197,7 +202,7 @@ export default function Announcements() {
 
             <button
               onClick={() => setShow(false)}
-              className="w-9 h-9 rounded-lg bg-slate-100 grid place-items-center"
+              className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100"
             >
               <X size={18} />
             </button>
@@ -205,9 +210,9 @@ export default function Announcements() {
 
           <form
             onSubmit={submit}
-            className="grid md:grid-cols-2 gap-4"
+            className="grid gap-4 md:grid-cols-2"
           >
-            <label className="font-bold text-sm">
+            <label className="text-sm font-bold">
               Title
 
               <input
@@ -219,11 +224,11 @@ export default function Announcements() {
                     title: e.target.value,
                   })
                 }
-                className="w-full mt-2 border rounded-xl px-3 py-3 font-normal"
+                className="mt-2 w-full rounded-xl border px-3 py-3 font-normal"
               />
             </label>
 
-            <label className="font-bold text-sm">
+            <label className="text-sm font-bold">
               Batch
 
               <select
@@ -234,7 +239,7 @@ export default function Announcements() {
                     batch: e.target.value,
                   })
                 }
-                className="w-full mt-2 border rounded-xl px-3 py-3 font-normal"
+                className="mt-2 w-full rounded-xl border px-3 py-3 font-normal"
               >
                 <option value="">
                   All applicable batches
@@ -251,7 +256,7 @@ export default function Announcements() {
               </select>
             </label>
 
-            <label className="font-bold text-sm md:col-span-2">
+            <label className="text-sm font-bold md:col-span-2">
               Message
 
               <textarea
@@ -264,11 +269,11 @@ export default function Announcements() {
                     content: e.target.value,
                   })
                 }
-                className="w-full mt-2 border rounded-xl px-3 py-3 font-normal"
+                className="mt-2 w-full rounded-xl border px-3 py-3 font-normal"
               />
             </label>
 
-            <label className="font-bold text-sm">
+            <label className="text-sm font-bold">
               Audience
 
               <select
@@ -279,7 +284,7 @@ export default function Announcements() {
                     announcedTo: e.target.value,
                   })
                 }
-                className="w-full mt-2 border rounded-xl px-3 py-3 font-normal"
+                className="mt-2 w-full rounded-xl border px-3 py-3 font-normal"
               >
                 <option value="Student">
                   Students
@@ -287,29 +292,29 @@ export default function Announcements() {
               </select>
             </label>
 
-            <label className="font-bold text-sm">
+            <label className="text-sm font-bold">
               Publish date
 
               <input
                 type="datetime-local"
                 value={form.announcementDate}
                 onChange={(e) => setForm({ ...form, announcementDate: e.target.value })}
-                className="w-full mt-2 border rounded-xl px-3 py-3 font-normal"
+                className="mt-2 w-full rounded-xl border px-3 py-3 font-normal"
               />
             </label>
 
-            <div className="md:col-span-2 flex justify-end gap-2">
+            <div className="flex justify-end gap-2 md:col-span-2">
               <button
                 type="button"
                 onClick={() => setShow(false)}
-                className="px-5 py-3 bg-slate-100 rounded-xl font-bold"
+                className="rounded-xl bg-slate-100 px-5 py-3 font-bold"
               >
                 Cancel
               </button>
 
               <button
                 disabled={saving}
-                className="px-5 py-3 bg-[#08c98b] text-white rounded-xl font-black"
+                className="rounded-xl bg-[#08c98b] px-5 py-3 font-black text-white disabled:opacity-50"
               >
                 {saving
                   ? "Saving..."
@@ -326,26 +331,26 @@ export default function Announcements() {
         {items.map((item) => (
           <article
             key={item._id}
-            className="bg-white border border-slate-200 rounded-2xl p-5"
+            className="rounded-2xl border border-slate-200 bg-white p-5"
           >
             <div className="flex items-start gap-4">
-              <div className="w-11 h-11 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center shrink-0">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#e8faf5] text-[#08ad81]">
                 <Megaphone size={19} />
               </div>
 
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap justify-between gap-3">
                   <div>
-                    <h3 className="font-black text-lg text-[#062a5c]">
+                    <h3 className="text-lg font-black text-[#062a5c]">
                       {item.title}
                     </h3>
 
-                    <div className="text-xs text-slate-400 mt-1">
+                    <div className="mt-1 text-xs text-slate-400">
                       {item.batch?.name || "All applicable batches"}
                       {" · "}
-                      {item.announcementDate
+                      {item.announcementDate || item.createdAt
                         ? new Date(
-                            item.announcementDate
+                            item.announcementDate || item.createdAt
                           ).toLocaleString()
                         : ""}
                     </div>
@@ -354,21 +359,21 @@ export default function Announcements() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => edit(item)}
-                      className="w-9 h-9 rounded-lg bg-slate-100 grid place-items-center"
+                      className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
                     >
                       <Edit3 size={15} />
                     </button>
 
                     <button
                       onClick={() => remove(item._id)}
-                      className="w-9 h-9 rounded-lg bg-red-50 text-red-700 grid place-items-center"
+                      className="grid h-9 w-9 place-items-center rounded-lg bg-red-50 text-red-700 hover:bg-red-100"
                     >
                       <Trash2 size={15} />
                     </button>
                   </div>
                 </div>
 
-                <p className="text-sm text-slate-600 mt-4 whitespace-pre-wrap">
+                <p className="mt-4 whitespace-pre-wrap text-sm text-slate-600">
                   {item.content}
                 </p>
               </div>
@@ -378,7 +383,7 @@ export default function Announcements() {
       </div>
 
       {!loading && !items.length && (
-        <div className="bg-white border rounded-2xl p-12 text-center text-slate-400">
+        <div className="rounded-2xl border bg-white p-12 text-center text-slate-400">
           No announcements yet.
         </div>
       )}
