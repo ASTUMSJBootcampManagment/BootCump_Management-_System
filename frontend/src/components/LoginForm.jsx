@@ -1,192 +1,374 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { FiMail, FiLock, FiEye, FiEyeOff, FiCheck } from "react-icons/fi";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import {
+  FiMail,
+  FiLock,
+  FiEye,
+  FiEyeOff,
+} from "react-icons/fi";
+
+import API from "../api/axios";
+import Toast from "./common/Toast";
 
 const LoginForm = () => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] =
+    useState(false);
+
+  const [rememberMe, setRememberMe] =
+    useState(false);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [toast, setToast] =
+    useState(null);
 
   const [data, setData] = useState({
     email: "",
     password: "",
   });
 
-  const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  const showToast = (
+    message,
+    type = "success"
+  ) => {
+    setToast({
+      message,
+      type,
+    });
+  };
+
+  const getErrorMessage = (error) => {
+    return (
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.message ||
+      "Unable to complete login."
+    );
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (loading) return;
+
+    setLoading(true);
+
     try {
-      const url = "http://localhost:3000/api/auth/login";
-      const { data: res } = await axios.post(url, data);
-      localStorage.setItem("token", res.token);
-      console.log("Login successfull:", res.message);
-      console.log("Role:", res.user.role);
+      const response = await API.post(
+        "/auth/login",
+        {
+          email: data.email.trim(),
+          password: data.password,
+        }
+      );
 
-      switch (res.user.role) {
-        case "Mentor":
-          navigate("/mentor/attendance");
-          break;
+      const result = response.data;
 
-        case "Student":
-          navigate("/student/dashboard");
-          break;
-
-        case "Admin":
-          navigate("/admin/dashboard");
-          break;
-
-        default:
-          console.error("Unknown role:", res.user.role);
-          navigate("/");
+      if (!result?.token || !result?.user) {
+        throw new Error(
+          "The server returned an invalid login response."
+        );
       }
-    } catch (error) {
-      console.log("STATUS:", error.response?.status);
-      console.log("BACKEND RESPONSE:", error.response?.data);
+
+      // --------------------------------------------------
+      // SAVE AUTH DATA
+      // --------------------------------------------------
+
+      localStorage.setItem(
+        "token",
+        result.token
+      );
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(result.user)
+      );
+
+      localStorage.setItem(
+        "requiresPasswordChange",
+        String(
+          Boolean(
+            result.requiresPasswordChange ||
+            result.user.mustChangePassword
+          )
+        )
+      );
+
+      // --------------------------------------------------
+      // REMEMBER ME
+      // --------------------------------------------------
+
+      if (rememberMe) {
+        localStorage.setItem(
+          "rememberMe",
+          "true"
+        );
+      } else {
+        localStorage.removeItem(
+          "rememberMe"
+        );
+      }
+
+      // --------------------------------------------------
+      // PASSWORD CHANGE
+      // --------------------------------------------------
 
       if (
-        error.response &&
-        error.response.status >= 400 &&
-        error.response.status <= 500
+        result.requiresPasswordChange ||
+        result.user.mustChangePassword
       ) {
-        setError(error.response.data.message);
+        showToast(
+          "Login successful. Please change your temporary password.",
+          "info"
+        );
+
+        setTimeout(() => {
+          navigate("/change-password", {
+            replace: true,
+          });
+        }, 500);
+
+        return;
       }
+
+      // --------------------------------------------------
+      // ROLE REDIRECT
+      // --------------------------------------------------
+
+      showToast(
+        result.message || "Login successful.",
+        "success"
+      );
+
+      setTimeout(() => {
+        switch (result.user.role) {
+          case "Admin":
+            navigate("/admin/dashboard", {
+              replace: true,
+            });
+            break;
+
+          case "Mentor":
+            navigate("/mentor/dashboard", {
+              replace: true,
+            });
+            break;
+
+          case "Student":
+            navigate("/student/dashboard", {
+              replace: true,
+            });
+            break;
+
+          default:
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+
+            showToast(
+              "Your account has an invalid role. Please contact the administrator.",
+              "error"
+            );
+        }
+      }, 500);
+    } catch (error) {
+      console.error(
+        "Login failed:",
+        error
+      );
+
+      showToast(
+        getErrorMessage(error),
+        "error"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen flex-1 items-center justify-center bg-[#F7F4EA] px-5 py-10 sm:px-8 lg:px-12">
-      <div className="w-full max-w-155">
-        <div className="rounded-3xl bg-white px-6 py-8 shadow-[0_10px_50px_rgba(6,42,92,0.10)] sm:px-10 sm:py-10 lg:px-12 lg:py-12">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#E8F7F0]">
-            <FiLock className="text-3xl text-[#0AA6A6]" />
-          </div>
+    <>
+      <Toast
+        {...toast}
+        onClose={() => setToast(null)}
+      />
 
-          <div className="mt-6 text-center">
-            <h2 className="text-2xl font-bold text-[#062A5C] sm:text-3xl">
-              Welcome Back!
-            </h2>
+      <div className="flex min-h-screen flex-1 items-center justify-center bg-[#F7F4EA] px-5 py-10 sm:px-8 lg:px-12">
+        <div className="w-full max-w-155">
+          <div className="rounded-3xl bg-white px-6 py-8 shadow-[0_10px_50px_rgba(6,42,92,0.10)] sm:px-10 sm:py-10 lg:px-12 lg:py-12">
 
-            <p className="mt-2 text-sm text-[#64748B] sm:text-base">
-              Sign in to continue to your account
-            </p>
-          </div>
-
-          <form
-            onSubmit={handleSubmit}
-            className="mt-8 space-y-5 sm:mt-10 sm:space-y-6"
-          >
-            <div>
-              <label
-                htmlFor="email"
-                className="mb-2 block text-sm font-semibold text-[#183153]"
-              >
-                Email
-              </label>
-
-              <div className="relative">
-                <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-lg text-[#94A3B8]" />
-
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={data.email}
-                  onChange={(e) => setData({ ...data, email: e.target.value })}
-                  placeholder="Enter your email"
-                  required
-                  className="w-full rounded-xl border border-[#D9E2EC] py-3.5 pl-12 pr-4 text-[#183153] outline-none transition placeholder:text-[#94A3B8] focus:border-[#16B86A] focus:ring-4 focus:ring-[#16B86A] sm:py-4"
-                />
-              </div>
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#E8F7F0]">
+              <FiLock className="text-3xl text-[#0AA6A6]" />
             </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-2 block text-sm font-semibold text-gray-700"
-              >
-                Password
-              </label>
+            <div className="mt-6 text-center">
+              <h2 className="text-2xl font-bold text-[#062A5C] sm:text-3xl">
+                Welcome Back!
+              </h2>
 
-              <div className="relative">
-                <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-lg text-[#94A3B8]" />
+              <p className="mt-2 text-sm text-[#64748B] sm:text-base">
+                Sign in to continue to your account
+              </p>
+            </div>
 
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={data.password}
-                  onChange={(e) =>
-                    setData({ ...data, password: e.target.value })
-                  }
-                  placeholder="Enter your password"
-                  required
-                  className="w-full rounded-xl border border-[#D9E2EC] py-3.5 pl-12 pr-12 text-[#183153] outline-none transition placeholder:text-[#94A3B8] focus:border-[#16B86A] focus:ring-4 focus:ring-[#16B86A] sm:py-4"
-                />
+            <form
+              onSubmit={handleSubmit}
+              className="mt-8 space-y-5 sm:mt-10 sm:space-y-6"
+            >
+              {/* EMAIL */}
+
+              <div>
+                <label
+                  htmlFor="email"
+                  className="mb-2 block text-sm font-semibold text-[#183153]"
+                >
+                  Email
+                </label>
+
+                <div className="relative">
+                  <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-lg text-[#94A3B8]" />
+
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={data.email}
+                    onChange={(e) =>
+                      setData({
+                        ...data,
+                        email: e.target.value,
+                      })
+                    }
+                    placeholder="Enter your email"
+                    required
+                    autoComplete="email"
+                    disabled={loading}
+                    className="w-full rounded-xl border border-[#D9E2EC] py-3.5 pl-12 pr-4 text-[#183153] outline-none transition placeholder:text-[#94A3B8] focus:border-[#16B86A] focus:ring-4 focus:ring-[#16B86A] disabled:bg-slate-50 sm:py-4"
+                  />
+                </div>
+              </div>
+
+              {/* PASSWORD */}
+
+              <div>
+                <label
+                  htmlFor="password"
+                  className="mb-2 block text-sm font-semibold text-gray-700"
+                >
+                  Password
+                </label>
+
+                <div className="relative">
+                  <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-lg text-[#94A3B8]" />
+
+                  <input
+                    id="password"
+                    name="password"
+                    type={
+                      showPassword
+                        ? "text"
+                        : "password"
+                    }
+                    value={data.password}
+                    onChange={(e) =>
+                      setData({
+                        ...data,
+                        password:
+                          e.target.value,
+                      })
+                    }
+                    placeholder="Enter your password"
+                    required
+                    autoComplete="current-password"
+                    disabled={loading}
+                    className="w-full rounded-xl border border-[#D9E2EC] py-3.5 pl-12 pr-12 text-[#183153] outline-none transition placeholder:text-[#94A3B8] focus:border-[#16B86A] focus:ring-4 focus:ring-[#16B86A] disabled:bg-slate-50 sm:py-4"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPassword(
+                        !showPassword
+                      )
+                    }
+                    disabled={loading}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-xl text-[#94A3B8] hover:text-[#0AA6A6] disabled:opacity-50"
+                  >
+                    {showPassword ? (
+                      <FiEyeOff />
+                    ) : (
+                      <FiEye />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* OPTIONS */}
+
+              <div className="flex items-center justify-between gap-3">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[#64748B]">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) =>
+                      setRememberMe(
+                        e.target.checked
+                      )
+                    }
+                    disabled={loading}
+                    className="h-4 w-4 rounded border-gray-300 text-[#16B86A] focus:ring-[#16B86A]"
+                  />
+
+                  Remember me
+                </label>
 
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-xl text-[#94A3B8] hover:text-[#0AA6A6]"
+                  onClick={() =>
+                    showToast(
+                      "Password recovery is not available yet.",
+                      "info"
+                    )
+                  }
+                  className="text-sm font-medium text-[#0AA6A6] hover:text-[#16B86A]"
                 >
-                  {showPassword ? <FiEyeOff /> : <FiEye />}
+                  Forgot password?
                 </button>
-
               </div>
-            </div>
 
-            <div className="flex items-center justify-between gap-3">
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-[#64748B]">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-[#16B86A] focus:ring-[#16B86A]"
-                />
-
-                Remember me
-              </label>
+              {/* SIGN IN */}
 
               <button
-                type="button"
-                className="text-sm font-medium text-[#0AA6A6] hover:text-[#16B86A]"
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl bg-[#16B86A] py-3.5 text-base font-semibold text-white shadow-lg shadow-[#16B86A]/20 transition hover:bg-[#12A85F] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60 sm:py-4"
               >
-                Forgot password?
+                {loading
+                  ? "Signing in..."
+                  : "Sign In"}
               </button>
+            </form>
 
-            </div>
+            <p className="mt-7 text-center text-sm text-[#64748B]">
+              Don't have an account?{" "}
 
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-[#16B86A] py-3.5 text-base font-semibold text-white shadow-lg shadow-[#16B86A]/20 transition hover:bg-[#12A85F] hover:shadow-xl sm:py-4"
-            >
-              Sign In
-            </button>
+              <Link
+                to="/register"
+                className="font-semibold text-[#0AA6A6] hover:text-[#16B86A]"
+              >
+                Sign up
+              </Link>
+            </p>
+          </div>
 
-          </form>
-
-          <p className="mt-7 text-center text-sm text-[#64748B]">
-            Don't have an account?{" "}
-
-            <Link
-              to="/register"
-              className="font-semibold text-[#0AA6A6] hover:text-[#16B86A]"
-            >
-              Sign up
-            </Link>
+          <p className="mt-6 text-center text-sm text-[#94A3B8]">
+            © 2026 ASTUMSJ Summer BootCamp. All rights reserved.
           </p>
-
         </div>
-
-        <p className="mt-6 text-center text-sm text-[#94A3B8]">
-          © 2026 ASTUMSJ Summer BootCamp. All rights reserved.
-        </p>
-
       </div>
-    </div>
+    </>
   );
 };
 

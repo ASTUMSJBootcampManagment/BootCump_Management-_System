@@ -1,167 +1,159 @@
-const mongoose= require("mongoose")
-const userSchema= new mongoose.Schema({
-
-    "email":{
-        type:String,
-        required:[true,"email is required"],
-        trim:true,
-        unique:true,
-        lowercase:true
-    },
-    "password":{
-        type:String,
-        required:[true,"password is required"],
-    },
-    "status":{
-      type:String,
-      enum:["pending","approved","rejected"],
-      default:"pending"
-    },
-    "fullname":{
-      type:String,
-      required:[true,"fullname is required"],
-      trim:true
-    },
-    "role": {
-    type: String,
-    enum: ["Admin", "Mentor", "Student"],
-    default: "Student",
-  },
-  "verified":{
-    type:Boolean,
-    default:false
-  },
-  "verificationCode":{
-    type:String,
-    default:""
-  },
-  verificationCodeValidation:{
-    type:Number,
-    select:false
-  },
-  forgotPasswordCode: {
-    type: String,
-    select: false,
-  },
-  forgotPasswordCodeValidation: {
-    type: Number,
-    select: false,
-  },
-}, {
-  timestamps: true,
-});
-
-module.exports = mongoose.models.user || mongoose.model("user", userSchema);
-
-/*
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
-    "email": {
+    email: {
       type: String,
-      required: [true, "email is required"],
+      required: true,
       trim: true,
-      unique: true,
       lowercase: true,
+      unique: true,
     },
-    "password": {
+
+    password: {
       type: String,
-      required: [true, "password is required"],
+      required: true,
     },
-    "status": {
+
+    fullname: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
-    },
-    "name": {
-      type: String,
-      required: [true, "name is required"],
       trim: true,
+      default: "",
     },
-    "role": {
+
+    role: {
       type: String,
       enum: ["Admin", "Mentor", "Student"],
       default: "Student",
     },
-    "verified": {
+
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+
+    verified: {
       type: Boolean,
       default: false,
     },
-    "verificationCode": {
-      type: String,
-      default: "",
-    },
-    "verificationCodeValidation": {
-      type: Number,
-      select: false,
-    },
-    "forgotPasswordCode": {
-      type: String,
-      select: false,
-    },
-    "forgotPasswordCodeValidation": {
-      type: Number,
-      select: false,
+
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
     },
 
-    "universityId": {
+    temporaryPasswordExpiresAt: {
+      type: Date,
+      default: null,
+    },
+
+    universityId: {
       type: String,
       trim: true,
       default: "",
     },
-    "codeforcesAccount": {
+
+    codeforcesAccount: {
       type: String,
       trim: true,
       default: "",
     },
-    "leetcodeAccount": {
+
+    leetcodeAccount: {
       type: String,
       trim: true,
       default: "",
     },
-    "githubAccount": {
+
+    githubAccount: {
       type: String,
       trim: true,
       default: "",
     },
-    "reasonToJoin": {
+
+    reasonToJoin: {
       type: String,
       default: "",
     },
-    "telegramUsername": {
-      type: String,
-      trim: true,
-      default: "",
-    },
-    "phoneNumber": {
+
+    telegramUsername: {
       type: String,
       trim: true,
       default: "",
     },
-    "gender": {
+
+    phoneNumber: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    gender: {
       type: String,
       enum: ["Male", "Female"],
+      default: undefined,
     },
-    "hasConstantInternet": {
-      type: Boolean,
-      default: false,
-    },
-    "hasPersonalLaptop": {
+
+    hasConstantInternet: {
       type: Boolean,
       default: false,
     },
 
-    // Group / Batch assignment
-    "assignedBatch": {
+    hasPersonalLaptop: {
+      type: Boolean,
+      default: false,
+    },
+
+    applicationStatus: {
+      type: String,
+      enum: [
+        "waiting",
+        "approved",
+        "rejected",
+        "withdrawn",
+      ],
+      default: "waiting",
+    },
+
+    appliedBatch: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Batch",
       default: null,
     },
-    "assignedMentor": {
+
+    assignedBatch: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Batch",
+      default: null,
+    },
+
+    assignedMentor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "user",
       default: null,
+    },
+
+    approvedAt: {
+      type: Date,
+      default: null,
+    },
+
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      default: null,
+    },
+
+    rejectedAt: {
+      type: Date,
+      default: null,
+    },
+
+    rejectionReason: {
+      type: String,
+      default: "",
     },
   },
   {
@@ -169,5 +161,17 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.models.user || mongoose.model("user", userSchema);
-*/
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
+
+userSchema.methods.matchPassword = function (password) {
+  return bcrypt.compare(password, this.password);
+};
+
+module.exports =
+  mongoose.models.user ||
+  mongoose.model("user", userSchema);

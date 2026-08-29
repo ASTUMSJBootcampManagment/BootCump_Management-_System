@@ -1,51 +1,212 @@
-import React from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
-import AdminSidebar from '../components/AdminSidebar';
-import { Search, Bell } from 'lucide-react';
+import {
+  Outlet,
+  useLocation,
+} from "react-router-dom";
+
+import {
+  Bell,
+  Menu,
+  X,
+} from "lucide-react";
+
+import {
+  useState,
+} from "react";
+
+import AdminSidebar from "../AdminSidebar";
 
 export default function AdminLayout() {
-  const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const [
+    mobileOpen,
+    setMobileOpen,
+  ] = useState(false);
+
+  const location =
+    useLocation();
+
+  const user = JSON.parse(
+    localStorage.getItem(
+      "user"
+    ) || "{}"
+  );
+
+  const title =
+    location.pathname
+      .split("/")
+      .filter(Boolean)
+      .pop() || "dashboard";
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      {/* Fixed Sidebar */}
-      <AdminSidebar />
+    <div className="
+      min-h-screen
+      bg-[#f5f7fa]
+    ">
+      <div className="
+        hidden
+        lg:block
+      ">
+        <AdminSidebar />
+      </div>
 
-      {/* Main Right Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header */}
-        <header className="h-16 bg-white border-b border-slate-100 px-6 flex items-center justify-between sticky top-0 z-10">
-          <div className="flex items-center gap-3">
-            <h2 className="font-bold text-slate-800 text-lg">Admin Portal</h2>
-            <span className="text-xs bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-full">
-              ASTU MSJ Management
-            </span>
+      {mobileOpen && (
+        <div className="
+          fixed
+          inset-0
+          z-50
+          lg:hidden
+        ">
+          <div
+            className="
+              absolute
+              inset-0
+              bg-black/50
+            "
+            onClick={() =>
+              setMobileOpen(false)
+            }
+          />
+
+          <div className="
+            relative
+            w-[250px]
+            h-full
+          ">
+            <AdminSidebar />
+          </div>
+        </div>
+      )}
+
+      <div className="
+        lg:ml-[250px]
+        min-h-screen
+      ">
+        <header className="
+          h-16
+          bg-white
+          border-b
+          border-slate-200
+          px-4
+          lg:px-7
+          flex
+          items-center
+          justify-between
+          sticky
+          top-0
+          z-30
+        ">
+          <div className="
+            flex
+            items-center
+            gap-3
+          ">
+            <button
+              className="
+                lg:hidden
+                p-2
+                rounded-lg
+                hover:bg-slate-100
+              "
+              onClick={() =>
+                setMobileOpen(
+                  !mobileOpen
+                )
+              }
+            >
+              {mobileOpen ? (
+                <X size={20} />
+              ) : (
+                <Menu size={20} />
+              )}
+            </button>
+
+            <div>
+              <div className="
+                text-xs
+                uppercase
+                tracking-widest
+                text-slate-400
+                font-bold
+              ">
+                Admin portal
+              </div>
+
+              <h1 className="
+                text-lg
+                font-black
+                text-[#062a5c]
+                capitalize
+              ">
+                {title}
+              </h1>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
-              <input
-                type="text"
-                placeholder="Search portal..."
-                className="pl-9 pr-4 py-1.5 bg-slate-100/80 rounded-xl text-xs w-64 focus:outline-emerald-500"
-              />
-            </div>
-            <button className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100">
-              <Bell size={18} />
+          <div className="
+            flex
+            items-center
+            gap-4
+          ">
+            <button className="
+              w-9
+              h-9
+              rounded-xl
+              bg-slate-100
+              grid
+              place-items-center
+              text-slate-500
+            ">
+              <Bell size={17} />
             </button>
-            <div className="flex items-center gap-2 border-l pl-4 border-slate-200">
-              <div className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs">
-                {user.name ? user.name[0] : 'A'}
+
+            <div className="
+              hidden
+              sm:flex
+              items-center
+              gap-2
+            ">
+              <div className="
+                w-9
+                h-9
+                rounded-full
+                bg-[#08c98b]
+                text-white
+                grid
+                place-items-center
+                font-black
+              ">
+                {(
+                  user.fullname ||
+                  "A"
+                )
+                  .charAt(0)
+                  .toUpperCase()}
               </div>
-              <span className="text-xs font-semibold text-slate-700">{user.name || 'Admin'}</span>
+
+              <div>
+                <div className="
+                  text-sm
+                  font-bold
+                  text-[#062a5c]
+                ">
+                  {user.fullname ||
+                    "Administrator"}
+                </div>
+
+                <div className="
+                  text-[10px]
+                  text-slate-400
+                ">
+                  Administrator
+                </div>
+              </div>
             </div>
           </div>
         </header>
 
-        {/* Page View Outlet */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="
+          p-4
+          md:p-6
+        ">
           <Outlet />
         </main>
       </div>

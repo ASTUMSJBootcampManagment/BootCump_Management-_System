@@ -1,18 +1,46 @@
 const express = require("express");
-const {register,registerMentor,UpdateRegistrationStatus} = require("../controllers/registrationController")
-const {login}=require("../controllers/loginController")
+
 const router = express.Router();
-const { verifyToken, restrictTo } = require("../middlewares/authMiddleware");
 
+const {
+  register,
+} = require("../controllers/registrationController");
 
+const {
+  login,
+} = require("../controllers/loginController");
 
-router.post("/register", register);
-router.post("/login", login);
-router.post("/registerMentor",verifyToken,restrictTo("Admin"),registerMentor)
-router.post("/updateRegistration/:id",verifyToken,restrictTo("Admin"),UpdateRegistrationStatus)
+const {
+  getRegistrationStatus,
+} = require("../controllers/systemController");
 
-console.log("Register Controller:", register); 
-console.log("Login Controller:", login);
+const {
+  changePassword,
+} = require("../controllers/authController");
 
+const {
+  verifyToken,
+} = require("../middlewares/authMiddleware");
+
+router.get(
+  "/registration-status",
+  getRegistrationStatus
+);
+
+router.post(
+  "/register",
+  register
+);
+
+router.post(
+  "/login",
+  login
+);
+
+router.patch(
+  "/change-password",
+  verifyToken,
+  changePassword
+);
 
 module.exports = router;

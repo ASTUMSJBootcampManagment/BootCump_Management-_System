@@ -5,7 +5,7 @@ const notificationSchema =
     {
       recipient: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: "user",
         required: true,
         index: true,
       },

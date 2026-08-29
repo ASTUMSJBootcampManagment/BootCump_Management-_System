@@ -1,37 +1,84 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
 
-const ProtectedRoute = ({ allowedRoles = [] }) => {
-  const token = localStorage.getItem("token");
+export default function ProtectedRoute({
+  allowedRoles = [],
+}) {
   const location = useLocation();
 
-  if (!token) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
+  const token = localStorage.getItem("token");
+
+  let user = null;
 
   try {
-    const decoded = jwtDecode(token);
-
-    if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-      localStorage.removeItem("token");
-
-      return <Navigate to="/login" replace />;
-    }
-
-    const userRole = decoded.role;
-
-    if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
-      return <Navigate to="/unauthorized" replace />;
-    }
-
-    return <Outlet />;
-  } catch (error) {
-    console.error("Invalid token:", error);
-
-    localStorage.removeItem("token");
-
-    return <Navigate to="/login" replace />;
+    user = JSON.parse(
+      localStorage.getItem("user") || "null"
+    );
+  } catch {
+    user = null;
   }
-};
 
-export default ProtectedRoute;
+  if (!token || !user) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: location.pathname,
+        }}
+      />
+    );
+  }
+
+  if (
+    allowedRoles.length > 0 &&
+    !allowedRoles.includes(user.role)
+  ) {
+    if (user.role === "Admin") {
+      return (
+        <Navigate
+          to="/admin/dashboard"
+          replace
+        />
+      );
+    }
+
+    if (user.role === "Mentor") {
+      return (
+        <Navigate
+          to="/mentor/dashboard"
+          replace
+        />
+      );
+    }
+
+    if (user.role === "Student") {
+      return (
+        <Navigate
+          to="/student/dashboard"
+          replace
+        />
+      );
+    }
+
+    return (
+      <Navigate
+        to="/login"
+        replace
+      />
+    );
+  }
+
+  if (
+    user.mustChangePassword === true &&
+    location.pathname !== "/change-password"
+  ) {
+    return (
+      <Navigate
+        to="/change-password"
+        replace
+      />
+    );
+  }
+
+  return <Outlet />;
+}

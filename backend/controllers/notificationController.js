@@ -2,10 +2,6 @@ const Notification = require(
   "../models/Notification"
 );
 
-// =====================================================
-// GET UNREAD NOTIFICATIONS
-// GET /api/notifications
-// =====================================================
 const getNotifications = async (
   req,
   res,
@@ -30,10 +26,6 @@ const getNotifications = async (
   }
 };
 
-// =====================================================
-// MARK AS READ
-// PATCH /api/notifications/:id/read
-// =====================================================
 const markNotificationAsRead =
   async (req, res, next) => {
     try {

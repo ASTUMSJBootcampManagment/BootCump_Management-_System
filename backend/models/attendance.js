@@ -23,6 +23,10 @@ const AttendanceSchema= new mongoose.Schema({
 
         
     }
+    ,group: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: null,
+    }
 },
 
 {
@@ -30,7 +34,7 @@ const AttendanceSchema= new mongoose.Schema({
   }
 );
 
-AttendanceSchema.index({ student: 1, batch: 1, date: 1 }, { unique: true });
+AttendanceSchema.index({ student: 1, batch: 1, group: 1, date: 1 }, { unique: true });
 
 module.exports =mongoose.models.Attendance ||mongoose.model("Attendance", AttendanceSchema);
 

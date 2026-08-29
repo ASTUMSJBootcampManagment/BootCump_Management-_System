@@ -1,87 +1,157 @@
 const User = require("../models/userModel");
-const bcrypt = require("bcrypt");
-const AppError = require("../utils/AppError");
+const Batch = require("../models/Batches");
+const SystemSettings = require("../models/SystemSettings");
+const generateTemporaryPassword = require("../utils/generateTemporaryPassword");
+
 exports.register = async (req, res) => {
   try {
-    const { email, password, name } = req.body;
-
-    const user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const newUser = new User({
+    const {
+      fullname,
+      name,  
       email,
-      password: hashedPassword,
-      role: "Student",
-      name,
-    });
+      universityId,
+      codeforcesAccount,
+      leetcodeAccount,
+      githubAccount,
+      reasonToJoin,
+      telegramUsername,
+      phoneNumber,
+      gender,
+      hasConstantInternet,
+      hasPersonalLaptop,
+    } = req.body;
 
-    await newUser.save();
+    const applicantName = fullname || name;
 
-    return res.status(201).json({
-      status: "pending",
-      message: "Registration submitted successfully. Your account is pending admin approval."
-    });
-  } catch (error) {
-    next(error);  }
-};
+    
 
-exports.registerMentor = async (req, res) => {
-  try {
-    const { email, password, name } = req.body;
+    const settings = await SystemSettings.findOne();
 
-    const user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const newMentor = new User({
-      email,
-      password: hashedPassword,
-      role: "Mentor",
-      name,
-      status: "approved" 
-    });
-
-    await newMentor.save();
-
-    return res.status(201).json({
-      status: "approved",
-      message: "Mentor created successfully."
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-exports.UpdateRegistrationStatus = async (req, res) => {
-  try {
-    const { id } = req.params; 
-    const { status } = req.body; 
-    if (!["approved", "rejected"].includes(status)) {
-      return res.status(400).json({ 
-        message: "Invalid status. Please provide either 'approved' or 'rejected'." 
+    if (!settings || !settings.registrationOpen) {
+      return res.status(403).json({
+        success: false,
+        code: "REGISTRATION_CLOSED",
+        message: "Registration is currently closed.",
       });
     }
-    const updatedStudent = await User.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true }
-    ).select("-password");
-    if (!updatedStudent) {
-      return res.status(404).json({ message: "Student not found" });
+
+    if (!settings.registrationBatch) {
+      return res.status(403).json({
+        success: false,
+        code: "NO_REGISTRATION_BATCH",
+        message: "There is currently no batch accepting applications.",
+      });
     }
-    return res.status(200).json({
-      message: `Student status successfully updated to ${status}.`,
-      student: updatedStudent
+
+    const batch = await Batch.findById(settings.registrationBatch);
+
+    if (!batch) {
+      return res.status(404).json({
+        success: false,
+        message: "The registration batch could not be found.",
+      });
+    }
+
+    if (!batch.registrationEnabled) {
+      return res.status(403).json({
+        success: false,
+        code: "REGISTRATION_CLOSED",
+        message: "Registration for this batch is closed.",
+      });
+    }
+
+  
+
+    if (
+      !applicantName ||
+      !email ||
+      !universityId ||
+      !codeforcesAccount ||
+      !leetcodeAccount ||
+      !githubAccount ||
+      !reasonToJoin ||
+      !telegramUsername ||
+      !phoneNumber ||
+      !gender
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Please complete all required fields.",
+      });
+    }
+
+    if (
+      typeof hasConstantInternet !== "boolean" ||
+      typeof hasPersonalLaptop !== "boolean"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Please answer the internet and laptop questions.",
+      });
+    }
+
+    if (!["Male", "Female"].includes(gender)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid gender.",
+      });
+    }
+
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existingUser = await User.findOne({
+      email: normalizedEmail,
     });
 
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "An application or account already exists for this email.",
+      });
+    }
+
+
+    const placeholderPassword = generateTemporaryPassword();
+
+    const student = await User.create({
+      fullname: applicantName.trim(),
+      email: normalizedEmail,
+      password: placeholderPassword,
+      role: "Student",
+      status: "pending",
+      applicationStatus: "waiting",
+      appliedBatch: batch._id,
+      universityId: universityId.trim(),
+      codeforcesAccount: codeforcesAccount.trim(),
+      leetcodeAccount: leetcodeAccount.trim(),
+      githubAccount: githubAccount.trim(),
+      reasonToJoin: reasonToJoin.trim(),
+      telegramUsername: telegramUsername.trim(),
+      phoneNumber: phoneNumber.trim(),
+      gender,
+      hasConstantInternet,
+      hasPersonalLaptop,
+      verified: false,
+      mustChangePassword: false,
+    });
+
+    return res.status(201).json({
+      success: true,
+      status: "waiting",
+      message:
+        "Your application has been submitted and placed on the waiting list.",
+      batch: {
+        id: batch._id,
+        name: batch.name,
+      },
+    });
   } catch (error) {
-    next(error);  }
+    console.error("Registration error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to submit registration.",
+    });
+  }
 };

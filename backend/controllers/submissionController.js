@@ -1,49 +1,141 @@
 const Submission = require("../models/submissionModel");
 const Assignment = require("../models/assignmentModel");
-const user=require("../models/userModel"); 
+const AppError = require("../utils/AppError");
 
-const submitAssignment = async (req, res) => {
+// Submit or Resubmit Assignment (Student)
+const submitAssignment = async (req, res, next) => {
   try {
-    const { assignmentId, content } = req.body;
+    const { assignmentId, content, githubLink, fileUrl } = req.body;
+    const studentId = req.user._id || req.user.id;
+
+    if (!assignmentId) {
+      return next(new AppError("Assignment ID is required.", 400));
+    }
+
+    if (!content || !content.trim()) {
+      return next(new AppError("Submission content is required.", 400));
+    }
 
     const assignment = await Assignment.findById(assignmentId);
     if (!assignment) {
-      return res.status(404).json({ message: "Assignment not found" });
+      return next(new AppError("Assignment not found.", 404));
     }
 
-    const submission = new Submission({
+    // Check for existing submission
+    let submission = await Submission.findOne({
       assignment: assignmentId,
-      student: req.user.id,
-      content,
+      student: studentId,
     });
-    await submission.save();
 
-    res.status(201).json({ message: "Assignment submitted", submission });
-  } catch (err) {
-    console.log(err);
-    if (err.code === 11000) {
-      return res.status(409).json({ message: "You already submitted this assignment" });
+    if (submission) {
+      // Update existing submission
+      submission.content = content.trim();
+      if (githubLink) submission.githubLink = githubLink;
+      if (fileUrl) submission.fileUrl = fileUrl;
+      submission.status = "Submitted";
+      submission.submittedAt = new Date();
+      await submission.save();
+    } else {
+      // Create new submission
+      submission = await Submission.create({
+        assignment: assignmentId,
+        student: studentId,
+        content: content.trim(),
+        githubLink: githubLink || "",
+        fileUrl: fileUrl || "",
+        status: "Submitted",
+        submittedAt: new Date(),
+      });
     }
-    res.status(500).json({ message: "Something went wrong" });
+
+    res.status(200).json({
+      status: "success",
+      message: "Assignment submitted successfully.",
+      data: submission,
+    });
+  } catch (err) {
+    next(err);
   }
 };
 
-const getSubmissionsForAssignment = async (req, res) => {
+// Get Submissions for Current Student
+const getMySubmissions = async (req, res, next) => {
   try {
-    const submissions = await Submission.find({ assignment: req.params.assignmentId })
-      .populate("student", "username email");
-    res.status(200).json(submissions);
-  } catch (err) {
-    next(error);
-}};
+    const studentId = req.user._id || req.user.id;
 
-const getMySubmissions = async (req, res) => {
+    // Select all submission fields
+    const submissions = await Submission.find({ student: studentId })
+      .populate("assignment", "title maxScore dueDate")
+      .sort({ submittedAt: -1 });
+
+    res.status(200).json({
+      status: "success",
+      results: submissions.length,
+      data: submissions,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get all submissions for a specific assignment (Mentor / Admin)
+const getAssignmentSubmissions = async (req, res, next) => {
   try {
-    const submissions = await Submission.find({ student: req.user.id })
-      .populate("assignment", "title dueDate");
-    res.status(200).json(submissions);
-  } catch (err) {
-   next(error);
-}};
+    const { id } = req.params;
 
-module.exports = { submitAssignment, getSubmissionsForAssignment, getMySubmissions };
+    const submissions = await Submission.find({ assignment: id })
+      .populate("student", "name email group")
+      .sort({ submittedAt: -1 });
+
+    res.status(200).json({
+      status: "success",
+      results: submissions.length,
+      data: submissions,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Grade a student's submission (Mentor / Admin)
+// Grade or Feedback Submission (Mentor / Admin)
+const gradeSubmission = async (req, res, next) => {
+  try {
+    const { id } = req.params; // Submission ID
+    const { grade, feedback, status } = req.body;
+
+    const submission = await Submission.findById(id);
+    if (!submission) {
+      return next(new AppError("Submission not found.", 404));
+    }
+
+    // Save values directly matching submissionModel.js schema
+    if (grade !== undefined && grade !== "") {
+      submission.grade = Number(grade);
+    }
+    if (feedback !== undefined) {
+      submission.feedback = feedback;
+    }
+
+    submission.status = status || "Graded";
+    submission.gradedBy = req.user._id || req.user.id;
+    submission.gradedAt = new Date();
+
+    await submission.save();
+
+    res.status(200).json({
+      status: "success",
+      message: "Submission graded successfully.",
+      data: submission,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = {
+  submitAssignment,
+  getMySubmissions,
+  getAssignmentSubmissions,
+  gradeSubmission, 
+};

@@ -1,178 +1,363 @@
-import React, { useEffect, useState } from 'react';
-import API from '../../api/axios';
-import { Plus, Trash2, X, Send } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import {
+  Plus,
+  Trash2,
+  X,
+  Send,
+  RefreshCw,
+  Megaphone,
+} from "lucide-react";
+import API from "../../api/axios";
 
 export default function Announcements() {
   const [announcements, setAnnouncements] = useState([]);
   const [batches, setBatches] = useState([]);
+
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
   const [formData, setFormData] = useState({
-    title: '',
-    content: '',
-    targetAudience: 'All',
-    batch: '',
+    title: "",
+    content: "",
+    announcedTo: "All",
+    batch: "",
   });
 
-  const fetchData = async () => {
+  const loadData = async () => {
+    setLoading(true);
+
     try {
-      const [annRes, batchRes] = await Promise.all([
-        API.get('/announcements'),
-        API.get('/batches'),
+      // Updated endpoint URL from /announcements/get to /announcements
+      const [announcementResponse, batchResponse] = await Promise.all([
+        API.get("/announcements"),
+        API.get("/batches"),
       ]);
-      setAnnouncements(annRes.data);
-      setBatches(batchRes.data);
-    } catch (err) {
-      console.error('Failed to load announcements data', err);
+
+      setAnnouncements(
+        announcementResponse.data?.data ||
+          announcementResponse.data ||
+          []
+      );
+
+      setBatches(
+        batchResponse.data?.data || batchResponse.data || []
+      );
+    } catch (error) {
+      console.error("Failed to fetch announcements:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    loadData();
   }, []);
 
-  const handleCreateAnnouncement = async (e) => {
+  const createAnnouncement = async (e) => {
     e.preventDefault();
+
+    setSaving(true);
+
     try {
-      await API.post('/announcements', formData);
+      // Updated endpoint URL to match /announcements REST API conventions
+      await API.post("/announcements", {
+        title: formData.title,
+        content: formData.content,
+        announcedTo: formData.announcedTo,
+        batch: formData.batch || null,
+      });
+
+      setFormData({
+        title: "",
+        content: "",
+        announcedTo: "All",
+        batch: "",
+      });
+
       setShowModal(false);
-      setFormData({ title: '', content: '', targetAudience: 'All', batch: '' });
-      fetchData();
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to post announcement');
+
+      await loadData();
+    } catch (error) {
+      alert(
+        error.response?.data?.message ||
+          "Unable to publish announcement."
+      );
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this announcement?')) return;
+  const deleteAnnouncement = async (id) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this announcement?"
+      )
+    ) {
+      return;
+    }
+
     try {
+      // Updated endpoint URL to plural route /announcements/:id
       await API.delete(`/announcements/${id}`);
-      fetchData();
-    } catch (err) {
-      alert('Failed to delete announcement');
+
+      await loadData();
+    } catch (error) {
+      alert(
+        error.response?.data?.message ||
+          "Unable to delete announcement."
+      );
     }
   };
 
   return (
-    <div className="p-6 bg-slate-50 min-h-screen space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Announcements</h1>
-          <p className="text-slate-500 text-sm">Publish updates and broadcasts for students and mentors.</p>
+          <h1 className="text-2xl font-black text-[#062a5c]">Announcements</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Publish updates and important information.
+          </p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-[#00C896] hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-sm transition"
-        >
-          <Plus size={18} /> New Announcement
-        </button>
+
+        <div className="flex gap-2">
+          <button
+            onClick={loadData}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700"
+          >
+            <RefreshCw size={17} />
+            Refresh
+          </button>
+
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 rounded-xl bg-[#08c98b] px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-600"
+          >
+            <Plus size={18} />
+            New Announcement
+          </button>
+        </div>
       </div>
 
-      {/* List View */}
-      <div className="space-y-4">
-        {announcements.length === 0 ? (
-          <div className="bg-white p-8 rounded-2xl text-center text-slate-400 border border-slate-100">
-            No announcements found. Click "New Announcement" to publish one.
+      {/* List */}
+      <section className="space-y-4">
+        {loading ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-400">
+            Loading announcements...
+          </div>
+        ) : announcements.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
+            <Megaphone
+              size={40}
+              className="mx-auto text-slate-300"
+            />
+
+            <h3 className="mt-4 font-black text-slate-700">
+              No announcements
+            </h3>
+
+            <p className="mt-1 text-sm text-slate-400">
+              Create an announcement to communicate with bootcamp members.
+            </p>
           </div>
         ) : (
           announcements.map((item) => (
-            <div key={item._id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex justify-between items-start">
-              <div className="space-y-2 max-w-3xl">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
-                    {item.targetAudience}
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    {new Date(item.createdAt || item.publishDate).toLocaleDateString()}
-                  </span>
+            <article
+              key={item._id}
+              className="rounded-2xl border border-slate-200 bg-white p-5"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex gap-4">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#e8faf5] text-[#08ad81]">
+                    <Megaphone size={20} />
+                  </div>
+
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">
+                        {item.announcedTo ||
+                          item.targetAudience ||
+                          "All"}
+                      </span>
+
+                      <span className="text-xs text-slate-400">
+                        {new Date(
+                          item.createdAt ||
+                            item.publishDate ||
+                            Date.now()
+                        ).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <h2 className="mt-2 text-lg font-black text-[#062a5c]">
+                      {item.title}
+                    </h2>
+
+                    <p className="mt-1 text-sm leading-6 text-slate-600">
+                      {item.content}
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-lg font-bold text-slate-800">{item.title}</h3>
-                <p className="text-sm text-slate-600 leading-relaxed">{item.content}</p>
+
+                <button
+                  onClick={() =>
+                    deleteAnnouncement(
+                      item._id
+                    )
+                  }
+                  className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-500"
+                >
+                  <Trash2 size={18} />
+                </button>
               </div>
-              <button
-                onClick={() => handleDelete(item._id)}
-                className="text-slate-400 hover:text-rose-500 p-2 rounded-lg transition"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
+            </article>
           ))
         )}
-      </div>
+      </section>
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl space-y-4">
-            <div className="flex justify-between items-center border-b pb-3">
-              <h3 className="font-bold text-slate-800 text-lg">Post Announcement</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 p-5">
+              <h2 className="text-lg font-black text-[#062a5c]">
+                Post Announcement
+              </h2>
+
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-slate-400 hover:text-slate-700"
+              >
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleCreateAnnouncement} className="space-y-4">
+
+            <form
+              onSubmit={createAnnouncement}
+              className="space-y-4 p-5"
+            >
               <div>
-                <label className="text-xs font-semibold text-slate-600">Title</label>
+                <label className="text-xs font-black text-slate-600">
+                  Title
+                </label>
+
                 <input
-                  type="text"
                   required
-                  placeholder="e.g. Schedule Update for Workshop"
-                  className="w-full mt-1 p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-emerald-500"
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      title: e.target.value,
+                    })
+                  }
+                  placeholder="Announcement title"
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="text-xs font-semibold text-slate-600">Target Audience</label>
+                  <label className="text-xs font-black text-slate-600">
+                    Audience
+                  </label>
+
                   <select
-                    className="w-full mt-1 p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-emerald-500 bg-white"
-                    value={formData.targetAudience}
-                    onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
+                    value={formData.announcedTo}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        announcedTo:
+                          e.target.value,
+                      })
+                    }
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm"
                   >
-                    <option value="All">All Users</option>
-                    <option value="Student">Students Only</option>
-                    <option value="Mentor">Mentors Only</option>
+                    <option value="All">
+                      Everyone
+                    </option>
+
+                    <option value="Student">
+                      Students
+                    </option>
+
+                    <option value="Mentor">
+                      Mentors
+                    </option>
                   </select>
                 </div>
+
                 <div>
-                  <label className="text-xs font-semibold text-slate-600">Specific Batch (Optional)</label>
+                  <label className="text-xs font-black text-slate-600">
+                    Batch
+                  </label>
+
                   <select
-                    className="w-full mt-1 p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-emerald-500 bg-white"
                     value={formData.batch}
-                    onChange={(e) => setFormData({ ...formData, batch: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        batch: e.target.value,
+                      })
+                    }
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm"
                   >
-                    <option value="">All Batches</option>
-                    {batches.map((b) => (
-                      <option key={b._id} value={b._id}>{b.name}</option>
+                    <option value="">
+                      All Batches
+                    </option>
+
+                    {batches.map((batch) => (
+                      <option
+                        key={batch._id}
+                        value={batch._id}
+                      >
+                        {batch.name}
+                      </option>
                     ))}
                   </select>
                 </div>
               </div>
+
               <div>
-                <label className="text-xs font-semibold text-slate-600">Content</label>
+                <label className="text-xs font-black text-slate-600">
+                  Message
+                </label>
+
                 <textarea
                   required
-                  rows={4}
-                  placeholder="Write message content here..."
-                  className="w-full mt-1 p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-emerald-500"
+                  rows={5}
                   value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      content: e.target.value,
+                    })
+                  }
+                  placeholder="Write your announcement..."
+                  className="mt-1 w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm"
                 />
               </div>
+
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-100"
+                  onClick={() =>
+                    setShowModal(false)
+                  }
+                  className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100"
                 >
                   Cancel
                 </button>
+
                 <button
-                  type="submit"
-                  className="px-4 py-2 bg-[#00C896] text-white text-sm font-semibold rounded-xl hover:bg-emerald-600 flex items-center gap-2"
+                  disabled={saving}
+                  className="flex items-center gap-2 rounded-xl bg-[#08c98b] px-5 py-2.5 text-sm font-black text-white disabled:opacity-50"
                 >
-                  <Send size={16} /> Publish
+                  <Send size={16} />
+
+                  {saving
+                    ? "Publishing..."
+                    : "Publish"}
                 </button>
               </div>
             </form>

@@ -1,530 +1,296 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { useEffect, useMemo, useState } from "react";
 import {
-  FiBarChart2,
-  FiCheckCircle,
-  FiClock,
-  FiAlertCircle,
-  FiBookOpen,
-  FiRefreshCw,
-} from "react-icons/fi";
+  CheckCircle2,
+  Clock3,
+  AlertTriangle,
+  CircleDashed,
+  RefreshCw,
+  TrendingUp,
+  Target,
+} from "lucide-react";
 
-const StudentProgress = () => {
-  const [progress, setProgress] = useState([]);
+import API from "../../api/axios";
+import StudentLayout from "../../components/student/StudentLayout";
+import "../../components/student/student.css";
+
+const STATUS = {
+  Completed: {
+    icon: CheckCircle2,
+    label: "Completed",
+  },
+  InProgress: {
+    icon: Clock3,
+    label: "In progress",
+  },
+  NeedsImprovement: {
+    icon: AlertTriangle,
+    label: "Needs improvement",
+  },
+  NotStarted: {
+    icon: CircleDashed,
+    label: "Not started",
+  },
+};
+
+export default function StudentProgress() {
+  const [data, setData] = useState(null);
+  const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchProgress();
-  }, []);
+  const load = async () => {
+    setLoading(true);
+    setError("");
 
-  const fetchProgress = async () => {
     try {
-      setLoading(true);
-      setError("");
-
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("No authentication token found. Please log in again.");
-        setLoading(false);
-        return;
-      }
-
-      // Decode user ID from the JWT token payload
-      const payloadBase64 = token.split(".")[1];
-      const decodedPayload = JSON.parse(atob(payloadBase64));
-
-      // Check common key names for user ID in token payload
-      const userId =
-        decodedPayload.id || decodedPayload._id || decodedPayload.userId;
-
-      if (!userId) {
-        setError("Could not retrieve user ID from authentication token.");
-        setLoading(false);
-        return;
-      }
-
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
-
-      // Calls backend endpoint: /api/progress/get-one/:StudentId
-      const response = await axios.get(
-        `/api/progress/get-one/${userId}`,
-        config
-      );
-
-      const data = response.data?.data;
-
-      if (Array.isArray(data)) {
-        setProgress(data);
-      } else {
-        setProgress(
-          data?.progress ||
-            data?.records ||
-            data?.items ||
-            (data ? [data] : [])
-        );
-      }
+      const response = await API.get("/student/progress");
+      setData(response.data?.data || null);
     } catch (err) {
-      console.error("Progress error:", err);
       setError(
-        err.response?.data?.message || "Unable to load your progress."
+        err.response?.data?.message ||
+          "Unable to load your progress."
       );
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================
-  // HELPERS
-  // =========================
+  useEffect(() => {
+    load();
+  }, []);
 
-  const getStatus = (item) => {
-    const status = String(
-      item.status || item.progressStatus || ""
-    ).toLowerCase();
+  const topicsList = useMemo(() => {
+    return data?.topics || [];
+  }, [data]);
 
-    if (status === "completed") {
-      return "Completed";
-    }
+  const filteredTopics = useMemo(() => {
+    if (filter === "all") return topicsList;
+    return topicsList.filter((topic) => topic.status === filter);
+  }, [topicsList, filter]);
 
-    if (
-      status === "in progress" ||
-      status === "in-progress" ||
-      status === "inprogress"
-    ) {
-      return "In Progress";
-    }
-
-    if (
-      status === "needs improvement" ||
-      status === "needs-improvement" ||
-      status === "needsimprovement"
-    ) {
-      return "Needs Improvement";
-    }
-
-    if (
-      status === "not started" ||
-      status === "not-started" ||
-      status === "notstarted"
-    ) {
-      return "Not Started";
-    }
-
-    return item.status || "Not Started";
-  };
-
-  const getPercentage = (item) => {
-    if (item.percentage !== undefined && item.percentage !== null) {
-      return Math.min(Math.max(Number(item.percentage) || 0, 0), 100);
-    }
-
-    if (item.progress !== undefined && item.progress !== null) {
-      return Math.min(Math.max(Number(item.progress) || 0, 0), 100);
-    }
-
-    if (
-      item.progressPercentage !== undefined &&
-      item.progressPercentage !== null
-    ) {
-      return Math.min(
-        Math.max(Number(item.progressPercentage) || 0, 0),
-        100
-      );
-    }
-
-    const status = getStatus(item);
-
-    if (status === "Completed") {
-      return 100;
-    }
-
-    if (status === "In Progress") {
-      return 60;
-    }
-
-    if (status === "Needs Improvement") {
-      return 40;
-    }
-
-    return 0;
-  };
-
-  const getTopic = (item) => {
-    return (
-      item.topic ||
-      item.title ||
-      item.module ||
-      item.name ||
-      "Untitled Topic"
-    );
-  };
-
-  const getDescription = (item) => {
-    return item.description || item.notes || item.comment || "";
-  };
-
-  const getMentor = (item) => {
-    if (typeof item.mentor === "string") {
-      return item.mentor;
-    }
-
-    return (
-      item.mentor?.name ||
-      item.mentor?.fullName ||
-      item.mentor?.username ||
-      "-"
-    );
-  };
-
-  // =========================
-  // SUMMARY
-  // =========================
-
-  const completed = progress.filter(
-    (item) => getStatus(item) === "Completed"
-  ).length;
-
-  const inProgress = progress.filter(
-    (item) => getStatus(item) === "In Progress"
-  ).length;
-
-  const needsImprovement = progress.filter(
-    (item) => getStatus(item) === "Needs Improvement"
-  ).length;
-
-  const notStarted = progress.filter(
-    (item) => getStatus(item) === "Not Started"
-  ).length;
-
-  const overallPercentage =
-    progress.length > 0
-      ? Math.round(
-          progress.reduce((total, item) => total + getPercentage(item), 0) /
-            progress.length
-        )
-      : 0;
-
-  // =========================
-  // LOADING
-  // =========================
+  const inProgressCount = useMemo(() => {
+    return topicsList.filter((x) => x.status === "InProgress").length;
+  }, [topicsList]);
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <div className="h-8 w-56 rounded-lg bg-slate-200 animate-pulse" />
-          <div className="mt-2 h-4 w-80 rounded bg-slate-200 animate-pulse" />
+      <StudentLayout title="My Progress">
+        <div className="student-card student-empty">
+          Loading your learning progress...
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-          {[1, 2, 3, 4].map((item) => (
-            <div
-              key={item}
-              className="h-32 rounded-2xl bg-white border border-slate-100 animate-pulse"
-            />
-          ))}
-        </div>
-
-        <div className="h-40 rounded-2xl bg-white border border-slate-100 animate-pulse" />
-        <div className="h-96 rounded-2xl bg-white border border-slate-100 animate-pulse" />
-      </div>
+      </StudentLayout>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* =========================
-          HEADER
-      ========================== */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#082A5B]">
-            My Progress
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Track your learning progress and completed topics.
-          </p>
-        </div>
+    <StudentLayout title="My Progress">
+      {/* <div className="student-page-head">
+        <h2>Learning Progress</h2>
+        <p>
+          Follow your progress through the bootcamp curriculum.
+          Your mentor updates these statuses.
+        </p>
+      </div> */}
 
-        <button
-          type="button"
-          onClick={fetchProgress}
-          className="flex items-center justify-center gap-2 self-start rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50"
-        >
-          <FiRefreshCw />
-          Refresh
-        </button>
-      </div>
-
-      {/* =========================
-          ERROR
-      ========================== */}
       {error && (
-        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          <FiAlertCircle className="shrink-0 text-lg" />
-          <span>{error}</span>
+        <div className="student-banner">
+          {error}
         </div>
       )}
 
-      {/* =========================
-          SUMMARY CARDS
-      ========================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-        <ProgressSummary
-          title="Overall Progress"
-          value={`${overallPercentage}%`}
-          description="Average progress"
-          icon={FiBarChart2}
-        />
-        <ProgressSummary
-          title="Completed"
-          value={completed}
-          description="Completed topics"
-          icon={FiCheckCircle}
-        />
-        <ProgressSummary
-          title="In Progress"
-          value={inProgress}
-          description="Currently learning"
-          icon={FiClock}
-        />
-        <ProgressSummary
-          title="Needs Improvement"
-          value={needsImprovement}
-          description="Topics to review"
-          icon={FiAlertCircle}
-        />
-      </div>
-
-      {/* =========================
-          OVERALL PROGRESS
-      ========================== */}
-      <section className="rounded-2xl border border-slate-100 bg-white p-5 sm:p-6 shadow-sm">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-[#082A5B]">
-              Overall Learning Progress
-            </h2>
-            <p className="mt-1 text-xs text-slate-500">
-              Your average progress across recorded topics.
-            </p>
-          </div>
-          <span className="text-2xl font-bold text-[#0F766E]">
-            {overallPercentage}%
-          </span>
-        </div>
-
-        <div className="mt-5 h-3 w-full overflow-hidden rounded-full bg-slate-100">
-          <div
-            className="h-full rounded-full bg-[#10B981] transition-all duration-500"
-            style={{
-              width: `${overallPercentage}%`,
-            }}
-          />
-        </div>
-      </section>
-
-      {/* =========================
-          TOPICS
-      ========================== */}
-      <section className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-        <div className="border-b border-slate-100 p-5 sm:p-6">
-          <h2 className="text-lg font-bold text-[#082A5B]">Topic Progress</h2>
-          <p className="mt-1 text-xs text-slate-500">
-            Detailed progress for your learning topics.
-          </p>
-        </div>
-
-        {progress.length === 0 ? (
-          <div className="flex min-h-64 items-center justify-center p-6 text-center">
-            <div>
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                <FiBookOpen className="text-2xl" />
-              </div>
-              <h3 className="mt-4 font-semibold text-slate-700">
-                No progress records
-              </h3>
-              <p className="mt-1 text-sm text-slate-500">
-                Your learning progress will appear here.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {progress.map((item, index) => {
-              const status = getStatus(item);
-              const percentage = getPercentage(item);
-
-              return (
-                <div
-                  key={item._id || item.id || index}
-                  className="p-5 sm:p-6 transition hover:bg-slate-50"
-                >
-                  {/* TOP */}
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E8F7F2] text-[#0F766E]">
-                          <FiBookOpen />
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-slate-800">
-                            {getTopic(item)}
-                          </h3>
-                          {getDescription(item) && (
-                            <p className="mt-1 text-xs text-slate-500">
-                              {getDescription(item)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <StatusBadge status={status} />
+      {data && (
+        <>
+          {/* Summary */}
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="student-card p-5">
+              <div className="flex justify-between">
+                <div>
+                  <div className="text-xs font-bold text-slate-400 uppercase">
+                    Overall progress
                   </div>
-
-                  {/* PROGRESS BAR */}
-                  <div className="mt-5">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-medium text-slate-500">
-                        Progress
-                      </span>
-                      <span className="text-xs font-bold text-slate-700">
-                        {percentage}%
-                      </span>
-                    </div>
-
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          status === "Completed"
-                            ? "bg-[#10B981]"
-                            : status === "In Progress"
-                            ? "bg-[#0F766E]"
-                            : status === "Needs Improvement"
-                            ? "bg-[#D4A72C]"
-                            : "bg-slate-300"
-                        }`}
-                        style={{
-                          width: `${percentage}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* FOOTER */}
-                  <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-400">
-                    {getMentor(item) !== "-" && (
-                      <span>
-                        Mentor:{" "}
-                        <span className="font-medium text-slate-500">
-                          {getMentor(item)}
-                        </span>
-                      </span>
-                    )}
-
-                    {item.updatedAt && (
-                      <span>
-                        Updated:{" "}
-                        <span className="font-medium text-slate-500">
-                          {new Date(item.updatedAt).toLocaleDateString()}
-                        </span>
-                      </span>
-                    )}
+                  <div className="text-3xl font-black text-[#062a5c] mt-2">
+                    {data.percentage ?? 0}%
                   </div>
                 </div>
+
+                <div className="w-11 h-11 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center">
+                  <TrendingUp size={20} />
+                </div>
+              </div>
+            </div>
+
+            <div className="student-card p-5">
+              <div className="text-xs font-bold text-slate-400 uppercase">
+                Completed
+              </div>
+
+              <div className="text-3xl font-black text-[#062a5c] mt-2">
+                {data.completed ?? 0}
+              </div>
+
+              <div className="text-xs text-slate-400 mt-1">
+                of {data.total ?? 0} topics
+              </div>
+            </div>
+
+            <div className="student-card p-5">
+              <div className="text-xs font-bold text-slate-400 uppercase">
+                In progress
+              </div>
+
+              <div className="text-3xl font-black text-[#062a5c] mt-2">
+                {inProgressCount}
+              </div>
+            </div>
+
+            <div className="student-card p-5">
+              <div className="text-xs font-bold text-slate-400 uppercase">
+                Remaining
+              </div>
+
+              <div className="text-3xl font-black text-[#062a5c] mt-2">
+                {Math.max((data.total ?? 0) - (data.completed ?? 0), 0)}
+              </div>
+
+              <div className="text-xs text-slate-400 mt-1">
+                topics to complete
+              </div>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <section className="student-card student-panel mt-5">
+            <div className="student-panel-header">
+              <div>
+                <h3>Curriculum completion</h3>
+                <span>
+                  {data.completed ?? 0} of {data.total ?? 0} topics completed
+                </span>
+              </div>
+
+              <button
+                className="student-filter"
+                onClick={load}
+              >
+                <RefreshCw size={13} />
+                Refresh
+              </button>
+            </div>
+
+            <div className="h-4 bg-slate-100 rounded-full overflow-hidden mt-6">
+              <div
+                className="h-full bg-[#08c98b] rounded-full transition-all duration-500"
+                style={{
+                  width: `${Math.min(
+                    Math.max(data.percentage ?? 0, 0),
+                    100
+                  )}%`,
+                }}
+              />
+            </div>
+
+            <div className="flex justify-between text-xs text-slate-400 mt-2">
+              <span>0%</span>
+              <span className="font-bold text-[#08ad81]">
+                {data.percentage ?? 0}%
+              </span>
+              <span>100%</span>
+            </div>
+          </section>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-2 mt-5">
+            {[
+              ["all", "All topics"],
+              ["Completed", "Completed"],
+              ["InProgress", "In progress"],
+              ["NeedsImprovement", "Needs improvement"],
+              ["NotStarted", "Not started"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                onClick={() => setFilter(value)}
+                className={`student-filter ${
+                  filter === value ? "active" : ""
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Topics */}
+          <div className="grid md:grid-cols-2 gap-4 mt-5">
+            {filteredTopics.map((topic) => {
+              const config =
+                STATUS[topic.status] || STATUS.NotStarted;
+
+              const Icon = config.icon;
+
+              return (
+                <article
+                  key={topic._id || topic.topic}
+                  className="student-card student-panel"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-11 h-11 shrink-0 rounded-xl bg-[#e8faf5] text-[#08ad81] grid place-items-center">
+                      <Icon size={20} />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h3 className="font-black text-[#062a5c]">
+                            {topic.topic}
+                          </h3>
+
+                          {topic.module && (
+                            <div className="text-xs text-slate-400 mt-1">
+                              {topic.module}
+                            </div>
+                          )}
+                        </div>
+
+                        <span className="student-status">
+                          {config.label}
+                        </span>
+                      </div>
+
+                      {topic.notes && (
+                        <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                          <div className="text-[10px] uppercase font-black text-slate-400 mb-1">
+                            Mentor note
+                          </div>
+
+                          <p className="text-sm text-slate-600">
+                            {topic.notes}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 text-xs text-slate-400 mt-4">
+                        <Target size={13} />
+                        Updated{" "}
+                        {topic.updatedAt
+                          ? new Date(
+                              topic.updatedAt
+                            ).toLocaleDateString()
+                          : "recently"}
+                      </div>
+                    </div>
+                  </div>
+                </article>
               );
             })}
           </div>
-        )}
-      </section>
 
-      {/* =========================
-          STATUS LEGEND
-      ========================== */}
-      <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-[#082A5B]">Progress Status</h3>
-
-        <div className="mt-4 flex flex-wrap gap-4">
-          <Legend label="Completed" className="bg-green-100 text-green-700" />
-          <Legend label="In Progress" className="bg-teal-100 text-teal-700" />
-          <Legend
-            label="Needs Improvement"
-            className="bg-amber-100 text-amber-700"
-          />
-          <Legend label="Not Started" className="bg-slate-100 text-slate-600" />
-        </div>
-      </section>
-    </div>
+          {!filteredTopics.length && (
+            <div className="student-card student-empty mt-5">
+              No topics match this filter.
+            </div>
+          )}
+        </>
+      )}
+    </StudentLayout>
   );
-};
-
-/* =========================
-   SUMMARY CARD
-========================= */
-
-const ProgressSummary = ({ title, value, description, icon: Icon }) => {
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-slate-500">{title}</p>
-          <p className="mt-2 text-3xl font-bold text-[#082A5B]">{value}</p>
-          <p className="mt-1 text-xs text-slate-400">{description}</p>
-        </div>
-
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#E8F7F2] text-[#0F766E]">
-          <Icon className="text-xl" />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* =========================
-   STATUS BADGE
-========================= */
-
-const StatusBadge = ({ status }) => {
-  let classes = "bg-slate-100 text-slate-600";
-
-  if (status === "Completed") {
-    classes = "bg-green-100 text-green-700";
-  }
-
-  if (status === "In Progress") {
-    classes = "bg-teal-100 text-teal-700";
-  }
-
-  if (status === "Needs Improvement") {
-    classes = "bg-amber-100 text-amber-700";
-  }
-
-  return (
-    <span
-      className={`inline-flex self-start rounded-full px-3 py-1 text-xs font-semibold ${classes}`}
-    >
-      {status}
-    </span>
-  );
-};
-
-/* =========================
-   LEGEND
-========================= */
-
-const Legend = ({ label, className }) => {
-  return (
-    <div className="flex items-center gap-2">
-      <span className={`h-2.5 w-2.5 rounded-full ${className}`} />
-      <span className="text-xs text-slate-500">{label}</span>
-    </div>
-  );
-};
-
-export default StudentProgress;
+}
